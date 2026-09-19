@@ -16,8 +16,6 @@ const INITIAL_HORSES = [
     activeTripCode: 'TR-2026-0142',
     medicalHistory: 'Đã tiêm phòng đầy đủ năm 2025. Thể lực tốt, nhạy cảm với tiếng ồn lớn.',
     welfare: {
-      temperature: 37.8,
-      waterLiters: 4,
       stressLevel: 'Bình tĩnh',
       lastUpdate: '10:20',
       escortName: 'Nguyễn Văn An'
@@ -71,8 +69,6 @@ const INITIAL_HORSES = [
     activeTripCode: 'TR-2026-0142',
     medicalHistory: 'Tiền sử mất nước nhẹ khi di chuyển dài. Cần bổ sung nước đều đặn mỗi 2 tiếng.',
     welfare: {
-      temperature: 37.6,
-      waterLiters: 4,
       stressLevel: 'Bình tĩnh',
       lastUpdate: '10:20',
       escortName: 'Nguyễn Văn An'
