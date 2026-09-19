@@ -8,7 +8,7 @@ const MainLayout = ({ children }) => {
       <Header />
       <div className="layout-body">
         <Sidebar />
-        <main className="content">{children}</main>
+        <main className="app-content">{children}</main>
       </div>
     </div>
   );
