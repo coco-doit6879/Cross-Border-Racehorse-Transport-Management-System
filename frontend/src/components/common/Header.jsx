@@ -1,13 +1,12 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Dropdown, Space } from 'antd';
-import { User, LogOut, ChevronDown } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Dropdown } from 'antd';
+import { User, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const Header = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
 
   const navItems = [
     { label: 'Tổng quan', path: '/' },
@@ -32,16 +31,6 @@ const Header = () => {
       key: 'profile',
       icon: <User size={14} />,
       label: 'Hồ sơ tài khoản'
-    },
-    {
-      key: 'logout',
-      icon: <LogOut size={14} />,
-      danger: true,
-      label: 'Đăng xuất',
-      onClick: () => {
-        logout();
-        navigate('/login');
-      }
     }
   ];
 
@@ -139,7 +128,7 @@ const Header = () => {
               alignItems: 'center',
               gap: 8,
               cursor: 'pointer',
-              padding: '6px 10px',
+              padding: '6px 12px',
               borderRadius: 6,
               border: '1px solid #E5E7EB',
               backgroundColor: '#FAFAFA'
@@ -166,7 +155,7 @@ const Header = () => {
                 {user?.fullName}
               </div>
               <div style={{ fontSize: 11, color: '#0F3E2E', fontWeight: 500 }}>
-                {user?.role === 'CUSTOMER' ? 'Customer' : 'Logistics Manager'}
+                Customer
               </div>
             </div>
             <ChevronDown size={14} color="#6B7280" />

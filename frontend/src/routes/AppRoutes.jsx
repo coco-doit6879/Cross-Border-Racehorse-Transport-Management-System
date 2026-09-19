@@ -2,10 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import MainLayout from '../components/layout/MainLayout';
-import AuthLayout from '../components/layout/AuthLayout';
 
-import Login from '../pages/Auth/Login';
-import Register from '../pages/Auth/Register';
 import Overview from '../pages/Dashboard/Overview';
 import OrderList from '../pages/Orders/OrderList';
 import CreateOrder from '../pages/Orders/CreateOrder';
@@ -19,11 +16,7 @@ const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth Routes */}
-        <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
-        <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
-
-        {/* Dashboard Routes */}
+        {/* Main Portal Routes */}
         <Route path="/" element={<MainLayout><Overview /></MainLayout>} />
         <Route path="/orders" element={<MainLayout><OrderList /></MainLayout>} />
         <Route path="/orders/create" element={<MainLayout><CreateOrder /></MainLayout>} />
