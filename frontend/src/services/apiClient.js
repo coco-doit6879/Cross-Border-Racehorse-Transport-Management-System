@@ -7,7 +7,6 @@ const apiClient = axios.create({
   }
 });
 
-// Interceptor placeholder for JWT bearer token
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('cbrt_token');
   if (token) {
@@ -15,5 +14,23 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const requestUrl = error?.config?.url || '';
+
+    // The confirmed backend contract has no refresh-token endpoint. A 401 from
+    // an authenticated request therefore ends the local session. A 403 never
+    // changes authentication state.
+    if (status === 401 && !requestUrl.endsWith('/auth/login')) {
+      localStorage.removeItem('cbrt_token');
+      window.dispatchEvent(new Event('cbrt:session-expired'));
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;

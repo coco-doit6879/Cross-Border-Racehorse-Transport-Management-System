@@ -10,13 +10,21 @@ export const USER_ROLES = {
 };
 
 export const ORDER_STATUS_LABELS = {
-  PENDING_APPROVAL: 'Pending Approval',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
-  DOCS_PROCESSING: 'Docs Processing',
-  CLEARED_FOR_TRANSPORT: 'Cleared for Transport',
-  IN_TRANSIT: 'In Transit',
-  INCIDENT_HANDLING: 'Incident Handling',
-  DELIVERING: 'Delivering',
-  COMPLETED: 'Completed'
+  PENDING_APPROVAL: 'Chờ phê duyệt',
+  APPROVED: 'Đã phê duyệt',
+  REJECTED: 'Đã từ chối',
+  DOCS_PROCESSING: 'Đang xử lý hồ sơ',
+  CLEARED_FOR_TRANSPORT: 'Đủ điều kiện vận chuyển',
+  IN_TRANSIT: 'Đang vận chuyển',
+  INCIDENT_HANDLING: 'Đang xử lý sự cố',
+  DELIVERING: 'Đang bàn giao',
+  COMPLETED: 'Hoàn tất'
+};
+
+export const USER_ROLE_LABELS = {
+  LOGISTICS_MANAGER: 'Quản lý logistics',
+  TRANSPORT_SPECIALIST: 'Chuyên viên vận chuyển',
+  ROUTE_COORDINATOR: 'Điều phối tuyến',
+  DRIVER_ESCORT: 'Tài xế / hộ tống',
+  CUSTOMER: 'Khách hàng'
 };
