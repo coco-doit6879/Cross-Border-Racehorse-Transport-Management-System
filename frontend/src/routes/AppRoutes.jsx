@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
-import AuthLayout from '../components/layout/AuthLayout';
 import Login from '../pages/Auth/Login';
 import Register from '../pages/Auth/Register';
 import Overview from '../pages/Dashboard/Overview';
@@ -56,8 +55,8 @@ const ForbiddenPage = () => (
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
-      <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {isManagerDemoEnabled ? <Route path="/manager" element={<ManagerDemoLayout />}>{managerRoutes}</Route> : null}
       {isManagerDemoEnabled ? <Route path="/" element={<Navigate to="/manager" replace />} /> : null}
