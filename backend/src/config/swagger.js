@@ -36,7 +36,7 @@ const options = {
             email: { type: 'string', example: 'manager@cbrt.com' },
             role: {
               type: 'string',
-              enum: ['LOGISTICS_MANAGER', 'TRANSPORT_SPECIALIST', 'ROUTE_COORDINATOR', 'DRIVER_ESCORT', 'CUSTOMER'],
+              enum: ['LOGISTICS_MANAGER', 'TRANSPORT_SPECIALIST', 'FLEET_COORDINATOR', 'DRIVER', 'ESCORT', 'CUSTOMER'],
               example: 'LOGISTICS_MANAGER'
             },
             phone: { type: 'string', example: '+1 555-0192' }

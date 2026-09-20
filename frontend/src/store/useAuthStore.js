@@ -12,21 +12,11 @@ const removeStoredSession = () => {
   disconnectSocket();
 };
 
-const DEFAULT_USER = {
-  id: 'USR-001',
-  fullName: 'Nguyễn Văn Nam',
-  email: 'customer@cbrt.com',
-  role: 'CUSTOMER',
-  clubName: 'CLB Đua Sa Đéc',
-  phone: '0908 123 456',
-  permissions: ['horse:create_own', 'booking:create', 'compliance:upload', 'pod:sign']
-};
-
 export const useAuthStore = create((set, get) => ({
-  user: storedToken ? null : DEFAULT_USER,
+  user: null,
   token: storedToken,
-  isAuthenticated: true,
-  sessionStatus: storedToken ? 'idle' : 'authenticated',
+  isAuthenticated: Boolean(storedToken),
+  sessionStatus: storedToken ? 'idle' : 'unauthenticated',
   profileError: '',
 
   setSession: ({ token, user }) => {
@@ -47,17 +37,17 @@ export const useAuthStore = create((set, get) => ({
 
   setUser: (user) => set({
     user,
-    isAuthenticated: Boolean(user),
-    sessionStatus: user ? 'authenticated' : get().sessionStatus
+    isAuthenticated: Boolean(user && get().token),
+    sessionStatus: user && get().token ? 'authenticated' : get().sessionStatus
   }),
 
   clearSession: () => {
     removeStoredSession();
     set({
-      user: DEFAULT_USER,
+      user: null,
       token: null,
-      isAuthenticated: true,
-      sessionStatus: 'authenticated',
+      isAuthenticated: false,
+      sessionStatus: 'unauthenticated',
       profileError: ''
     });
   },
@@ -66,8 +56,8 @@ export const useAuthStore = create((set, get) => ({
     const { token, user, sessionStatus } = get();
 
     if (!token) {
-      set({ sessionStatus: 'authenticated', isAuthenticated: true, profileError: '' });
-      return get().user || DEFAULT_USER;
+      set({ user: null, sessionStatus: 'unauthenticated', isAuthenticated: false, profileError: '' });
+      return null;
     }
 
     if (user && !force) {
@@ -98,16 +88,16 @@ export const useAuthStore = create((set, get) => ({
       .catch((error) => {
         if (error?.response?.status === 401) {
           get().clearSession();
-          return DEFAULT_USER;
+          return null;
         }
 
         set({
-          user: DEFAULT_USER,
-          isAuthenticated: true,
-          sessionStatus: 'authenticated',
+          user: null,
+          isAuthenticated: false,
+          sessionStatus: 'error',
           profileError: getApiErrorMessage(error, 'Không thể tải hồ sơ người dùng.')
         });
-        return DEFAULT_USER;
+        throw error;
       })
       .finally(() => {
         bootstrapRequest = null;

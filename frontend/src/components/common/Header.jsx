@@ -19,6 +19,14 @@ const Header = () => {
     navigate('/login', { replace: true });
   };
 
+  const handleMenuClick = ({ key }) => {
+    if (key === 'logout') {
+      handleLogout();
+    } else if (key === 'manager-portal') {
+      navigate('/manager');
+    }
+  };
+
   const isManagerRoute = location.pathname.startsWith('/manager') || user?.role === USER_ROLES.LOGISTICS_MANAGER;
 
   if (isManagerRoute) {
@@ -40,9 +48,9 @@ const Header = () => {
             <small>{isManagerDemoEnabled ? 'Quản lý logistics' : statusLabel}</small>
           </div>
           {isManagerDemoEnabled ? <span className="demo-badge">Dữ liệu mẫu</span> : null}
-          {!isManagerDemoEnabled && user ? (
-            <button type="button" onClick={handleLogout}>Đăng xuất</button>
-          ) : null}
+          <button type="button" onClick={handleLogout} style={{ padding: '6px 12px', cursor: 'pointer' }}>
+            Đăng xuất
+          </button>
         </div>
       </header>
     );
@@ -76,8 +84,7 @@ const Header = () => {
       {
         key: 'manager-portal',
         icon: <ShieldAlert size={14} />,
-        label: 'Cổng điều hành Manager',
-        onClick: () => navigate('/manager')
+        label: 'Cổng điều hành Manager'
       }
     ] : []),
     { type: 'divider' },
@@ -85,8 +92,7 @@ const Header = () => {
       key: 'logout',
       icon: <LogOut size={14} />,
       label: 'Đăng xuất',
-      danger: true,
-      onClick: handleLogout
+      danger: true
     }
   ];
 
@@ -173,7 +179,7 @@ const Header = () => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
+        <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} trigger={['click']} placement="bottomRight">
           <div
             style={{
               display: 'flex',
