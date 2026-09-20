@@ -9,6 +9,7 @@ const setupSwagger = require('./config/swagger');
 const routes = require('./routes');
 const { errorHandler } = require('./middlewares/errorMiddleware');
 
+const socketAuthMiddleware = require('./socket/socketAuth');
 const gpsSocketHandler = require('./socket/gpsSocket');
 const sosSocketHandler = require('./socket/sosSocket');
 
@@ -22,6 +23,9 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
   }
 });
+
+// Socket.io JWT Authentication Middleware
+io.use(socketAuthMiddleware);
 
 // Connect MongoDB
 connectDB();
@@ -37,8 +41,12 @@ setupSwagger(app);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'CBRT Backend Service is running' });
 });
+app.get('/api/v1/health', (req, res) => {
+  res.json({ status: 'OK', message: 'CBRT Backend Service v1 is running' });
+});
 
-// API Routes
+// API Routes (supports both /api/v1 and /api for backward compatibility)
+app.use('/api/v1', routes);
 app.use('/api', routes);
 
 // Centralized Error Handler
@@ -46,7 +54,7 @@ app.use(errorHandler);
 
 // Socket.io Connection Event
 io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  console.log(`Socket connected: ${socket.id} (User: ${socket.user ? socket.user.username : 'Unknown'})`);
 
   gpsSocketHandler(io, socket);
   sosSocketHandler(io, socket);

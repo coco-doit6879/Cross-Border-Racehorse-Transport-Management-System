@@ -1,28 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const horseController = require('../controllers/horseController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
  * tags:
  *   name: Horses
- *   description: Horse Digital Passport & Identification APIs
+ *   description: Racehorse Profile & Passport Management APIs
  */
 
 /**
  * @swagger
  * /horses:
  *   get:
- *     summary: Get list of horses
+ *     summary: Get list of racehorses (Filterable by owner)
  *     tags: [Horses]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of horses
+ *         description: List of racehorse profiles retrieved successfully
  *   post:
- *     summary: Register a new racehorse profile
+ *     summary: Create new racehorse profile (Microchip ISO 11784/11785)
  *     tags: [Horses]
  *     security:
  *       - bearerAuth: []
@@ -34,17 +34,17 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
  *             $ref: '#/components/schemas/Horse'
  *     responses:
  *       201:
- *         description: Horse registered successfully
+ *         description: Racehorse profile created successfully
  */
 router.route('/')
-  .get(protect, horseController.getHorses)
-  .post(protect, authorize('CUSTOMER', 'LOGISTICS_MANAGER', 'TRANSPORT_SPECIALIST'), horseController.createHorse);
+  .get(protect, checkPermission('horse:create_own'), horseController.getHorses)
+  .post(protect, checkPermission('horse:create_own'), horseController.createHorse);
 
 /**
  * @swagger
  * /horses/{id}:
  *   get:
- *     summary: Get single horse details by ID
+ *     summary: Get single racehorse details by ID
  *     tags: [Horses]
  *     security:
  *       - bearerAuth: []
@@ -56,9 +56,9 @@ router.route('/')
  *           type: string
  *     responses:
  *       200:
- *         description: Horse details
+ *         description: Racehorse details
  *   put:
- *     summary: Update horse profile details
+ *     summary: Update racehorse profile
  *     tags: [Horses]
  *     security:
  *       - bearerAuth: []
@@ -70,10 +70,10 @@ router.route('/')
  *           type: string
  *     responses:
  *       200:
- *         description: Horse updated
+ *         description: Racehorse profile updated successfully
  */
 router.route('/:id')
-  .get(protect, horseController.getHorseById)
-  .put(protect, authorize('CUSTOMER', 'LOGISTICS_MANAGER', 'TRANSPORT_SPECIALIST'), horseController.updateHorse);
+  .get(protect, checkPermission('horse:create_own'), horseController.getHorseById)
+  .put(protect, checkPermission('horse:create_own'), horseController.updateHorse);
 
 module.exports = router;

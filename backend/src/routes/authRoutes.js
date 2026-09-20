@@ -7,7 +7,7 @@ const { protect } = require('../middlewares/authMiddleware');
  * @swagger
  * tags:
  *   name: Auth
- *   description: Authentication & User Management APIs
+ *   description: Authentication & Session Management APIs
  */
 
 /**
@@ -16,35 +16,6 @@ const { protect } = require('../middlewares/authMiddleware');
  *   post:
  *     summary: Register a new user account
  *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [fullName, email, password]
- *             properties:
- *               fullName:
- *                 type: string
- *                 example: John Owner
- *               email:
- *                 type: string
- *                 example: john@example.com
- *               password:
- *                 type: string
- *                 example: password123
- *               role:
- *                 type: string
- *                 enum: [LOGISTICS_MANAGER, TRANSPORT_SPECIALIST, ROUTE_COORDINATOR, DRIVER_ESCORT, CUSTOMER]
- *                 example: CUSTOMER
- *               phone:
- *                 type: string
- *                 example: "+1 555-0199"
- *     responses:
- *       201:
- *         description: User registered successfully
- *       400:
- *         description: User already exists or invalid data
  */
 router.post('/register', authController.register);
 
@@ -52,44 +23,50 @@ router.post('/register', authController.register);
  * @swagger
  * /auth/login:
  *   post:
- *     summary: User login to obtain JWT token
+ *     summary: User login & obtain Access Token + Refresh Token
  *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *                 example: manager@cbrt.com
- *               password:
- *                 type: string
- *                 example: password123
- *     responses:
- *       200:
- *         description: Login successful, returns JWT token and user info
- *       401:
- *         description: Invalid credentials
  */
 router.post('/login', authController.login);
 
 /**
  * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Obtain new Access Token using Refresh Token
+ *     tags: [Auth]
+ */
+router.post('/refresh', authController.refresh);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout and revoke current device RefreshTokenSession
+ *     tags: [Auth]
+ */
+router.post('/logout', authController.logout);
+
+/**
+ * @swagger
  * /auth/profile:
  *   get:
- *     summary: Get current authenticated user profile
+ *     summary: Get current user profile
  *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Current user profile data
- *       401:
- *         description: Unauthorized
+ *   put:
+ *     summary: Update current user profile
+ *     tags: [Auth]
  */
-router.get('/profile', protect, authController.getProfile);
+router.route('/profile')
+  .get(protect, authController.getProfile)
+  .put(protect, authController.updateProfile);
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   put:
+ *     summary: Change password
+ *     tags: [Auth]
+ */
+router.put('/change-password', protect, authController.changePassword);
 
 module.exports = router;

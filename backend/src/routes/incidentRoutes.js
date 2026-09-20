@@ -1,35 +1,36 @@
 const express = require('express');
 const router = express.Router();
 const incidentController = require('../controllers/incidentController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
  * tags:
- *   name: Incidents
- *   description: Emergency SOS Push Alerts & Incident Resolution APIs
+ *   name: Emergency SOS & Incidents
+ *   description: Emergency SOS Alerts & Incident Management APIs
  */
 
 /**
  * @swagger
  * /incidents:
  *   get:
- *     summary: Get all emergency incidents list
- *     tags: [Incidents]
+ *     summary: Get all emergency incidents (Filterable by tripId or status)
+ *     tags: [Emergency SOS & Incidents]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of incidents
+ *         description: List of incidents retrieved successfully
  */
-router.get('/', protect, incidentController.getIncidents);
+router.route('/')
+  .get(protect, incidentController.getIncidents);
 
 /**
  * @swagger
  * /incidents/sos:
  *   post:
- *     summary: Trigger One-Tap Emergency SOS Alert
- *     tags: [Incidents]
+ *     summary: Trigger emergency SOS alert (Driver / Escort - Idempotent per eventId)
+ *     tags: [Emergency SOS & Incidents]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -38,31 +39,24 @@ router.get('/', protect, incidentController.getIncidents);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [orderId, latitude, longitude]
+ *             required: [eventId, tripId, coordinates, description]
  *             properties:
- *               orderId:
- *                 type: string
- *               latitude:
- *                 type: number
- *                 example: 1.3644
- *               longitude:
- *                 type: number
- *                 example: 103.9915
- *               description:
- *                 type: string
- *                 example: Vehicle tire puncture near border customs
+ *               eventId: { type: string, example: '660e8400-e29b-41d4-a716-446655440001' }
+ *               tripId: { type: string }
+ *               coordinates: { type: array, items: { type: number }, example: [106.7008, 10.7768] }
+ *               description: { type: string, example: 'Vehicle engine breakdown on highway' }
  *     responses:
  *       201:
- *         description: Emergency SOS triggered with high priority alert
+ *         description: SOS triggered and trip status set to INCIDENT_HANDLING
  */
-router.post('/sos', protect, authorize('DRIVER_ESCORT', 'ROUTE_COORDINATOR'), incidentController.triggerSOS);
+router.post('/sos', protect, checkPermission('sos:trigger'), incidentController.triggerSOS);
 
 /**
  * @swagger
- * /incidents/{id}/resolve:
+ * /incidents/{id}/status:
  *   patch:
- *     summary: Resolve an emergency incident
- *     tags: [Incidents]
+ *     summary: Update incident status (Acknowledge, Resolve, Close - Manager/Coordinator)
+ *     tags: [Emergency SOS & Incidents]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -71,10 +65,21 @@ router.post('/sos', protect, authorize('DRIVER_ESCORT', 'ROUTE_COORDINATOR'), in
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status: { type: string, enum: [ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED] }
+ *               resolutionNotes: { type: string }
+ *               emergencyCostAmount: { type: number, example: 500 }
  *     responses:
  *       200:
- *         description: Incident marked as RESOLVED
+ *         description: Incident status updated
  */
-router.patch('/:id/resolve', protect, authorize('ROUTE_COORDINATOR', 'LOGISTICS_MANAGER'), incidentController.resolveIncident);
+router.patch('/:id/status', protect, checkPermission('sos:manage'), incidentController.updateIncidentStatus);
 
 module.exports = router;

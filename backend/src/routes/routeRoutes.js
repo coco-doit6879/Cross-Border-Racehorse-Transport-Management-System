@@ -1,29 +1,36 @@
 const express = require('express');
 const router = express.Router();
 const routeController = require('../controllers/routeController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
  * tags:
- *   name: Routes
- *   description: Route Dispatch, Waypoints & GPS Realtime Location Tracking APIs
+ *   name: Transport Routes & Dispatch
+ *   description: Route Planning, Vehicle Dispatch & Trip Lifecycle APIs
  */
 
 /**
  * @swagger
  * /routes:
  *   get:
- *     summary: Get all active transport routes
- *     tags: [Routes]
+ *     summary: Get all transport routes
+ *     tags: [Transport Routes & Dispatch]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of routes
+ *         description: List of transport routes retrieved successfully
+ */
+router.route('/')
+  .get(protect, routeController.getRoutes);
+
+/**
+ * @swagger
+ * /routes/dispatch:
  *   post:
- *     summary: Create & dispatch a route for an order
- *     tags: [Routes]
+ *     summary: Dispatch route and assign vehicle, driver & escort (Coordinator)
+ *     tags: [Transport Routes & Dispatch]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -31,21 +38,25 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/TransportRoute'
+ *             type: object
+ *             required: [orderId, vehiclePlateNumber, driverId, escortId]
+ *             properties:
+ *               orderId: { type: string }
+ *               vehiclePlateNumber: { type: string, example: '51C-987.65' }
+ *               driverId: { type: string }
+ *               escortId: { type: string }
  *     responses:
  *       201:
- *         description: Route created and dispatched
+ *         description: Route dispatched in SCHEDULED status
  */
-router.route('/')
-  .get(protect, routeController.getRoutes)
-  .post(protect, authorize('ROUTE_COORDINATOR', 'LOGISTICS_MANAGER'), routeController.createRoute);
+router.post('/dispatch', protect, checkPermission('route:dispatch'), routeController.dispatchRoute);
 
 /**
  * @swagger
  * /routes/{id}:
  *   get:
- *     summary: Get single route details
- *     tags: [Routes]
+ *     summary: Get single route details by ID
+ *     tags: [Transport Routes & Dispatch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -62,10 +73,10 @@ router.get('/:id', protect, routeController.getRouteById);
 
 /**
  * @swagger
- * /routes/{id}/location:
+ * /routes/{id}/status:
  *   patch:
- *     summary: Update vehicle GPS latitude and longitude
- *     tags: [Routes]
+ *     summary: Update trip status lifecycle (IN_TRANSIT, DELIVERING, COMPLETED, CANCELLED)
+ *     tags: [Transport Routes & Dispatch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -80,26 +91,21 @@ router.get('/:id', protect, routeController.getRouteById);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [latitude, longitude]
+ *             required: [status]
  *             properties:
- *               latitude:
- *                 type: number
- *                 example: 1.3644
- *               longitude:
- *                 type: number
- *                 example: 103.9915
+ *               status: { type: string, enum: [IN_TRANSIT, DELIVERING, COMPLETED, CANCELLED] }
  *     responses:
  *       200:
- *         description: GPS coordinates updated
+ *         description: Trip status updated successfully
  */
-router.patch('/:id/location', protect, authorize('DRIVER_ESCORT', 'ROUTE_COORDINATOR'), routeController.updateRouteLocation);
+router.patch('/:id/status', protect, routeController.updateTripStatus);
 
 /**
  * @swagger
- * /routes/{id}/waypoints/{waypointId}/checkin:
- *   post:
- *     summary: Driver check-in at waypoint (ARRIVED / DEPARTED)
- *     tags: [Routes]
+ * /routes/{id}/waypoint-checkin:
+ *   patch:
+ *     summary: Check-in at waypoint checkpoint (Driver / Escort one-tap check-in)
+ *     tags: [Transport Routes & Dispatch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -108,15 +114,19 @@ router.patch('/:id/location', protect, authorize('DRIVER_ESCORT', 'ROUTE_COORDIN
  *         required: true
  *         schema:
  *           type: string
- *       - in: path
- *         name: waypointId
- *         required: true
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sequence: { type: number, example: 1 }
+ *               status: { type: string, enum: [ARRIVED, SKIPPED], example: 'ARRIVED' }
  *     responses:
  *       200:
- *         description: Waypoint check-in updated
+ *         description: Waypoint check-in recorded successfully
  */
-router.post('/:id/waypoints/:waypointId/checkin', protect, authorize('DRIVER_ESCORT', 'ROUTE_COORDINATOR'), routeController.checkinWaypoint);
+router.patch('/:id/waypoint-checkin', protect, checkPermission('waypoint:checkin'), routeController.waypointCheckin);
 
 module.exports = router;

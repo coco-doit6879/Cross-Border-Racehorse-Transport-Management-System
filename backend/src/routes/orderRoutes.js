@@ -1,29 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
  * tags:
- *   name: Orders
- *   description: Transport Request & Order Lifecycle APIs
+ *   name: Booking Orders
+ *   description: Transport Booking & Order Approval Workflow APIs
  */
 
 /**
  * @swagger
  * /orders:
  *   get:
- *     summary: Get transport order requests list
- *     tags: [Orders]
+ *     summary: Get all transport booking orders
+ *     tags: [Booking Orders]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of orders
+ *         description: List of transport orders retrieved successfully
  *   post:
- *     summary: Create a new transport order request
- *     tags: [Orders]
+ *     summary: Create a new transport booking request (Customer)
+ *     tags: [Booking Orders]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -32,33 +32,41 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
  *         application/json:
  *           schema:
  *             type: object
- *             required: [origin, destination, horses]
+ *             required: [horseIds, origin, destination, requestedDepartureDate]
  *             properties:
- *               origin:
- *                 type: string
- *                 example: Kenting Racecourse, SG
- *               destination:
- *                 type: string
- *                 example: Chiba Equestrian Club, JP
- *               horses:
+ *               horseIds:
  *                 type: array
  *                 items:
  *                   type: string
- *                 example: ["66e5f1b2c3d4e5f6a7b8c9d1"]
+ *               origin:
+ *                 type: object
+ *                 properties:
+ *                   address: { type: string }
+ *                   countryCode: { type: string }
+ *                   coordinates: { type: array, items: { type: number }, example: [106.7008, 10.7768] }
+ *               destination:
+ *                 type: object
+ *                 properties:
+ *                   address: { type: string }
+ *                   countryCode: { type: string }
+ *                   coordinates: { type: array, items: { type: number }, example: [103.7712, 1.4243] }
+ *               requestedDepartureDate:
+ *                 type: string
+ *                 format: date-time
  *     responses:
  *       201:
- *         description: Order created with auto TR-YYYY-XXXX code
+ *         description: Transport order created in PENDING_APPROVAL status
  */
 router.route('/')
   .get(protect, orderController.getOrders)
-  .post(protect, authorize('CUSTOMER', 'LOGISTICS_MANAGER'), orderController.createOrder);
+  .post(protect, checkPermission('booking:create'), orderController.createOrder);
 
 /**
  * @swagger
  * /orders/{id}:
  *   get:
- *     summary: Get single order details
- *     tags: [Orders]
+ *     summary: Get transport order details by ID
+ *     tags: [Booking Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -69,7 +77,7 @@ router.route('/')
  *           type: string
  *     responses:
  *       200:
- *         description: Order detail data
+ *         description: Order details retrieved successfully
  */
 router.route('/:id')
   .get(protect, orderController.getOrderById);
@@ -78,8 +86,8 @@ router.route('/:id')
  * @swagger
  * /orders/{id}/status:
  *   patch:
- *     summary: Update order status transition
- *     tags: [Orders]
+ *     summary: Approve or reject transport order (Manager approval)
+ *     tags: [Booking Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -98,32 +106,13 @@ router.route('/:id')
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [PENDING_APPROVAL, APPROVED, REJECTED, DOCS_PROCESSING, CLEARED_FOR_TRANSPORT, IN_TRANSIT, INCIDENT_HANDLING, DELIVERING, COMPLETED]
- *                 example: APPROVED
+ *                 enum: [APPROVED, REJECTED]
+ *               rejectionReason:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Order status updated
+ *         description: Order status updated successfully
  */
-router.patch('/:id/status', protect, authorize('LOGISTICS_MANAGER', 'TRANSPORT_SPECIALIST', 'ROUTE_COORDINATOR'), orderController.updateOrderStatus);
-
-/**
- * @swagger
- * /orders/{id}/pod:
- *   post:
- *     summary: Digital Proof of Delivery (POD) signature confirmation
- *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Order marked COMPLETED with POD signature
- */
-router.post('/:id/pod', protect, authorize('DRIVER_ESCORT', 'CUSTOMER', 'LOGISTICS_MANAGER'), orderController.signPOD);
+router.patch('/:id/status', protect, checkPermission('booking:approve'), orderController.updateOrderStatus);
 
 module.exports = router;
