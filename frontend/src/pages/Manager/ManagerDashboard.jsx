@@ -11,8 +11,8 @@ const DashboardContent = () => {
   const { data, execute } = useManagerData();
   const [selectedTrip, setSelectedTrip] = useState(null);
   const people = useMemo(() => new Map([...data.drivers, ...data.escorts].map((person) => [person.id, person])), [data]);
-  const needsAssignment = data.trips.filter((trip) => trip.status === 'PLANNED' && getAssignmentState(trip) !== 'FULL');
-  const upcoming = data.trips.filter((trip) => trip.status === 'PLANNED' && new Date(trip.startAt) > new Date()).sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+  const needsAssignment = data.trips.filter((trip) => !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(trip.status) && getAssignmentState(trip) !== 'FULL');
+  const upcoming = data.trips.filter((trip) => !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(trip.status)).sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
   const activePeople = data.drivers.filter((person) => person.status === 'ACTIVE').length + data.escorts.filter((person) => person.status === 'ACTIVE').length;
   const kpis = [
     { label: 'Tổng số chuyến', value: data.trips.length, icon: CarFront, tone: 'navy' },

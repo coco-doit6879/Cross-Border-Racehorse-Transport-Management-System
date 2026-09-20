@@ -114,5 +114,6 @@ router.route('/:id')
  *         description: Order status updated successfully
  */
 router.patch('/:id/status', protect, checkPermission('booking:approve'), orderController.updateOrderStatus);
+router.patch('/:id/cancel', protect, orderController.cancelOrder);
 
 module.exports = router;

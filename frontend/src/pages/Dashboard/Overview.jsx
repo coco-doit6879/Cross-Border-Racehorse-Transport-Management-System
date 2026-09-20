@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from 'antd';
+import { Button, Card, Tag, Empty } from 'antd';
 import {
   Plus,
   AlertTriangle,
@@ -8,18 +8,46 @@ import {
   Clock,
   CheckCircle2,
   Smartphone,
-  Circle
+  Circle,
+  Truck,
+  ShieldCheck,
+  Package
 } from 'lucide-react';
 import { useHorseStore } from '../../store/useHorseStore';
 import { useOrderStore } from '../../store/useOrderStore';
 
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'IN_TRANSIT':
+      return <Tag color="processing">Đang vận chuyển</Tag>;
+    case 'APPROVED':
+      return <Tag color="success">Đã phê duyệt</Tag>;
+    case 'COMPLETED':
+      return <Tag color="default">Đã hoàn thành</Tag>;
+    case 'PENDING_APPROVAL':
+    default:
+      return <Tag color="warning">Chờ phê duyệt</Tag>;
+  }
+};
+
 const Overview = () => {
   const navigate = useNavigate();
-  const { horses } = useHorseStore();
-  const { orders } = useOrderStore();
+  const { horses, fetchHorses } = useHorseStore();
+  const { orders, fetchOrders } = useOrderStore();
 
-  // Active In-Transit order for Customer view
-  const activeTrip = orders.find((o) => o.status === 'IN_TRANSIT') || orders[0];
+  useEffect(() => {
+    fetchHorses().catch(() => {});
+    fetchOrders().catch(() => {});
+  }, [fetchHorses, fetchOrders]);
+
+  // Find active or latest customer order from backend REST API
+  const activeTrip = orders.find((o) => o.status === 'IN_TRANSIT') || orders[0] || null;
+
+  // Upcoming trip (pending approval or scheduled)
+  const upcomingTrip = orders.find((o) => o.status === 'PENDING_APPROVAL' || o.status === 'APPROVED');
+
+  // Pending items count
+  const pendingOrdersCount = orders.filter((o) => o.status === 'PENDING_APPROVAL').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -49,7 +77,7 @@ const Overview = () => {
             An tâm trên từng chặng đường.
           </h1>
           <p style={{ margin: '6px 0 0 0', fontSize: 14, color: '#4B5563' }}>
-            Theo dõi hành trình và sức khỏe đàn ngựa của bạn tại một nơi.
+            Theo dõi hành trình và sức khỏe đàn ngựa của bạn trực tiếp từ hệ thống.
           </p>
         </div>
         <Button
@@ -70,52 +98,70 @@ const Overview = () => {
         </Button>
       </div>
 
-      {/* 2. Urgent Warning Banner */}
-      <div
-        style={{
-          backgroundColor: '#FFFBEB',
-          border: '1px solid #FDE68A',
-          borderRadius: 10,
-          padding: '14px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              backgroundColor: '#FEF3C7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <AlertTriangle size={16} color="#D97706" />
-          </div>
-          <span style={{ fontSize: 13, color: '#92400E', fontWeight: 500 }}>
-            <strong>Có 02 ngựa cần xử lý:</strong> Đơn <strong>TR-2026-0142</strong> khởi hành sau
-            48 giờ, còn thiếu giấy khám sức khỏe.
-          </span>
-        </div>
-        <Button
-          size="small"
-          onClick={() => navigate('/horses/H-001')}
+      {/* 2. Dynamic Status Banner */}
+      {pendingOrdersCount > 0 ? (
+        <div
           style={{
-            backgroundColor: '#FFFFFF',
-            borderColor: '#D97706',
-            color: '#92400E',
-            fontWeight: 600,
-            fontSize: 12,
-            borderRadius: 6
+            backgroundColor: '#FFFBEB',
+            border: '1px solid #FDE68A',
+            borderRadius: 10,
+            padding: '14px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}
         >
-          Bổ sung hồ sơ
-        </Button>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                backgroundColor: '#FEF3C7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <AlertTriangle size={16} color="#D97706" />
+            </div>
+            <span style={{ fontSize: 13, color: '#92400E', fontWeight: 500 }}>
+              <strong>Có {pendingOrdersCount} đơn vận chuyển đang chờ duyệt:</strong> Đơn mới tạo sẽ được Quản lý kiểm tra và phê duyệt.
+            </span>
+          </div>
+          <Button
+            size="small"
+            onClick={() => navigate('/orders')}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#D97706',
+              color: '#92400E',
+              fontWeight: 600,
+              fontSize: 12,
+              borderRadius: 6
+            }}
+          >
+            Xem danh sách đơn
+          </Button>
+        </div>
+      ) : (
+        <div
+          style={{
+            backgroundColor: '#ECFDF5',
+            border: '1px solid #A7F3D0',
+            borderRadius: 10,
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}
+        >
+          <ShieldCheck size={20} color="#059669" />
+          <span style={{ fontSize: 13, color: '#065F46', fontWeight: 500 }}>
+            Tất cả hồ sơ và đơn vận chuyển của bạn đang ở trạng thái ổn định.
+          </span>
+        </div>
+      )}
 
       {/* 3. Main Active Trip & Live Welfare - 2 Columns Layout */}
       <div
@@ -137,181 +183,152 @@ const Overview = () => {
             justifyContent: 'space-between'
           }}
         >
-          <div>
-            {/* Header Info */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 16
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>
-                    {activeTrip.orderCode}
-                  </span>
-                  <span
+          {activeTrip ? (
+            <div>
+              {/* Header Info */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: 16
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>
+                      {activeTrip.orderCode}
+                    </span>
+                    {getStatusBadge(activeTrip.status)}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    Tuyến: <strong>{activeTrip.routeLabel}</strong> {activeTrip.horses.length > 0 ? `• Ngựa: ${activeTrip.horses.join(', ')}` : ''}
+                  </div>
+                </div>
+              </div>
+
+              {/* Route Card Box */}
+              <div
+                style={{
+                  width: '100%',
+                  backgroundColor: '#EBF4F0',
+                  borderRadius: 10,
+                  border: '1px solid #D1E5DD',
+                  padding: 20,
+                  position: 'relative',
+                  marginBottom: 18
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#0F3E2E' }}>
+                    <MapPin size={16} color="#0F3E2E" />
+                    <span>{activeTrip.origin} → {activeTrip.destination}</span>
+                  </div>
+                  <div
                     style={{
-                      backgroundColor: '#ECFDF5',
-                      color: '#059669',
-                      border: '1px solid #A7F3D0',
+                      backgroundColor: 'rgba(15,62,46,0.9)',
+                      color: '#FFFFFF',
+                      padding: '4px 10px',
+                      borderRadius: 6,
                       fontSize: 11,
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: 6
+                      fontWeight: 500
                     }}
                   >
-                    Đang vận chuyển
-                  </span>
+                    Xe: {activeTrip.vehiclePlate}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                  {activeTrip.routeLabel} / {activeTrip.horses.join(', ')}
+
+                <div style={{ fontSize: 12, color: '#374151' }}>
+                  Tài xế phụ trách: <strong>{activeTrip.driverName}</strong>
                 </div>
               </div>
-            </div>
 
-            {/* Styled Mini Route Map */}
-            <div
-              style={{
-                width: '100%',
-                height: 200,
-                backgroundColor: '#EBF4F0',
-                borderRadius: 10,
-                border: '1px solid #D1E5DD',
-                position: 'relative',
-                overflow: 'hidden',
-                marginBottom: 18
-              }}
-            >
-              {/* SVG Route Line */}
-              <svg
-                style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
-              >
-                <path
-                  d="M 30 150 Q 140 120 220 80 T 420 50"
-                  fill="none"
-                  stroke="#0F3E2E"
-                  strokeWidth="4"
-                  strokeDasharray="6,4"
-                />
-                <circle cx="30" cy="150" r="6" fill="#0F3E2E" />
-                <circle cx="150" cy="115" r="5" fill="#059669" />
-                <circle cx="250" cy="74" r="8" fill="#10B981" />
-                <circle cx="250" cy="74" r="14" fill="#10B981" opacity="0.3" />
-                <circle cx="420" cy="50" r="6" fill="#6B7280" />
-              </svg>
-
-              {/* Map Labels overlay */}
+              {/* Status Details */}
               <div
                 style={{
-                  position: 'absolute',
-                  bottom: 12,
-                  left: 14,
-                  backgroundColor: 'rgba(255,255,255,0.92)',
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#0F3E2E',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: activeTrip.status === 'IN_TRANSIT' ? '#10B981' : '#F59E0B',
+                      display: 'inline-block'
+                    }}
+                  />
+                  <strong>Cập nhật trạng thái:</strong> {activeTrip.gpsTimeAgo}
+                </div>
+                <div style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>
+                  {activeTrip.eta}
+                </div>
+              </div>
+
+              {/* Milestones Progress */}
+              <div
+                style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 5
+                  gap: 12,
+                  fontSize: 12,
+                  color: '#4B5563',
+                  padding: '10px 14px',
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: 8,
+                  border: '1px solid #F3F4F6'
                 }}
               >
-                <MapPin size={12} color="#0F3E2E" />
-                <span>TP. Hồ Chí Minh → Phnom Penh</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#059669', fontWeight: 600 }}>
+                  <CheckCircle2 size={13} color="#059669" /> Đăng ký đơn
+                </span>
+                <span style={{ color: '#D1D5DB' }}>|</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: activeTrip.status !== 'PENDING_APPROVAL' ? '#059669' : '#D97706', fontWeight: 600 }}>
+                  <Clock size={13} color={activeTrip.status !== 'PENDING_APPROVAL' ? '#059669' : '#D97706'} /> Phê duyệt
+                </span>
+                <span style={{ color: '#D1D5DB' }}>|</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: activeTrip.status === 'IN_TRANSIT' || activeTrip.status === 'COMPLETED' ? '#059669' : '#9CA3AF' }}>
+                  <Truck size={13} /> Vận chuyển
+                </span>
+                <span style={{ color: '#D1D5DB' }}>|</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: activeTrip.status === 'COMPLETED' ? '#059669' : '#9CA3AF' }}>
+                  <Circle size={12} /> Bàn giao
+                </span>
               </div>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 12,
-                  right: 14,
-                  backgroundColor: 'rgba(15,62,46,0.9)',
-                  color: '#FFFFFF',
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 500
-                }}
+            </div>
+          ) : (
+            <div style={{ padding: '30px 0', textAlign: 'center' }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chưa có chuyến xe nào được tạo."
+              />
+              <Button
+                type="primary"
+                onClick={() => navigate('/orders/create')}
+                style={{ marginTop: 12, backgroundColor: '#0F3E2E', borderColor: '#0F3E2E' }}
               >
-                Xe chuyên dụng: {activeTrip.vehiclePlate || 'VN-TRUCK-001'}
-              </div>
+                Tạo đơn vận chuyển ngay
+              </Button>
             </div>
+          )}
 
-            {/* GPS indicator & ETA */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    backgroundColor: '#10B981',
-                    display: 'inline-block'
-                  }}
-                />
-                <strong>GPS trực tuyến:</strong> 15 giây trước
-              </div>
-              <div style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>
-                Dự kiến đến 16:30 hôm nay
-              </div>
-            </div>
-
-            {/* Milestones Horizontal Progress */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                fontSize: 12,
-                color: '#4B5563',
-                padding: '10px 14px',
-                backgroundColor: '#F9FAFB',
-                borderRadius: 8,
-                border: '1px solid #F3F4F6'
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#059669', fontWeight: 600 }}>
-                <CheckCircle2 size={13} color="#059669" /> Đã xuất phát
-              </span>
-              <span style={{ color: '#D1D5DB' }}>|</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#059669', fontWeight: 600 }}>
-                <CheckCircle2 size={13} color="#059669" /> Trạm nghỉ
-              </span>
-              <span style={{ color: '#D1D5DB' }}>|</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#D97706', fontWeight: 600 }}>
-                <Clock size={13} color="#D97706" /> Cửa khẩu
-              </span>
-              <span style={{ color: '#D1D5DB' }}>|</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#9CA3AF' }}>
-                <Circle size={12} color="#9CA3AF" /> Bàn giao
-              </span>
-            </div>
-          </div>
-
-          {/* Link to mobile view */}
+          {/* Quick link */}
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F3F4F6' }}>
             <Button
               type="link"
-              icon={<Smartphone size={14} />}
+              onClick={() => navigate('/orders')}
               style={{ padding: 0, fontSize: 13, color: '#0F3E2E', fontWeight: 600 }}
             >
-              Xem trên điện thoại
+              Xem danh sách đơn vận chuyển →
             </Button>
           </div>
         </div>
 
-        {/* Column Right: Live Welfare Card (Không có nhiệt độ và lượng nước) */}
+        {/* Column Right: Live Horses Summary */}
         <div
           style={{
             backgroundColor: '#FFFFFF',
@@ -325,111 +342,54 @@ const Overview = () => {
         >
           <div>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>
-              Sức khỏe trên hành trình
+              Đàn ngựa của bạn ({horses.length})
             </h2>
             <div style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 16px 0' }}>
-              Cập nhật 10:20 | Người vận chuyển: <strong>Nguyễn Văn An</strong>
+              Danh mục nhận dạng và hồ sơ hộ chiếu FEI từ MongoDB
             </div>
 
-            {/* Horses Welfare Status (Đã loại bỏ nhiệt độ và lượng nước) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              {/* Thunder Bolt */}
-              <div
-                style={{
-                  backgroundColor: '#F9FAFB',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 10,
-                  padding: '16px 18px'
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <span style={{ fontWeight: 600, fontSize: 15, color: '#111827' }}>
-                    Thunder Bolt
-                  </span>
-                  <span
+            {/* List of Customer Horses */}
+            {horses.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                {horses.slice(0, 3).map((horse) => (
+                  <div
+                    key={horse.id}
                     style={{
-                      backgroundColor: '#EBF5F0',
-                      color: '#0F3E2E',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: '3px 12px',
-                      borderRadius: 6
+                      backgroundColor: '#F9FAFB',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: 10,
+                      padding: '14px 16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}
                   >
-                    Bình tĩnh
-                  </span>
-                </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>
+                        {horse.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        Mã chip: {horse.microchipId} • {horse.breed || 'Chưa phân loại'}
+                      </div>
+                    </div>
+                    <Tag color="blue" style={{ fontSize: 11, borderRadius: 6 }}>
+                      Sẵn sàng
+                    </Tag>
+                  </div>
+                ))}
               </div>
-
-              {/* Silver Wind */}
-              <div
-                style={{
-                  backgroundColor: '#F9FAFB',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 10,
-                  padding: '16px 18px'
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+            ) : (
+              <div style={{ padding: '20px 0', textAlign: 'center' }}>
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa đăng ký chú ngựa nào." />
+                <Button
+                  size="small"
+                  onClick={() => navigate('/horses')}
+                  style={{ marginTop: 8 }}
                 >
-                  <span style={{ fontWeight: 600, fontSize: 15, color: '#111827' }}>
-                    Silver Wind
-                  </span>
-                  <span
-                    style={{
-                      backgroundColor: '#EBF5F0',
-                      color: '#0F3E2E',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: '3px 12px',
-                      borderRadius: 6
-                    }}
-                  >
-                    Bình tĩnh
-                  </span>
-                </div>
+                  Đăng ký hồ sơ ngựa
+                </Button>
               </div>
-            </div>
-
-            {/* Lịch trình dừng chân gần nhất */}
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: '#6B7280',
-                  textTransform: 'uppercase',
-                  marginBottom: 10
-                }}
-              >
-                Lịch trình dừng chân
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, color: '#374151' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#0F3E2E', fontWeight: 600 }}>10:20</span>
-                  <span>Khởi hành từ CLB Thảo Điền</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#0F3E2E', fontWeight: 600 }}>09:45</span>
-                  <span>Đã đến cửa khẩu Mộc Bài</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#0F3E2E', fontWeight: 600 }}>08:30</span>
-                  <span>Hoàn tất nghỉ tại Củ Chi</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F3F4F6' }}>
@@ -445,48 +405,39 @@ const Overview = () => {
       </div>
 
       {/* 4. Upcoming Trip Footer Banner */}
-      <div
-        style={{
-          backgroundColor: '#F3F4F6',
-          border: '1px solid #E5E7EB',
-          borderRadius: 10,
-          padding: '12px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: 13
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span
-            style={{
-              fontWeight: 700,
-              color: '#374151',
-              textTransform: 'uppercase',
-              letterSpacing: 0.5
-            }}
-          >
-            Chuyến sắp tới:
-          </span>
-          <span style={{ fontWeight: 600, color: '#111827' }}>TR-2026-0158</span>
-          <span style={{ color: '#6B7280' }}>•</span>
-          <span style={{ color: '#4B5563' }}>HÀ NỘI → SINGAPORE</span>
-          <span style={{ color: '#6B7280' }}>•</span>
-          <span style={{ color: '#4B5563' }}>17/09/2026</span>
-        </div>
-        <span
+      {upcomingTrip && (
+        <div
           style={{
-            backgroundColor: '#FEF08A',
-            color: '#92400E',
-            fontWeight: 600,
-            fontSize: 11,
-            padding: '3px 10px',
-            borderRadius: 6
+            backgroundColor: '#F3F4F6',
+            border: '1px solid #E5E7EB',
+            borderRadius: 10,
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 13
           }}
         >
-          Đang xử lý hồ sơ
-        </span>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              style={{
+                fontWeight: 700,
+                color: '#374151',
+                textTransform: 'uppercase',
+                letterSpacing: 0.5
+              }}
+            >
+              Đơn vận chuyển gần nhất:
+            </span>
+            <span style={{ fontWeight: 600, color: '#111827' }}>{upcomingTrip.orderCode}</span>
+            <span style={{ color: '#6B7280' }}>•</span>
+            <span style={{ color: '#4B5563' }}>{upcomingTrip.routeLabel}</span>
+            <span style={{ color: '#6B7280' }}>•</span>
+            <span style={{ color: '#4B5563' }}>{upcomingTrip.departureDate}</span>
+          </div>
+          {getStatusBadge(upcomingTrip.status)}
+        </div>
+      )}
     </div>
   );
 };

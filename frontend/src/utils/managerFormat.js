@@ -1,7 +1,13 @@
 export const TRIP_STATUS_LABELS = {
+  PENDING_APPROVAL: 'Chờ phê duyệt',
+  APPROVED: 'Đã phê duyệt',
   PLANNED: 'Sắp thực hiện',
+  SCHEDULED: 'Đã xếp lịch',
+  CLEARED_FOR_TRANSPORT: 'Đã thông quan',
   IN_TRANSIT: 'Đang vận chuyển',
+  DELIVERING: 'Đang giao',
   COMPLETED: 'Hoàn thành',
+  REJECTED: 'Bị từ chối',
   CANCELLED: 'Đã hủy'
 };
 
@@ -23,5 +29,9 @@ export const getAssignmentState = (trip) => {
 
 export const ASSIGNMENT_LABELS = { FULL: 'Đủ nhân sự', PARTIAL: 'Thiếu nhân sự', EMPTY: 'Chưa phân công' };
 
-export const isTripEditable = (trip) => trip.status === 'PLANNED' && new Date(trip.startAt) > new Date();
+export const isTripEditable = (trip) => {
+  if (!trip) return false;
+  return !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(trip.status);
+};
+
 

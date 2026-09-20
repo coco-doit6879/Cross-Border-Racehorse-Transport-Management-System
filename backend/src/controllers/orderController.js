@@ -292,3 +292,60 @@ exports.updateOrderStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Cancel transport order (Customer or Manager)
+// @route   PATCH /api/v1/orders/:id/cancel
+// @access  Private (Owner / Manager)
+exports.cancelOrder = async (req, res, next) => {
+  try {
+    let order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const permissions = req.user.effectivePermissions || [];
+    const isOwner = order.customerId.toString() === req.user._id.toString();
+    const isManager = permissions.includes('booking:approve') || permissions.includes('booking:create');
+
+    if (!isOwner && !isManager) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You do not have permission to cancel this order'
+      });
+    }
+
+    if (order.status !== 'PENDING_APPROVAL' && !isManager) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể hủy đơn vận chuyển sau khi đã được phê duyệt hoặc đang vận chuyển'
+      });
+    }
+
+    const previousStatus = order.status;
+    order.status = 'CANCELLED';
+    order.cancellationReason = req.body.reason || 'Khách hàng hủy đơn';
+    await order.save();
+
+    await logAudit({
+      actorId: req.user._id,
+      action: 'ORDER_CANCELLED',
+      resource: 'Order',
+      resourceId: order._id.toString(),
+      result: 'SUCCESS',
+      metadata: { previousStatus, newStatus: 'CANCELLED', reason: order.cancellationReason },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({
+      success: true,
+      message: `Đã hủy đơn vận chuyển ${order.bookingCode} thành công`,
+      data: order
+    });
+  } catch (error) {
+    next(error);
+  }
+};

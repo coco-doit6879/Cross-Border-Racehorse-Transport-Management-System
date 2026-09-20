@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const uuidv4 = () => crypto.randomUUID();
 
 // Import Mongoose Models
@@ -34,35 +35,36 @@ async function runFullSystemValidation() {
     await mongoose.connect(MONGODB_URI);
     console.log('📡 Connected to MongoDB successfully.');
 
-    // 1. Seed Users for 6 Roles
+    // 1. Seed Users for 6 Roles with bcrypt hashed passwords
+    const defaultPasswordHash = bcrypt.hashSync('password123', 10);
     const manager = await User.findOneAndUpdate(
       { email: 'e2e_manager@cbrt.com' },
-      { username: 'e2e_manager', email: 'e2e_manager@cbrt.com', password: 'Password123!', fullName: 'E2E Logistics Manager', role: 'LOGISTICS_MANAGER', phone: '+1 555-0101' },
+      { username: 'e2e_manager', email: 'e2e_manager@cbrt.com', password: defaultPasswordHash, fullName: 'E2E Logistics Manager', role: 'LOGISTICS_MANAGER', phone: '+1 555-0101' },
       { upsert: true, new: true }
     );
     const specialist = await User.findOneAndUpdate(
       { email: 'e2e_specialist@cbrt.com' },
-      { username: 'e2e_specialist', email: 'e2e_specialist@cbrt.com', password: 'Password123!', fullName: 'E2E Transport Specialist', role: 'TRANSPORT_SPECIALIST', phone: '+1 555-0102' },
+      { username: 'e2e_specialist', email: 'e2e_specialist@cbrt.com', password: defaultPasswordHash, fullName: 'E2E Transport Specialist', role: 'TRANSPORT_SPECIALIST', phone: '+1 555-0102' },
       { upsert: true, new: true }
     );
     const coordinator = await User.findOneAndUpdate(
       { email: 'e2e_coordinator@cbrt.com' },
-      { username: 'e2e_coordinator', email: 'e2e_coordinator@cbrt.com', password: 'Password123!', fullName: 'E2E Fleet Coordinator', role: 'FLEET_COORDINATOR', phone: '+1 555-0103' },
+      { username: 'e2e_coordinator', email: 'e2e_coordinator@cbrt.com', password: defaultPasswordHash, fullName: 'E2E Fleet Coordinator', role: 'FLEET_COORDINATOR', phone: '+1 555-0103' },
       { upsert: true, new: true }
     );
     const driver = await User.findOneAndUpdate(
       { email: 'e2e_driver@cbrt.com' },
-      { username: 'e2e_driver', email: 'e2e_driver@cbrt.com', password: 'Password123!', fullName: 'E2E Transport Driver', role: 'DRIVER', phone: '+1 555-0104' },
+      { username: 'e2e_driver', email: 'e2e_driver@cbrt.com', password: defaultPasswordHash, fullName: 'E2E Transport Driver', role: 'DRIVER', phone: '+1 555-0104' },
       { upsert: true, new: true }
     );
     const escort = await User.findOneAndUpdate(
       { email: 'e2e_escort@cbrt.com' },
-      { username: 'e2e_escort', email: 'e2e_escort@cbrt.com', password: 'Password123!', fullName: 'E2E Equine Escort', role: 'ESCORT', phone: '+1 555-0105' },
+      { username: 'e2e_escort', email: 'e2e_escort@cbrt.com', password: defaultPasswordHash, fullName: 'E2E Equine Escort', role: 'ESCORT', phone: '+1 555-0105' },
       { upsert: true, new: true }
     );
     const customer = await User.findOneAndUpdate(
       { email: 'e2e_customer@cbrt.com' },
-      { username: 'e2e_customer', email: 'e2e_customer@cbrt.com', password: 'Password123!', fullName: 'E2E Racehorse Customer', role: 'CUSTOMER', phone: '+1 555-0106' },
+      { username: 'e2e_customer', email: 'e2e_customer@cbrt.com', password: defaultPasswordHash, fullName: 'E2E Racehorse Customer', role: 'CUSTOMER', phone: '+1 555-0106' },
       { upsert: true, new: true }
     );
 

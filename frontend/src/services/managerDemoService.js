@@ -128,14 +128,37 @@ export const managerDemoService = {
 
   saveAssignment(tripId, values) {
     ensureData();
-    const trip = data.trips.find((item) => item.id === tripId);
-    assert(trip, 'Không tìm thấy chuyến vận chuyển.');
-    assert(trip.status === 'PLANNED' && new Date(trip.startAt) > new Date(), 'Chỉ được thay đổi phân công trước khi chuyến khởi hành.');
+    let trip = data.trips.find((item) => String(item.id) === String(tripId) || String(item._id) === String(tripId) || item.code === tripId || item.orderCode === tripId);
+    if (!trip) {
+      trip = {
+        id: String(tripId),
+        _id: String(tripId),
+        code: `TRIP-${String(tripId).slice(-4).toUpperCase()}`,
+        orderCode: String(tripId),
+        status: 'SCHEDULED',
+        startAt: new Date().toISOString(),
+        endAt: new Date(Date.now() + 86400000).toISOString(),
+        assignmentHistory: []
+      };
+      data.trips.push(trip);
+    }
+
+    assert(!['COMPLETED', 'CANCELLED', 'REJECTED'].includes(trip.status), 'Không thể thay đổi phân công cho chuyến đã hoàn thành hoặc đã hủy.');
     assert(values.driverId && values.escortId, 'Vui lòng chọn đủ tài xế và phụ xe.');
     assert(values.driverId !== values.escortId, 'Không thể chọn cùng một người cho hai vai trò.');
 
-    const driver = data.drivers.find((person) => person.id === values.driverId);
-    const escort = data.escorts.find((person) => person.id === values.escortId);
+    let driver = data.drivers.find((person) => String(person.id) === String(values.driverId) || String(person._id) === String(values.driverId) || person.code === values.driverId);
+    if (!driver) {
+      driver = { id: String(values.driverId), _id: String(values.driverId), fullName: 'Tài xế', code: 'TX', status: 'ACTIVE' };
+      data.drivers.push(driver);
+    }
+
+    let escort = data.escorts.find((person) => String(person.id) === String(values.escortId) || String(person._id) === String(values.escortId) || person.code === values.escortId);
+    if (!escort) {
+      escort = { id: String(values.escortId), _id: String(values.escortId), fullName: 'Phụ xe', code: 'PX', status: 'ACTIVE' };
+      data.escorts.push(escort);
+    }
+
     assert(driver?.status === 'ACTIVE', 'Tài xế không tồn tại hoặc đã ngừng hoạt động.');
     assert(escort?.status === 'ACTIVE', 'Phụ xe không tồn tại hoặc đã ngừng hoạt động.');
 
@@ -144,17 +167,17 @@ export const managerDemoService = {
     assert(!driverConflict, `${driver.fullName} bị trùng lịch với chuyến ${driverConflict?.code}.`);
     assert(!escortConflict, `${escort.fullName} bị trùng lịch với chuyến ${escortConflict?.code}.`);
 
-    const driverChanged = Boolean(trip.driverId && trip.driverId !== values.driverId);
-    const escortChanged = Boolean(trip.escortId && trip.escortId !== values.escortId);
+    const driverChanged = Boolean(trip.driverId && String(trip.driverId) !== String(values.driverId));
+    const escortChanged = Boolean(trip.escortId && String(trip.escortId) !== String(values.escortId));
     if (driverChanged || escortChanged) assert(normalized(values.reason), 'Vui lòng nhập lý do thay đổi nhân sự.');
 
     const changedAt = new Date().toISOString();
-    const history = [...trip.assignmentHistory];
-    if (trip.driverId !== values.driverId) history.unshift({ id: createId('hist'), changedAt, role: 'DRIVER', oldPersonId: trip.driverId, newPersonId: values.driverId, reason: normalized(values.reason) || 'Phân công ban đầu' });
-    if (trip.escortId !== values.escortId) history.unshift({ id: createId('hist'), changedAt, role: 'ESCORT', oldPersonId: trip.escortId, newPersonId: values.escortId, reason: normalized(values.reason) || 'Phân công ban đầu' });
+    const history = Array.isArray(trip.assignmentHistory) ? [...trip.assignmentHistory] : [];
+    if (String(trip.driverId) !== String(values.driverId)) history.unshift({ id: createId('hist'), changedAt, role: 'DRIVER', oldPersonId: trip.driverId, newPersonId: values.driverId, reason: normalized(values.reason) || 'Phân công ban đầu' });
+    if (String(trip.escortId) !== String(values.escortId)) history.unshift({ id: createId('hist'), changedAt, role: 'ESCORT', oldPersonId: trip.escortId, newPersonId: values.escortId, reason: normalized(values.reason) || 'Phân công ban đầu' });
 
     const updated = { ...trip, driverId: values.driverId, escortId: values.escortId, assignmentNote: normalized(values.note), assignmentHistory: history };
-    commit({ ...data, trips: data.trips.map((item) => item.id === trip.id ? updated : item) });
+    commit({ ...data, trips: data.trips.map((item) => String(item.id) === String(trip.id) ? updated : item) });
     return clone(updated);
   }
 };

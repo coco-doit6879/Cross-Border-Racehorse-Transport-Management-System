@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -30,7 +30,12 @@ const { Option } = Select;
 
 const HorseList = () => {
   const navigate = useNavigate();
-  const { horses, addHorse, deleteHorse } = useHorseStore();
+  const { horses, fetchHorses, addHorse, deleteHorse } = useHorseStore();
+
+  useEffect(() => {
+    fetchHorses().catch(() => {});
+  }, [fetchHorses]);
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBreed, setSelectedBreed] = useState('ALL');
@@ -75,7 +80,7 @@ const HorseList = () => {
       render: (text, record) => (
         <div>
           <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{text}</div>
-          <div style={{ fontSize: 12, color: '#6B7280' }}>Chủ sở hữu: {record.ownerName || 'CLB Đua Sa Đéc'}</div>
+          <div style={{ fontSize: 12, color: '#6B7280' }}>Chủ sở hữu: {record.ownerName || 'Khách hàng sở hữu'}</div>
         </div>
       )
     },

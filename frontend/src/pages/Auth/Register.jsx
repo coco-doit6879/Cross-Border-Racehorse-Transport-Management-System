@@ -44,12 +44,22 @@ const Register = () => {
   return (
     <main className="login-page register-page">
       <section className="login-story" aria-label="Giới thiệu CBRT">
-        <div className="story-brand">CBRT / EQUINE TRANSPORT</div>
+        <div className="story-top-row">
+          <div className="story-brand">CBRT / EQUINE TRANSPORT</div>
+          <div className="story-live-badge"><span className="pulse-dot"></span> LIVE TRACKING</div>
+        </div>
         <div className="story-copy">
           <h1>An tâm cho ngựa.<br />Rõ ràng từng chặng.</h1>
           <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br className="desktop-break" /> ngựa được xuyên biên giới.</p>
         </div>
-        <div className="story-footer">CROSS-BORDER RACEHORSE TRANSPORT</div>
+        <div className="story-bottom-info">
+          <div className="story-feature-chips">
+            <span>🛡️ Kiểm dịch thông quan</span>
+            <span>🛰️ Định vị GPS 24/7</span>
+            <span>🐴 Phụ xe chuyên biệt</span>
+          </div>
+          <div className="story-footer">CROSS-BORDER RACEHORSE TRANSPORT</div>
+        </div>
       </section>
 
       <section className="login-panel">

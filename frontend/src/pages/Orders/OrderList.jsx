@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Tag, Space, Card } from 'antd';
-import { Plus, Search, Eye, Truck, Clock } from 'lucide-react';
+import { Table, Button, Input, Tag, Space, Card, Popconfirm, message } from 'antd';
+import { Plus, Search, Eye, Truck, Clock, XCircle } from 'lucide-react';
 import { useOrderStore } from '../../store/useOrderStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const OrderList = () => {
   const navigate = useNavigate();
-  const { orders } = useOrderStore();
+  const { orders, fetchOrders, cancelOrder } = useOrderStore();
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    fetchOrders().catch(() => {});
+  }, [fetchOrders]);
+
+  const handleCancelOrder = async (orderId, orderCode) => {
+    try {
+      await cancelOrder(orderId, 'Khách hàng chủ động hủy đơn');
+      message.success(`Đã hủy thành công đơn vận chuyển ${orderCode}! Ngựa đua đã được mở khóa khả dụng.`);
+    } catch (err) {
+      message.error(err?.response?.data?.message || err.message || 'Không thể hủy đơn vận chuyển');
+    }
+  };
 
   const filteredOrders = orders.filter(
     (o) =>
@@ -66,6 +79,22 @@ const OrderList = () => {
             }}
           >
             Đã duyệt
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span
+            style={{
+              backgroundColor: '#F3F4F6',
+              color: '#6B7280',
+              border: '1px solid #E5E7EB',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '2px 8px',
+              borderRadius: 6
+            }}
+          >
+            Đã hủy
           </span>
         );
       case 'REJECTED':
@@ -138,19 +167,35 @@ const OrderList = () => {
       key: 'actions',
       align: 'right',
       render: (_, record) => (
-        <Button
-          size="small"
-          onClick={() => navigate('/')}
-          style={{
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 500,
-            borderColor: '#0F3E2E',
-            color: '#0F3E2E'
-          }}
-        >
-          Xem trên Dashboard
-        </Button>
+        <Space>
+          {record.status === 'PENDING_APPROVAL' && (
+            <Popconfirm
+              title="Xác nhận hủy đơn?"
+              description={`Bạn có chắc chắn muốn hủy đơn vận chuyển ${record.orderCode}?`}
+              onConfirm={() => handleCancelOrder(record.id || record._id, record.orderCode)}
+              okText="Hủy đơn"
+              cancelText="Quay lại"
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" danger icon={<XCircle size={13} />} style={{ borderRadius: 6 }}>
+                Hủy đơn
+              </Button>
+            </Popconfirm>
+          )}
+          <Button
+            size="small"
+            onClick={() => navigate('/')}
+            style={{
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              borderColor: '#0F3E2E',
+              color: '#0F3E2E'
+            }}
+          >
+            Dashboard
+          </Button>
+        </Space>
       )
     }
   ];

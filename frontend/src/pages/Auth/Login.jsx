@@ -61,7 +61,8 @@ const Login = () => {
 
     try {
       const response = await authApi.login({ email: form.email.trim(), password: form.password });
-      const { token, user: loggedInUser } = response?.data || {};
+      const token = response?.data?.accessToken || response?.data?.token;
+      const loggedInUser = response?.data?.user;
 
       if (!token) {
         throw new Error('Không nhận được thông tin đăng nhập từ máy chủ.');
@@ -86,22 +87,32 @@ const Login = () => {
   return (
     <main className="login-page">
       <section className="login-story" aria-label="Giới thiệu CBRT">
-        <div className="story-brand">CBRT / EQUINE TRANSPORT</div>
+        <div className="story-top-row">
+          <div className="story-brand">CBRT / EQUINE TRANSPORT</div>
+          <div className="story-live-badge"><span className="pulse-dot"></span> LIVE TRACKING</div>
+        </div>
         <div className="story-copy">
           <h1>An tâm cho ngựa.<br />Rõ ràng từng chặng.</h1>
-          <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br className="desktop-break" /> ngựa được xuyên biên giới.</p>
+          <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br />ngựa được xuyên biên giới.</p>
         </div>
-        <div className="story-footer">CROSS-BORDER RACEHORSE TRANSPORT</div>
+        <div className="story-bottom-info">
+          <div className="story-feature-chips">
+            <span>🛡️ Kiểm dịch thông quan</span>
+            <span>🛰️ Định vị GPS 24/7</span>
+            <span>🐴 Phụ xe chuyên biệt</span>
+          </div>
+          <div className="story-footer">CROSS-BORDER RACEHORSE TRANSPORT</div>
+        </div>
       </section>
 
       <section className="login-panel">
         <div className="login-content">
-          <p className="eyebrow">Cổng điều hành vận chuyển</p>
+          <span className="eyebrow">CỔNG QUẢN LÝ VẬN CHUYỂN</span>
           <h2>Chào mừng trở lại</h2>
           <p className="login-intro">Đăng nhập để tiếp tục công việc.</p>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            <label htmlFor="email">Email <span>*</span></label>
+            <label htmlFor="email">Email *</label>
             <input
               id="email"
               name="email"
@@ -113,7 +124,7 @@ const Login = () => {
               required
             />
 
-            <label htmlFor="password">Mật khẩu <span>*</span></label>
+            <label htmlFor="password">Mật khẩu *</label>
             <input
               id="password"
               name="password"
@@ -146,7 +157,7 @@ const Login = () => {
 
           <p className="login-note">
             Tài khoản được cấp bởi đơn vị quản lý.<br />
-            Chưa có tài khoản? <Link to="/register" style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>Đăng ký ngay</Link>
+            Liên hệ quản trị viên nếu chưa có tài khoản.
           </p>
         </div>
       </section>

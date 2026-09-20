@@ -1,135 +1,191 @@
 import { create } from 'zustand';
+import { orderApi } from '../services/orderApi';
+import { horseApi } from '../services/horseApi';
 
-const INITIAL_ORDERS = [
-  {
-    id: 'ORD-0142',
-    orderCode: 'TR-2026-0142',
-    customerName: 'CLB Đua Sa Đéc',
-    origin: 'CLB Thảo Điền, TP. Hồ Chí Minh',
-    destination: 'CLB Polo, Phnom Penh',
-    routeLabel: 'TP. Hồ Chí Minh → Phnom Penh',
-    departureDate: '17/09/2026',
-    departureTime: '07:00',
-    eta: '16:30 hôm nay',
-    gpsTimeAgo: '15 giây trước',
-    horses: ['Thunder Bolt', 'Silver Wind'],
-    status: 'IN_TRANSIT', // Đang vận chuyển
-    driverName: 'Nguyễn Văn An',
-    vehiclePlate: 'VN-TRUCK-001',
-    specialRequirements: 'Xe kính khoang yên tĩnh, nghỉ định kỳ mỗi 2 giờ.',
-    milestones: [
-      { name: 'Đã xuất phát', status: 'COMPLETED', time: '08:15' },
-      { name: 'Trạm nghỉ Củ Chi', status: 'COMPLETED', time: '09:30' },
-      { name: 'Cửa khẩu Mộc Bài', status: 'IN_PROGRESS', time: '11:00' },
-      { name: 'Bàn giao Phnom Penh', status: 'PENDING', time: '16:30' }
-    ]
-  },
-  {
-    id: 'ORD-0158',
-    orderCode: 'TR-2026-0158',
-    customerName: 'CLB Đua Sa Đéc',
-    origin: 'CLB Green Stables, Hà Nội',
-    destination: 'Singapore Turf Club, Kranji',
-    routeLabel: 'Hà Nội → Singapore',
-    departureDate: '17/09/2026',
-    departureTime: '07:00',
-    eta: '19/09/2026',
-    horses: ['Thunder Bolt', 'Silver Wind'],
-    status: 'PENDING_APPROVAL', // Chờ phê duyệt (Màn hình Manager 04)
-    specialRequirements: 'Khoang yên tĩnh, nghỉ định kỳ mỗi 3 giờ.',
-    reviewNotes: '',
-    milestones: []
-  },
-  {
-    id: 'ORD-0159',
-    orderCode: 'TR-2026-0159',
-    customerName: 'CLB Ngựa Hoàng Gia',
-    origin: 'TP. Hồ Chí Minh',
-    destination: 'Phnom Penh',
-    routeLabel: 'TP. HCM → Phnom Penh',
-    departureDate: '18/09/2026',
-    departureTime: '08:00',
-    horses: ['Hồng Mã', 'Bạch Mã', 'Hắc Long'],
-    status: 'PENDING_APPROVAL',
-    specialRequirements: 'Kiểm tra thân nhiệt định kỳ mỗi 3 tiếng.',
-    reviewNotes: '',
-    milestones: []
-  },
-  {
-    id: 'ORD-0160',
-    orderCode: 'TR-2026-0160',
-    customerName: 'CLB Đà Nẵng Equestria',
-    origin: 'Đà Nẵng',
-    destination: 'Bangkok',
-    routeLabel: 'Đà Nẵng → Bangkok',
-    departureDate: '19/09/2026',
-    departureTime: '06:30',
-    horses: ['Phong Vân'],
-    status: 'PENDING_APPROVAL',
-    specialRequirements: 'Có bác sĩ thú y đi kèm toàn chặng.',
-    reviewNotes: '',
-    milestones: []
-  }
-];
+const mapOrderData = (o) => {
+  const originAddr = typeof o.origin === 'object' ? o.origin?.address || '' : o.origin || '';
+  const destAddr = typeof o.destination === 'object' ? o.destination?.address || '' : o.destination || '';
+  const originShort = originAddr.split(',')[0] || originAddr;
+  const destShort = destAddr.split(',')[0] || destAddr;
 
-const loadOrders = () => {
-  try {
-    const data = localStorage.getItem('cbrt_orders_data');
-    if (data) return JSON.parse(data);
-  } catch (err) {
-    console.error('Failed to load orders', err);
+  let horseNames = [];
+  if (Array.isArray(o.horseIds) && o.horseIds.length > 0) {
+    horseNames = o.horseIds.map((h) => (typeof h === 'object' ? h.name : h));
+  } else if (Array.isArray(o.horses) && o.horses.length > 0) {
+    horseNames = o.horses;
   }
-  return INITIAL_ORDERS;
+
+  return {
+    id: o._id || o.id,
+    _id: o._id || o.id,
+    orderCode: o.bookingCode || o.orderCode || (o._id ? `TR-2026-${String(o._id).slice(-4)}` : 'TR-2026-0001'),
+    bookingCode: o.bookingCode || o.orderCode,
+    customerName: o.customerId?.fullName || o.customerName || 'Khách hàng',
+    origin: originAddr || 'Chưa xác định',
+    destination: destAddr || 'Chưa xác định',
+    routeLabel: originAddr && destAddr ? `${originShort} → ${destShort}` : 'Chưa thiết lập tuyến đường',
+    departureDate: o.requestedDepartureDate
+      ? new Date(o.requestedDepartureDate).toLocaleDateString('vi-VN')
+      : o.departureDate || 'Chưa xếp lịch',
+    departureTime: o.departureTime || '07:00',
+    eta: o.eta || 'Dự kiến trong ngày',
+    gpsTimeAgo: o.gpsTimeAgo || 'Mới cập nhật',
+    horses: horseNames,
+    horseIds: o.horseIds || [],
+    status: o.status || 'PENDING_APPROVAL',
+    driverName: o.driverName || o.assignedDriver?.fullName || 'Chưa phân công',
+    vehiclePlate: o.vehiclePlate || o.assignedVehicle?.plateNumber || 'Chưa phân công',
+    specialRequirements: o.specialRequirements || '',
+    milestones: o.milestones || []
+  };
 };
 
 export const useOrderStore = create((set, get) => ({
-  orders: loadOrders(),
+  orders: [],
+  loading: false,
+  error: null,
 
-  _persist: (orders) => {
-    localStorage.setItem('cbrt_orders_data', JSON.stringify(orders));
-    set({ orders });
+  fetchOrders: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await orderApi.getOrders();
+      const rawOrders = response?.data?.data || response?.data || [];
+      const mapped = rawOrders.map(mapOrderData);
+      set({ orders: mapped, loading: false });
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể tải danh sách đơn vận chuyển';
+      set({ error: msg, loading: false, orders: [] });
+      throw err;
+    }
   },
 
-  createOrder: (orderData) => {
-    const newCode = `TR-2026-0${Math.floor(161 + Math.random() * 800)}`;
-    const newOrder = {
-      id: `ORD-${Date.now().toString().slice(-4)}`,
-      orderCode: newCode,
-      customerName: 'CLB Đua Sa Đéc',
-      status: 'PENDING_APPROVAL',
-      milestones: [],
-      ...orderData
-    };
-    const updated = [newOrder, ...get().orders];
-    get()._persist(updated);
-    return newOrder;
-  },
-
-  approveOrder: (orderId, reviewNotes = '') => {
-    const updated = get().orders.map((o) => {
-      if (o.id === orderId || o.orderCode === orderId) {
-        return {
-          ...o,
-          status: 'APPROVED',
-          reviewNotes
-        };
+  createOrder: async (orderData) => {
+    set({ loading: true, error: null });
+    try {
+      let horseIds = orderData.horseIds;
+      if (!horseIds || horseIds.length === 0) {
+        const horsesRes = await horseApi.getHorses();
+        const availableHorses = horsesRes?.data?.data || [];
+        if (availableHorses.length > 0) {
+          horseIds = availableHorses.map((h) => h._id);
+        }
       }
-      return o;
-    });
-    get()._persist(updated);
+
+      const COUNTRY_COORDINATES = {
+        VN: [106.7008, 10.7768],
+        KH: [104.9212, 11.5564],
+        SG: [103.8198, 1.3521],
+        TH: [100.5018, 13.7563],
+        MY: [101.6869, 3.1390]
+      };
+
+      const originObj = typeof orderData.origin === 'object'
+        ? orderData.origin
+        : { address: orderData.origin || 'Điểm đón', countryCode: 'VN' };
+
+      const destObj = typeof orderData.destination === 'object'
+        ? orderData.destination
+        : { address: orderData.destination || 'Điểm giao', countryCode: 'KH' };
+
+      const originCountry = (originObj.countryCode || 'VN').toUpperCase();
+      const destCountry = (destObj.countryCode || 'KH').toUpperCase();
+
+      const originCoords = (Array.isArray(originObj.coordinates) && originObj.coordinates.length === 2)
+        ? originObj.coordinates
+        : (COUNTRY_COORDINATES[originCountry] || [106.7008, 10.7768]);
+
+      const destCoords = (Array.isArray(destObj.coordinates) && destObj.coordinates.length === 2)
+        ? destObj.coordinates
+        : (COUNTRY_COORDINATES[destCountry] || [104.9212, 11.5564]);
+
+      const payload = {
+        horseIds: horseIds && horseIds.length > 0 ? horseIds : [],
+        origin: {
+          address: originObj.address || 'Điểm đón',
+          countryCode: originCountry,
+          coordinates: originCoords
+        },
+        destination: {
+          address: destObj.address || 'Điểm giao',
+          countryCode: destCountry,
+          coordinates: destCoords
+        },
+        requestedDepartureDate: orderData.requestedDepartureDate || new Date().toISOString(),
+        specialRequirements: orderData.specialRequirements || ''
+      };
+
+      const response = await orderApi.createOrder(payload);
+      const newOrderDoc = response?.data?.data || response?.data;
+      const mapped = mapOrderData(newOrderDoc);
+
+      set((state) => ({
+        orders: [mapped, ...state.orders],
+        loading: false
+      }));
+
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể tạo đơn vận chuyển';
+      set({ error: msg, loading: false });
+      throw err;
+    }
   },
 
-  rejectOrder: (orderId, reason = '') => {
-    const updated = get().orders.map((o) => {
-      if (o.id === orderId || o.orderCode === orderId) {
-        return {
-          ...o,
-          status: 'REJECTED',
-          reviewNotes: reason
-        };
-      }
-      return o;
-    });
-    get()._persist(updated);
+  approveOrder: async (orderId, reviewNotes = '') => {
+    set({ loading: true, error: null });
+    try {
+      const targetId = get().orders.find((o) => o.id === orderId || o.orderCode === orderId || o._id === orderId)?._id || orderId;
+      const response = await orderApi.updateStatus(targetId, 'APPROVED');
+      const updatedDoc = response?.data?.data || response?.data;
+      const mapped = mapOrderData(updatedDoc);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === targetId || o._id === targetId ? mapped : o)),
+        loading: false
+      }));
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể phê duyệt đơn';
+      set({ error: msg, loading: false });
+      throw err;
+    }
+  },
+
+  rejectOrder: async (orderId, reason = '') => {
+    set({ loading: true, error: null });
+    try {
+      const targetId = get().orders.find((o) => o.id === orderId || o.orderCode === orderId || o._id === orderId)?._id || orderId;
+      const response = await orderApi.updateStatus(targetId, 'REJECTED', reason);
+      const updatedDoc = response?.data?.data || response?.data;
+      const mapped = mapOrderData(updatedDoc);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === targetId || o._id === targetId ? mapped : o)),
+        loading: false
+      }));
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể từ chối đơn';
+      set({ error: msg, loading: false });
+      throw err;
+    }
+  },
+
+  cancelOrder: async (orderId, reason = 'Khách hàng hủy đơn') => {
+    set({ loading: true, error: null });
+    try {
+      const targetId = get().orders.find((o) => o.id === orderId || o.orderCode === orderId || o._id === orderId)?._id || orderId;
+      const response = await orderApi.cancelOrder(targetId, reason);
+      const updatedDoc = response?.data?.data || response?.data;
+      const mapped = mapOrderData(updatedDoc);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === targetId || o._id === targetId ? mapped : o)),
+        loading: false
+      }));
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể hủy đơn vận chuyển';
+      set({ error: msg, loading: false });
+      throw err;
+    }
   }
 }));

@@ -333,7 +333,7 @@ const PassportDetail = () => {
             </div>
           </div>
           <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 18 }}>
-            TR-2026-0158 • Việt Nam → Singapore
+            Giấy tờ tuân thủ và hồ sơ kiểm dịch quốc tế (ISO 11784/11785)
           </div>
 
           {/* List of 3 Standard Documents */}
