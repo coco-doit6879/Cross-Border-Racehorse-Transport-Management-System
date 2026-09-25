@@ -9,14 +9,19 @@ const atRelativeDay = (dayOffset, hour, minute = 0) => {
 };
 
 export const createManagerDemoData = () => ({
-  version: 1,
+  version: 2,
   drivers: [
     { id: 'drv-001', code: 'TX001', fullName: 'Nguyễn Minh Hoàng', phone: '0901234567', email: 'hoang.nguyen@cbrt.demo', licenseNumber: '790123456789', licenseClass: 'C', licenseExpiry: atRelativeDay(420, 0), status: 'ACTIVE', notes: 'Có kinh nghiệm tuyến Việt Nam - Campuchia.' },
     { id: 'drv-002', code: 'TX002', fullName: 'Trần Quốc Bảo', phone: '0912345678', email: 'bao.tran@cbrt.demo', licenseNumber: '790234567890', licenseClass: 'FC', licenseExpiry: atRelativeDay(275, 0), status: 'ACTIVE', notes: 'Ưu tiên các chuyến đường dài.' },
     { id: 'drv-003', code: 'TX003', fullName: 'Lê Anh Tuấn', phone: '0933456789', email: '', licenseNumber: '790345678901', licenseClass: 'C', licenseExpiry: atRelativeDay(190, 0), status: 'ACTIVE', notes: '' },
     { id: 'drv-004', code: 'TX004', fullName: 'Phạm Đức Long', phone: '0944567890', email: 'long.pham@cbrt.demo', licenseNumber: '790456789012', licenseClass: 'D', licenseExpiry: atRelativeDay(510, 0), status: 'ACTIVE', notes: 'Thông thạo tuyến cửa khẩu Mộc Bài.' },
     { id: 'drv-005', code: 'TX005', fullName: 'Võ Thành Nam', phone: '0965678901', email: '', licenseNumber: '790567890123', licenseClass: 'C', licenseExpiry: atRelativeDay(85, 0), status: 'ACTIVE', notes: 'Cần theo dõi ngày hết hạn giấy phép.' },
-    { id: 'drv-006', code: 'TX006', fullName: 'Đặng Hữu Phúc', phone: '0976789012', email: 'phuc.dang@cbrt.demo', licenseNumber: '790678901234', licenseClass: 'C', licenseExpiry: atRelativeDay(360, 0), status: 'INACTIVE', notes: 'Hồ sơ mẫu chưa được phân công.' }
+    { id: 'drv-006', code: 'TX006', fullName: 'Đặng Hữu Phúc', phone: '0976789012', email: 'phuc.dang@cbrt.demo', licenseNumber: '790678901234', licenseClass: 'C', licenseExpiry: atRelativeDay(360, 0), status: 'INACTIVE', notes: 'Hồ sơ mẫu chưa được phân công.' },
+    { id: 'drv-007', code: 'TX007', fullName: 'Đoàn Văn Hùng', phone: '0908887766', email: 'hung.doan@cbrt.com', licenseNumber: '790789012345', licenseClass: 'FC', licenseExpiry: atRelativeDay(730, 0), status: 'ACTIVE', notes: '10 năm kinh nghiệm vận chuyển ngựa đua quốc tế tuyến VN - KH - TH.' },
+    { id: 'drv-008', code: 'TX008', fullName: 'Nguyễn Tấn Đạt', phone: '0919998877', email: 'dat.nguyen@cbrt.com', licenseNumber: '790890123456', licenseClass: 'FC', licenseExpiry: atRelativeDay(950, 0), status: 'ACTIVE', notes: 'Thông thạo luồng xanh thông quan cửa khẩu Hà Tiên & Mộc Bài.' },
+    { id: 'drv-009', code: 'TX009', fullName: 'Hoàng Xuân Trường', phone: '0937776655', email: 'truong.hoang@cbrt.com', licenseNumber: '790901234567', licenseClass: 'C', licenseExpiry: atRelativeDay(450, 0), status: 'ACTIVE', notes: 'Thành thạo điều khiển xe chở ngựa trang bị giảm xóc khí nén.' },
+    { id: 'drv-010', code: 'TX010', fullName: 'Trịnh Thanh Sơn', phone: '0946665544', email: 'son.trinh@cbrt.com', licenseNumber: '791012345678', licenseClass: 'FC', licenseExpiry: atRelativeDay(680, 0), status: 'ACTIVE', notes: 'Có chứng chỉ sơ cứu thú y cơ bản, chuyên ca đêm.' },
+    { id: 'drv-011', code: 'TX011', fullName: 'Phan Văn Hữu', phone: '0965554433', email: 'huu.phan@cbrt.com', licenseNumber: '791123456789', licenseClass: 'D', licenseExpiry: atRelativeDay(820, 0), status: 'ACTIVE', notes: 'Chuyên trách vận chuyển ngựa thi đấu đỉnh cao (Grade 1 Racehorses).' }
   ],
   escorts: [
     { id: 'esc-001', code: 'PX001', fullName: 'Đỗ Thu Hà', phone: '0981112233', email: 'ha.do@cbrt.demo', experience: '5 năm chăm sóc ngựa đua, quen xử lý căng thẳng khi di chuyển.', status: 'ACTIVE', notes: '' },

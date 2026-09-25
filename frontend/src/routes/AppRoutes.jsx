@@ -15,6 +15,7 @@ import ManagerDashboard from '../pages/Manager/ManagerDashboard';
 import PersonnelPage from '../pages/Manager/PersonnelPage';
 import TripsPage from '../pages/Manager/TripsPage';
 import TripDetailPage from '../pages/Manager/TripDetailPage';
+import TransportSchedulesPage from '../pages/Manager/TransportSchedulesPage';
 import ProtectedRoute from './ProtectedRoute';
 import { useAuthStore } from '../store/useAuthStore';
 import { USER_ROLES } from '../utils/constants';
@@ -36,9 +37,16 @@ const managerRoutes = (
   </>
 );
 
+const OPERATIONAL_ROLES = [
+  USER_ROLES.LOGISTICS_MANAGER,
+  USER_ROLES.FLEET_COORDINATOR,
+  USER_ROLES.ROUTE_COORDINATOR,
+  USER_ROLES.TRANSPORT_SPECIALIST
+];
+
 const HomeRoute = () => {
   const role = useAuthStore((state) => state.user?.role);
-  if (isManagerDemoEnabled || role === USER_ROLES.LOGISTICS_MANAGER) return <Navigate to="/manager" replace />;
+  if (isManagerDemoEnabled || OPERATIONAL_ROLES.includes(role)) return <Navigate to="/manager" replace />;
   return <Overview />;
 };
 
@@ -70,13 +78,16 @@ const AppRoutes = () => (
           <Route path="/horses" element={<HorseList />} />
           <Route path="/horses/:id" element={<PassportDetail />} />
           <Route path="/routes/tracking" element={<RouteMap />} />
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.LOGISTICS_MANAGER, USER_ROLES.FLEET_COORDINATOR]} />}>
+            <Route path="/manager/schedules" element={<TransportSchedulesPage />} />
+          </Route>
 
           <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.SOS_MANAGE} />}>
             <Route path="/incidents/sos" element={<SOSAlerts />} />
           </Route>
 
           {!isManagerDemoEnabled ? (
-            <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.LOGISTICS_MANAGER]} />}>
+            <Route element={<ProtectedRoute allowedRoles={OPERATIONAL_ROLES} />}>
               <Route path="/manager" element={<ManagerDataBoundary />}>{managerRoutes}</Route>
             </Route>
           ) : null}

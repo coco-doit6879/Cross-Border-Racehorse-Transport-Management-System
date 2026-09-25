@@ -4,6 +4,7 @@ import userApi from '../services/userApi';
 import { routeApi } from '../services/routeApi';
 import { orderApi } from '../services/orderApi';
 import { managerDemoService } from '../services/managerDemoService';
+import { calculateTransportSchedule } from '../utils/transportCalculator';
 
 const ManagerDataContext = createContext(null);
 
@@ -62,25 +63,48 @@ export const ManagerDataProvider = ({ children }) => {
         }));
 
       const demoData = managerDemoService.getData();
-      if (!drivers.length && Array.isArray(demoData.drivers)) drivers = demoData.drivers;
-      if (!escorts.length && Array.isArray(demoData.escorts)) escorts = demoData.escorts;
+
+      const mergedDriversMap = new Map();
+      drivers.forEach((d) => mergedDriversMap.set(d.id, d));
+      (demoData.drivers || []).forEach((d) => {
+        if (!mergedDriversMap.has(String(d.id)) && !mergedDriversMap.has(d.code)) {
+          mergedDriversMap.set(String(d.id), d);
+        }
+      });
+      drivers = Array.from(mergedDriversMap.values());
+
+      const mergedEscortsMap = new Map();
+      escorts.forEach((e) => mergedEscortsMap.set(e.id, e));
+      (demoData.escorts || []).forEach((e) => {
+        if (!mergedEscortsMap.has(String(e.id)) && !mergedEscortsMap.has(e.code)) {
+          mergedEscortsMap.set(String(e.id), e);
+        }
+      });
+      escorts = Array.from(mergedEscortsMap.values());
 
       // Map routes to trips
       const trips = routes.map((r, index) => {
-        const orderObj = r.orderId || {};
+        const orderObj = typeof r.orderId === 'object' ? r.orderId : {};
+        const orderIdStr = typeof r.orderId === 'object' ? String(r.orderId._id || r.orderId.id) : (r.orderId ? String(r.orderId) : null);
         const originAddr = typeof orderObj.origin === 'object' ? orderObj.origin?.address || '' : orderObj.origin || '';
         const destAddr = typeof orderObj.destination === 'object' ? orderObj.destination?.address || '' : orderObj.destination || '';
+
+        const requestedStart = orderObj.requestedDepartureDate || r.createdAt || new Date();
+        const schedule = calculateTransportSchedule(requestedStart, orderObj.origin, orderObj.destination);
 
         return {
           id: String(r._id || r.id),
           _id: String(r._id || r.id),
+          orderId: orderIdStr || String(r._id || r.id),
           code: `TRIP-${String(r._id || '').slice(-4).toUpperCase()}`,
           orderCode: orderObj.bookingCode || orderObj.orderCode || `TR-2026-0${100 + index}`,
           customer: orderObj.customerId?.fullName || 'Khách hàng',
           origin: originAddr || 'TP. Hồ Chí Minh',
           destination: destAddr || 'Phnom Penh',
-          startAt: r.createdAt || new Date().toISOString(),
-          endAt: r.updatedAt || new Date().toISOString(),
+          startAt: schedule.startAt,
+          endAt: schedule.endAt,
+          estimatedDistanceKm: schedule.distanceKm,
+          estimatedDurationFormatted: schedule.durationFormatted,
           status: r.status || 'SCHEDULED',
           horseCount: Array.isArray(orderObj.horseIds) ? orderObj.horseIds.length : 1,
           vehiclePlate: r.vehiclePlateNumber || r.vehiclePlate || 'Chưa phân công',
@@ -96,23 +120,36 @@ export const ManagerDataProvider = ({ children }) => {
         };
       });
 
-      // If no routes in database yet, map orders to trips format
-      if (trips.length === 0 && orders.length > 0) {
-        orders.forEach((o, index) => {
+      // Include all backend orders in trips list so managers can manage/approve any order
+      orders.forEach((o, index) => {
+        const matchingTrip = trips.find(
+          (t) =>
+            String(t.id) === String(o._id || o.id) ||
+            t.orderCode === (o.bookingCode || o.orderCode) ||
+            t.orderId === String(o._id || o.id)
+        );
+
+        if (!matchingTrip) {
           const originAddr = typeof o.origin === 'object' ? o.origin?.address || '' : o.origin || '';
           const destAddr = typeof o.destination === 'object' ? o.destination?.address || '' : o.destination || '';
+
+          const requestedStart = o.requestedDepartureDate || o.createdAt || new Date();
+          const schedule = calculateTransportSchedule(requestedStart, o.origin, o.destination);
 
           trips.push({
             id: String(o._id || o.id),
             _id: String(o._id || o.id),
+            orderId: String(o._id || o.id),
             code: `TRIP-${String(o._id || '').slice(-4).toUpperCase()}`,
             orderCode: o.bookingCode || o.orderCode || `TR-2026-0${140 + index}`,
             customer: o.customerId?.fullName || o.customerName || 'Khách hàng',
             origin: originAddr || 'Chưa xác định',
             destination: destAddr || 'Chưa xác định',
-            startAt: o.createdAt || new Date().toISOString(),
-            endAt: o.updatedAt || new Date().toISOString(),
-            status: o.status === 'APPROVED' ? 'PLANNED' : o.status,
+            startAt: schedule.startAt,
+            endAt: schedule.endAt,
+            estimatedDistanceKm: schedule.distanceKm,
+            estimatedDurationFormatted: schedule.durationFormatted,
+            status: o.status || 'PENDING_APPROVAL',
             horseCount: Array.isArray(o.horseIds) ? o.horseIds.length : 1,
             vehiclePlate: o.vehiclePlate || 'Chưa phân công',
             driverId: o.driverId?._id ? String(o.driverId._id) : (o.driverId ? String(o.driverId) : null),
@@ -127,26 +164,51 @@ export const ManagerDataProvider = ({ children }) => {
             assignmentHistory: [],
             specialRequirements: o.specialRequirements || ''
           });
-        });
-      }
+        }
+      });
 
-      // Merge saved assignments from managerDemoService
+      // Merge saved assignments & order statuses from backend & demo service
       const demoTripMap = new Map((demoData.trips || []).map((t) => [String(t.id), t]));
       const demoCodeMap = new Map((demoData.trips || []).map((t) => [t.code, t]));
       const demoOrderCodeMap = new Map((demoData.trips || []).map((t) => [t.orderCode, t]));
 
       const mergedTrips = trips.map((t) => {
         const local = demoTripMap.get(String(t.id)) || demoCodeMap.get(t.code) || demoOrderCodeMap.get(t.orderCode);
+        const matchingOrder = orders.find(
+          (o) =>
+            String(o._id || o.id) === String(t.id || t._id) ||
+            o.bookingCode === t.orderCode ||
+            o.orderCode === t.orderCode ||
+            String(o._id || o.id) === String(t.orderId)
+        );
+
+        // Calculate reactive status with prioritization for explicit approval / rejection updates
+        let activeStatus = t.status || 'PENDING_APPROVAL';
+        const candidates = [matchingOrder?.status, local?.status, t.status].filter(Boolean);
+        if (candidates.includes('APPROVED')) {
+          activeStatus = 'APPROVED';
+        } else if (candidates.includes('REJECTED')) {
+          activeStatus = 'REJECTED';
+        } else if (matchingOrder?.status) {
+          activeStatus = matchingOrder.status;
+        } else if (local?.status) {
+          activeStatus = local.status;
+        }
+
         if (local) {
           return {
             ...t,
+            status: activeStatus,
             driverId: local.driverId || t.driverId,
             escortId: local.escortId || t.escortId,
             assignmentNote: local.assignmentNote || t.assignmentNote,
             assignmentHistory: local.assignmentHistory?.length ? local.assignmentHistory : t.assignmentHistory
           };
         }
-        return t;
+        return {
+          ...t,
+          status: activeStatus
+        };
       });
 
       setData({

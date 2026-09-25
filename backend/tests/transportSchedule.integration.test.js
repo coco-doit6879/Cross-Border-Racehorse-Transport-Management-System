@@ -1,0 +1,60 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
+const mongoose = require('mongoose');
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const User = require('../src/models/User');
+const Horse = require('../src/models/Horse');
+const Order = require('../src/models/Order');
+
+test('MongoDB: manager publishes schedule, customer books a fixed trip, stale schedule is refused', { timeout: 30000 }, async (t) => {
+  const testDbName = `cbrt_schedule_test_${randomUUID().replaceAll('-', '')}`;
+  await mongoose.connect(process.env.MONGODB_TEST_SERVER || 'mongodb://127.0.0.1:27017', { dbName: testDbName, serverSelectionTimeoutMS: 5000 });
+  t.after(async () => {
+    // Only remove this run's isolated database, never cbrt_db or an environment-selected database.
+    assert.equal(mongoose.connection.name, testDbName);
+    assert.match(testDbName, /^cbrt_schedule_test_[a-f0-9]{32}$/);
+    await mongoose.connection.dropDatabase();
+    await mongoose.disconnect();
+  });
+  const manager = await User.create({ username: 'schedulemanager', email: 'manager@test.invalid', fullName: 'Test Manager', phone: '0900000001', password: 'test-password', role: 'LOGISTICS_MANAGER' });
+  const customer = await User.create({ username: 'schedulecustomer', email: 'customer@test.invalid', fullName: 'Test Customer', phone: '0900000002', password: 'test-password', role: 'CUSTOMER' });
+  const horse = await Horse.create({ ownerId: customer._id, microchipId: '104123456789099', feiPassportNumber: 'TEST-FEI', name: 'Test Horse', breed: 'Thoroughbred', dateOfBirth: '2020-01-01', gender: 'GELDING', weightKg: 520, passportScanUrl: '/test-fixture.pdf', reviewStatus: 'APPROVED' });
+  const app = express(); app.use(express.json());
+  app.use('/schedules', require('../src/routes/transportScheduleRoutes'));
+  app.use('/orders', require('../src/routes/orderRoutes'));
+  app.use((error, req, res, next) => res.status(500).json({ message: error.message }));
+  const server = app.listen(0, '127.0.0.1'); await new Promise((resolve) => server.once('listening', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}`;
+  const send = async (path, user, method = 'GET', body) => {
+    const response = await fetch(`${url}${path}`, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt.sign({ id: String(user._id) }, process.env.JWT_SECRET || 'cbrt_super_secret_jwt_key_2026')}` }, body: body ? JSON.stringify(body) : undefined });
+    return { status: response.status, body: await response.json() };
+  };
+  const initial = await send('/schedules', customer);
+  assert.equal(initial.status, 200); assert.equal(initial.body.data.revision, 0);
+  const rules = initial.body.data.rules;
+  const saved = await send('/schedules', manager, 'PUT', { revision: 0, rules });
+  assert.equal(saved.status, 200, JSON.stringify(saved.body)); assert.equal(saved.body.data.revision, 1);
+  assert.equal((await send('/schedules', customer, 'PUT', { revision: 1, rules })).status, 403);
+  const published = (await send('/schedules', customer)).body.data;
+  const departure = published.departures.find((d) => d.originStopId === 'SG-SIN');
+  const created = await send('/orders', customer, 'POST', { horseIds: [String(horse._id)], departureId: departure.id, scheduleRevision: 1 });
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  const orderId = created.body.data._id;
+  const persisted = await Order.findById(orderId).lean();
+  assert.equal(persisted.requestedDepartureDate.toISOString(), departure.departureAt);
+  assert.equal(persisted.departureTimezone, 'Asia/Singapore');
+  assert.equal(persisted.origin.countryCode, 'SG');
+  assert.equal(persisted.departureLocalTime, departure.departureLocalTime);
+  const changed = rules.map((rule) => rule.originStopId === departure.originStopId && rule.destinationStopId === departure.destinationStopId ? { ...rule, active: false } : rule);
+  assert.equal((await send('/schedules', manager, 'PUT', { revision: 1, rules: changed })).status, 200);
+  assert.equal((await send('/orders', customer, 'POST', { horseIds: [String(horse._id)], departureId: departure.id, scheduleRevision: 1 })).status, 409);
+  assert.equal((await send('/orders', customer, 'POST', { horseIds: [String(horse._id)], departureId: departure.id, scheduleRevision: 2 })).status, 409);
+  assert.equal((await send('/orders', customer, 'POST', { horseIds: [String(horse._id)], origin: { address: 'Arbitrary place' }, requestedDepartureDate: '2030-01-01' })).status, 400);
+  assert.equal((await Order.findById(orderId)).requestedDepartureDate.toISOString(), departure.departureAt);
+  assert.equal(await Order.countDocuments(), 1);
+  const fresh = (await send('/schedules', customer)).body.data;
+  assert.equal(fresh.revision, 2); assert.ok(!fresh.departures.some((d) => d.id === departure.id));
+});

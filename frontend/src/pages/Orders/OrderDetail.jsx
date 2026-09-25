@@ -4,6 +4,8 @@ import { Button, Tag, Steps } from 'antd';
 import { ArrowLeft, Truck, MapPin, CheckCircle, Clock } from 'lucide-react';
 import { useOrderStore } from '../../store/useOrderStore';
 
+import LocationMap from '../../components/common/LocationMap';
+
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -72,14 +74,15 @@ const OrderDetail = () => {
               <strong>
                 {order?.departureDate} {order?.departureTime && `(${order.departureTime})`}
               </strong>
+              {order?.departureId && <div style={{ color: '#64748b', fontSize: 12 }}>Theo lịch cố định · Giờ tại điểm đón ({order.departureTimezone})</div>}
             </div>
             <div>
-              <span style={{ color: '#6B7280' }}>Phương tiện:</span>{' '}
-              <strong>{order?.vehiclePlate || 'Xe chuyên dụng vận chuyển ngựa 2 chỗ'}</strong>
+              <span style={{ color: '#6B7280' }}>Biển số xe:</span>{' '}
+              <strong>{order?.vehiclePlate || 'Xe chuyên dụng 51D-246.80'}</strong>
             </div>
             <div>
-              <span style={{ color: '#6B7280' }}>Tài xế / Chuyên viên hộ tống:</span>{' '}
-              <strong>{order?.driverName || 'Nguyễn Văn An'}</strong>
+              <span style={{ color: '#6B7280' }}>Tài xế phụ trách:</span>{' '}
+              <strong>{order?.driverName || 'Nguyễn Minh Hoàng'}</strong>
             </div>
             <div>
               <span style={{ color: '#6B7280' }}>Ngựa vận chuyển:</span>{' '}
@@ -99,6 +102,20 @@ const OrderDetail = () => {
                 {order?.specialRequirements || 'Không có yêu cầu đặc biệt.'}
               </p>
             </div>
+
+            {/* Embedded Route Map */}
+            {order?.originLocation && order?.destinationLocation && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0F3E2E', marginBottom: 8 }}>
+                  🗺️ Lộ trình & Bản đồ tuyến đường:
+                </div>
+                <LocationMap
+                  originLocation={order.originLocation}
+                  destinationLocation={order.destinationLocation}
+                  height="240px"
+                />
+              </div>
+            )}
           </div>
         </div>
 

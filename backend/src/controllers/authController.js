@@ -125,8 +125,23 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    const emailAliases = {
+      'manager@cbrt.com': 'mgr@cbrt.com',
+      'coordinator@cbrt.com': 'coord@cbrt.com',
+      'specialist@cbrt.com': 'spec@cbrt.com',
+      'driver@cbrt.com': 'drv@cbrt.com',
+      'escort@cbrt.com': 'esc@cbrt.com',
+      'customer@cbrt.com': 'custa@cbrt.com'
+    };
+
+    const targetEmail = emailAliases[loginIdentifier] || loginIdentifier;
+
     const user = await User.findOne({
-      $or: [{ email: loginIdentifier }, { username: loginIdentifier }]
+      $or: [
+        { email: loginIdentifier },
+        { email: targetEmail },
+        { username: loginIdentifier }
+      ]
     }).select('+password');
 
     if (!user || !(await user.matchPassword(password))) {

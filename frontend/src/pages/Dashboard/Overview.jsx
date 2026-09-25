@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useHorseStore } from '../../store/useHorseStore';
 import { useOrderStore } from '../../store/useOrderStore';
+import LocationMap from '../../components/common/LocationMap';
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -40,11 +41,18 @@ const Overview = () => {
     fetchOrders().catch(() => {});
   }, [fetchHorses, fetchOrders]);
 
-  // Find active or latest customer order from backend REST API
-  const activeTrip = orders.find((o) => o.status === 'IN_TRANSIT') || orders[0] || null;
+  // Sort orders newest first
+  const sortedOrders = [...orders].sort((a, b) => String(b._id || b.id || b.orderCode).localeCompare(String(a._id || a.id || a.orderCode)));
 
-  // Upcoming trip (pending approval or scheduled)
-  const upcomingTrip = orders.find((o) => o.status === 'PENDING_APPROVAL' || o.status === 'APPROVED');
+  // Prioritize active in-transit orders, then pending/approved orders, then newest order
+  const activeTrip =
+    sortedOrders.find((o) => ['IN_TRANSIT', 'DELIVERING', 'CLEARED_FOR_TRANSPORT', 'DOCS_PROCESSING'].includes(o.status)) ||
+    sortedOrders.find((o) => ['PENDING_APPROVAL', 'APPROVED'].includes(o.status)) ||
+    sortedOrders[0] ||
+    null;
+
+  // Secondary trip (other order in list for footer banner)
+  const upcomingTrip = sortedOrders.find((o) => String(o.id || o._id) !== String(activeTrip?.id || activeTrip?._id)) || null;
 
   // Pending items count
   const pendingOrdersCount = orders.filter((o) => o.status === 'PENDING_APPROVAL').length;
@@ -207,14 +215,14 @@ const Overview = () => {
                 </div>
               </div>
 
-              {/* Route Card Box */}
+              {/* Route Card Box with Leaflet Map Preview */}
               <div
                 style={{
                   width: '100%',
                   backgroundColor: '#EBF4F0',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   border: '1px solid #D1E5DD',
-                  padding: 20,
+                  padding: 16,
                   position: 'relative',
                   marginBottom: 18
                 }}
@@ -226,21 +234,35 @@ const Overview = () => {
                   </div>
                   <div
                     style={{
-                      backgroundColor: 'rgba(15,62,46,0.9)',
+                      backgroundColor: '#0F3E2E',
                       color: '#FFFFFF',
                       padding: '4px 10px',
                       borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: 500
+                      fontSize: 12,
+                      fontWeight: 600
                     }}
                   >
-                    Xe: {activeTrip.vehiclePlate}
+                    Biển số xe: {activeTrip.vehiclePlate}
                   </div>
                 </div>
 
-                <div style={{ fontSize: 12, color: '#374151' }}>
-                  Tài xế phụ trách: <strong>{activeTrip.driverName}</strong>
+                <div style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
+                  Tài xế phụ trách: <strong style={{ color: '#0F3E2E' }}>{activeTrip.driverName}</strong>
                 </div>
+
+                {/* Leaflet Route Map Embed */}
+                {activeTrip.originLocation && activeTrip.destinationLocation ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0F3E2E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      🗺️ Bản đồ Lộ trình & Điểm đón / giao trực tiếp:
+                    </div>
+                    <LocationMap
+                      originLocation={activeTrip.originLocation}
+                      destinationLocation={activeTrip.destinationLocation}
+                      height="200px"
+                    />
+                  </div>
+                ) : null}
               </div>
 
               {/* Status Details */}
@@ -427,7 +449,7 @@ const Overview = () => {
                 letterSpacing: 0.5
               }}
             >
-              Đơn vận chuyển gần nhất:
+              {['COMPLETED', 'CANCELLED', 'REJECTED'].includes(upcomingTrip.status) ? 'Lịch sử đơn vận chuyển:' : 'Đơn vận chuyển khác:'}
             </span>
             <span style={{ fontWeight: 600, color: '#111827' }}>{upcomingTrip.orderCode}</span>
             <span style={{ color: '#6B7280' }}>•</span>

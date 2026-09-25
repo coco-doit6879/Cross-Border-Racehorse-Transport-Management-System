@@ -32,27 +32,20 @@ const { protect, checkPermission } = require('../middlewares/authMiddleware');
  *         application/json:
  *           schema:
  *             type: object
- *             required: [horseIds, origin, destination, requestedDepartureDate]
+ *             required: [horseIds, departureId, scheduleRevision]
  *             properties:
  *               horseIds:
  *                 type: array
  *                 items:
  *                   type: string
- *               origin:
- *                 type: object
- *                 properties:
- *                   address: { type: string }
- *                   countryCode: { type: string }
- *                   coordinates: { type: array, items: { type: number }, example: [106.7008, 10.7768] }
- *               destination:
- *                 type: object
- *                 properties:
- *                   address: { type: string }
- *                   countryCode: { type: string }
- *                   coordinates: { type: array, items: { type: number }, example: [103.7712, 1.4243] }
- *               requestedDepartureDate:
+ *               departureId:
  *                 type: string
- *                 format: date-time
+ *                 description: Exact departure ID returned by GET /transport-schedules
+ *               scheduleRevision:
+ *                 type: integer
+ *                 description: Revision returned by the schedule catalog
+ *               specialRequirements:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Transport order created in PENDING_APPROVAL status

@@ -15,17 +15,27 @@ const orderSchema = new mongoose.Schema({
     required: [true, 'Customer ID is required'],
     index: true
   },
-  horseIds: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Horse',
-    required: true
-  }],
+  horseIds: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Horse'
+    }],
+    validate: {
+      validator: (arr) => Array.isArray(arr) && arr.length > 0,
+      message: 'Order must contain at least one horse ID'
+    },
+    required: [true, 'Horse IDs are required']
+  },
   origin: {
     address: { type: String, required: [true, 'Origin address is required'] },
     countryCode: { type: String, required: [true, 'Origin country code is required'], uppercase: true },
     coordinates: {
       type: [Number],
-      required: [true, 'Origin GeoJSON coordinates [lng, lat] are required']
+      required: [true, 'Origin GeoJSON coordinates [lng, lat] are required'],
+      validate: {
+        validator: (arr) => Array.isArray(arr) && arr.length === 2 && typeof arr[0] === 'number' && typeof arr[1] === 'number' && !isNaN(arr[0]) && !isNaN(arr[1]) && !(arr[0] === 0 && arr[1] === 0),
+        message: 'Origin GeoJSON coordinates must be a valid array of [lng, lat]'
+      }
     }
   },
   destination: {
@@ -33,15 +43,29 @@ const orderSchema = new mongoose.Schema({
     countryCode: { type: String, required: [true, 'Destination country code is required'], uppercase: true },
     coordinates: {
       type: [Number],
-      required: [true, 'Destination GeoJSON coordinates [lng, lat] are required']
+      required: [true, 'Destination GeoJSON coordinates [lng, lat] are required'],
+      validate: {
+        validator: (arr) => Array.isArray(arr) && arr.length === 2 && typeof arr[0] === 'number' && typeof arr[1] === 'number' && !isNaN(arr[0]) && !isNaN(arr[1]) && !(arr[0] === 0 && arr[1] === 0),
+        message: 'Destination GeoJSON coordinates must be a valid array of [lng, lat]'
+      }
     }
   },
   requestedDepartureDate: {
     type: Date,
     required: [true, 'Requested departure date is required']
   },
+  departureId: { type: String, index: true },
+  scheduleRevision: Number,
+  originStopId: String,
+  destinationStopId: String,
+  departureLocalDate: String,
+  departureLocalTime: String,
+  departureTimezone: String,
   specialRequirements: {
     type: String
+  },
+  estimatedDistanceKm: {
+    type: Number
   },
   status: {
     type: String,

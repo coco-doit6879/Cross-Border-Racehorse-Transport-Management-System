@@ -4,7 +4,10 @@ export const APP_NAME = 'Cross-Border Racehorse Transport System';
 export const USER_ROLES = {
   LOGISTICS_MANAGER: 'LOGISTICS_MANAGER',
   TRANSPORT_SPECIALIST: 'TRANSPORT_SPECIALIST',
+  FLEET_COORDINATOR: 'FLEET_COORDINATOR',
   ROUTE_COORDINATOR: 'ROUTE_COORDINATOR',
+  DRIVER: 'DRIVER',
+  ESCORT: 'ESCORT',
   DRIVER_ESCORT: 'DRIVER_ESCORT',
   CUSTOMER: 'CUSTOMER'
 };
@@ -23,8 +26,11 @@ export const ORDER_STATUS_LABELS = {
 
 export const USER_ROLE_LABELS = {
   LOGISTICS_MANAGER: 'Quản lý logistics',
-  TRANSPORT_SPECIALIST: 'Chuyên viên vận chuyển',
-  ROUTE_COORDINATOR: 'Điều phối tuyến',
-  DRIVER_ESCORT: 'Tài xế / hộ tống',
+  TRANSPORT_SPECIALIST: 'Chuyên viên thủ tục & kiểm dịch',
+  FLEET_COORDINATOR: 'Điều phối viên đội xe & lộ trình',
+  ROUTE_COORDINATOR: 'Điều phối viên đội xe & lộ trình',
+  DRIVER: 'Tài xế chuyên dụng',
+  ESCORT: 'Chuyên viên chăm sóc',
+  DRIVER_ESCORT: 'Tài xế / Hộ tống',
   CUSTOMER: 'Khách hàng'
 };

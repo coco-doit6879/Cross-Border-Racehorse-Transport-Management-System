@@ -1,5 +1,8 @@
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Horse = require('../models/Horse');
+const transportScheduleService = require('../services/transportScheduleService');
+const geocodingService = require('../services/geocodingService');
 const { logAudit } = require('../utils/auditLogger');
 
 /**
@@ -117,7 +120,7 @@ exports.getOrderById = async (req, res, next) => {
 // @access  Private (booking:create)
 exports.createOrder = async (req, res, next) => {
   try {
-    const { horseIds, origin, destination, requestedDepartureDate, specialRequirements } = req.body;
+    const { horseIds, departureId, scheduleRevision, specialRequirements } = req.body;
 
     if (!horseIds || !Array.isArray(horseIds) || horseIds.length === 0) {
       return res.status(400).json({
@@ -126,27 +129,18 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
-    if (!origin || !origin.address || !origin.countryCode || !origin.coordinates || origin.coordinates.length !== 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide valid origin address, countryCode, and GeoJSON coordinates [lng, lat]'
-      });
+    // A booking selects a server-published departure; free-form locations and times are forbidden.
+    if (['origin', 'destination', 'requestedDepartureDate', 'departureDate', 'departureTime'].some((key) => Object.prototype.hasOwnProperty.call(req.body, key))) {
+      return res.status(400).json({ success: false, message: 'Không nhận địa điểm hoặc thời gian tự nhập. Vui lòng chọn chuyến trong lịch cố định.' });
     }
-
-    if (!destination || !destination.address || !destination.countryCode || !destination.coordinates || destination.coordinates.length !== 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide valid destination address, countryCode, and GeoJSON coordinates [lng, lat]'
-      });
+    let departure;
+    try {
+      departure = await transportScheduleService.resolveDeparture(departureId, scheduleRevision);
+    } catch (error) {
+      if (error.status) return res.status(error.status).json({ success: false, message: error.message });
+      throw error;
     }
-
-    if (!requestedDepartureDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide a requested departure date'
-      });
-    }
-
+    const { origin, destination, requestedDepartureDate } = departure;
     // Validate Horse Ownership: Ensure all selected horses belong to the Customer creating the booking
     const ownedHorses = await Horse.find({
       _id: { $in: horseIds },
@@ -171,23 +165,32 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
+    if (ownedHorses.some((horse) => horse.reviewStatus !== 'APPROVED')) {
+      return res.status(400).json({ success: false, message: 'Chỉ ngựa có hồ sơ đã được Chuyên viên Thủ tục & Kiểm dịch duyệt sức khỏe mới được đặt vận chuyển.' });
+    }
+
+    // Calculate server-side Haversine estimated geographic distance
+    const estimatedDistanceKm = geocodingService.calculateDistanceKm(origin.coordinates, destination.coordinates);
+
     const bookingCode = await generateBookingCode();
 
     // Initial status is locked to PENDING_APPROVAL
     const order = await Order.create({
+      ...departure,
       bookingCode,
-      customerId: req.user._id,
+      customerId: req.user._id, // Enforce authenticated customer identity from JWT
       horseIds,
       origin: {
-        address: origin.address,
+        address: origin.address.trim(),
         countryCode: origin.countryCode.toUpperCase(),
-        coordinates: origin.coordinates // [lng, lat]
+        coordinates: [parseFloat(origin.coordinates[0]), parseFloat(origin.coordinates[1])] // [lng, lat]
       },
       destination: {
-        address: destination.address,
+        address: destination.address.trim(),
         countryCode: destination.countryCode.toUpperCase(),
-        coordinates: destination.coordinates // [lng, lat]
+        coordinates: [parseFloat(destination.coordinates[0]), parseFloat(destination.coordinates[1])] // [lng, lat]
       },
+      estimatedDistanceKm,
       requestedDepartureDate,
       specialRequirements,
       status: 'PENDING_APPROVAL'
@@ -199,6 +202,7 @@ exports.createOrder = async (req, res, next) => {
       resource: 'Order',
       resourceId: order._id.toString(),
       result: 'SUCCESS',
+      metadata: { estimatedDistanceKm },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
@@ -226,7 +230,26 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    let order = await Order.findById(req.params.id);
+    let order = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      order = await Order.findById(req.params.id);
+    }
+    if (!order) {
+      order = await Order.findOne({
+        $or: [
+          { bookingCode: req.params.id },
+          { orderCode: req.params.id }
+        ]
+      });
+    }
+    if (!order && mongoose.Types.ObjectId.isValid(req.params.id)) {
+      const Route = require('../models/Route');
+      const route = await Route.findById(req.params.id);
+      if (route && route.orderId) {
+        order = await Order.findById(route.orderId);
+      }
+    }
+
     if (!order) {
       return res.status(404).json({
         success: false,

@@ -7,13 +7,43 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 const OrderList = () => {
   const navigate = useNavigate();
-  const { orders, fetchOrders, cancelOrder } = useOrderStore();
+  const { orders, fetchOrders, cancelOrder, approveOrder, rejectOrder } = useOrderStore();
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [rejectingRecord, setRejectingRecord] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const isManager = user?.role === 'LOGISTICS_MANAGER' || (user?.effectivePermissions || []).includes('booking:approve');
 
   useEffect(() => {
     fetchOrders().catch(() => {});
   }, [fetchOrders]);
+
+  const handleApproveOrder = async (orderId, orderCode) => {
+    try {
+      await approveOrder(orderId);
+      message.success(`Đã phê duyệt thành công đơn vận chuyển ${orderCode}!`);
+      fetchOrders().catch(() => {});
+    } catch (err) {
+      message.error(err?.response?.data?.message || err.message || 'Không thể phê duyệt đơn');
+    }
+  };
+
+  const handleRejectOrder = async () => {
+    if (!rejectReason.trim()) {
+      message.error('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+    try {
+      await rejectOrder(rejectingRecord.id || rejectingRecord._id, rejectReason);
+      message.success(`Đã từ chối đơn vận chuyển ${rejectingRecord.orderCode}.`);
+      setRejectingRecord(null);
+      setRejectReason('');
+      fetchOrders().catch(() => {});
+    } catch (err) {
+      message.error(err?.response?.data?.message || err.message || 'Không thể từ chối đơn');
+    }
+  };
 
   const handleCancelOrder = async (orderId, orderCode) => {
     try {
@@ -145,6 +175,7 @@ const OrderList = () => {
       render: (text, record) => (
         <span>
           {text} {record.departureTime && `(${record.departureTime})`}
+          {record.departureId && <div style={{ color: '#64748b', fontSize: 11 }}>Giờ điểm đón · {record.departureTimezone}</div>}
         </span>
       )
     },
@@ -168,7 +199,28 @@ const OrderList = () => {
       align: 'right',
       render: (_, record) => (
         <Space>
-          {record.status === 'PENDING_APPROVAL' && (
+          {record.status === 'PENDING_APPROVAL' && isManager && (
+            <>
+              <Button
+                size="small"
+                type="primary"
+                style={{ backgroundColor: '#15803D', borderColor: '#15803D', borderRadius: 6, fontWeight: 600 }}
+                onClick={() => handleApproveOrder(record.id || record._id, record.orderCode)}
+              >
+                ✓ Duyệt đơn
+              </Button>
+              <Button
+                size="small"
+                danger
+                style={{ borderRadius: 6, fontWeight: 600 }}
+                onClick={() => setRejectingRecord(record)}
+              >
+                ✕ Từ chối
+              </Button>
+            </>
+          )}
+
+          {record.status === 'PENDING_APPROVAL' && !isManager && (
             <Popconfirm
               title="Xác nhận hủy đơn?"
               description={`Bạn có chắc chắn muốn hủy đơn vận chuyển ${record.orderCode}?`}
@@ -182,9 +234,10 @@ const OrderList = () => {
               </Button>
             </Popconfirm>
           )}
+
           <Button
             size="small"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(`/orders/${record.id || record._id}`)}
             style={{
               borderRadius: 6,
               fontSize: 12,
@@ -193,7 +246,7 @@ const OrderList = () => {
               color: '#0F3E2E'
             }}
           >
-            Dashboard
+            Chi tiết
           </Button>
         </Space>
       )
@@ -222,22 +275,24 @@ const OrderList = () => {
           </p>
         </div>
 
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => navigate('/orders/create')}
-          style={{
-            backgroundColor: '#0F3E2E',
-            borderColor: '#0F3E2E',
-            height: 40,
-            padding: '0 20px',
-            fontSize: 14,
-            fontWeight: 600,
-            borderRadius: 8
-          }}
-        >
-          Tạo đơn mới
-        </Button>
+        {!isManager && (
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => navigate('/orders/create')}
+            style={{
+              backgroundColor: '#0F3E2E',
+              borderColor: '#0F3E2E',
+              height: 40,
+              padding: '0 20px',
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 8
+            }}
+          >
+            Tạo đơn mới
+          </Button>
+        )}
       </div>
 
       <div
@@ -273,6 +328,28 @@ const OrderList = () => {
           pagination={{ pageSize: 8 }}
         />
       </div>
+
+      {rejectingRecord && (
+        <Modal
+          title="Từ chối đơn vận chuyển"
+          open={!!rejectingRecord}
+          onOk={handleRejectOrder}
+          onCancel={() => { setRejectingRecord(null); setRejectReason(''); }}
+          okText="Xác nhận từ chối"
+          cancelText="Hủy bỏ"
+          okButtonProps={{ danger: true }}
+        >
+          <p style={{ fontSize: 13, color: '#4B5563', marginBottom: 12 }}>
+            Nhập lý do từ chối đơn vận chuyển <strong>{rejectingRecord.orderCode}</strong>:
+          </p>
+          <Input.TextArea
+            rows={3}
+            placeholder="VD: Không có phương tiện chuyên dụng phù hợp, sai giấy phép hải quan..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

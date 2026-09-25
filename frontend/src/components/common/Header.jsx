@@ -27,7 +27,8 @@ const Header = () => {
     }
   };
 
-  const isManagerRoute = location.pathname.startsWith('/manager') || user?.role === USER_ROLES.LOGISTICS_MANAGER;
+  const OPERATIONAL_ROLES = [USER_ROLES.LOGISTICS_MANAGER, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR, USER_ROLES.TRANSPORT_SPECIALIST];
+  const isManagerRoute = location.pathname.startsWith('/manager') || OPERATIONAL_ROLES.includes(user?.role);
 
   if (isManagerRoute) {
     const statusLabel = sessionStatus === 'checking' || sessionStatus === 'idle'

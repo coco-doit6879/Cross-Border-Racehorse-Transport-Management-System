@@ -59,7 +59,22 @@ const horseSchema = new mongoose.Schema({
   }],
   medicalHistoryNotes: {
     type: String
-  }
+  },
+  color: { type: String, trim: true },
+  identifyingMarks: { type: String, trim: true },
+  vaccinationRecordUrl: String,
+  lastVaccinationDate: Date,
+  reviewStatus: { type: String, enum: ['PENDING_REVIEW', 'APPROVED', 'REJECTED'], default: 'PENDING_REVIEW', index: true },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reviewedAt: Date,
+  reviewNotes: String,
+  reviewHistory: [{
+    decision: { type: String, enum: ['APPROVED', 'REJECTED'] },
+    reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reviewedAt: Date,
+    notes: String,
+    profileVersion: Number
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Horse', horseSchema);

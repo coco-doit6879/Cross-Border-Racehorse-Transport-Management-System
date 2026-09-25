@@ -10,7 +10,7 @@ const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(3
 const load = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (stored?.version === 1 && Array.isArray(stored.drivers) && Array.isArray(stored.escorts) && Array.isArray(stored.trips)) {
+    if (stored?.version === 2 && Array.isArray(stored.drivers) && Array.isArray(stored.escorts) && Array.isArray(stored.trips)) {
       return stored;
     }
   } catch {
@@ -179,6 +179,16 @@ export const managerDemoService = {
     const updated = { ...trip, driverId: values.driverId, escortId: values.escortId, assignmentNote: normalized(values.note), assignmentHistory: history };
     commit({ ...data, trips: data.trips.map((item) => String(item.id) === String(trip.id) ? updated : item) });
     return clone(updated);
+  },
+
+  updateTripStatus(tripId, status, rejectionReason = '') {
+    ensureData();
+    let trip = data.trips.find((item) => String(item.id) === String(tripId) || String(item._id) === String(tripId) || item.code === tripId || item.orderCode === tripId);
+    if (trip) {
+      const updated = { ...trip, status, rejectionReason: rejectionReason || trip.rejectionReason };
+      commit({ ...data, trips: data.trips.map((item) => (String(item.id) === String(trip.id) || item.code === trip.code || (trip.orderCode && item.orderCode === trip.orderCode)) ? updated : item) });
+      return clone(updated);
+    }
   }
 };
 

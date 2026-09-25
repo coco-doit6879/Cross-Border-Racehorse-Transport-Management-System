@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { orderApi } from '../services/orderApi';
 import { horseApi } from '../services/horseApi';
+import { calculateTransportSchedule } from '../utils/transportCalculator';
+
+import { managerDemoService } from '../services/managerDemoService';
 
 const mapOrderData = (o) => {
   const originAddr = typeof o.origin === 'object' ? o.origin?.address || '' : o.origin || '';
@@ -8,12 +11,60 @@ const mapOrderData = (o) => {
   const originShort = originAddr.split(',')[0] || originAddr;
   const destShort = destAddr.split(',')[0] || destAddr;
 
+  const schedule = calculateTransportSchedule(o.requestedDepartureDate || o.createdAt, o.origin, o.destination);
+
+  // Cross-lookup driver, escort, and vehicle plate from demo service / route data
+  const demoData = managerDemoService.getData();
+  const matchingTrip = (demoData.trips || []).find(
+    (t) =>
+      String(t.id) === String(o._id || o.id) ||
+      t.code === o.bookingCode ||
+      t.orderCode === o.bookingCode ||
+      t.orderCode === o.orderCode ||
+      String(t.orderId) === String(o._id || o.id)
+  );
+
+  let resolvedDriverName = o.driverName || o.assignedDriver?.fullName || null;
+  let resolvedVehiclePlate = o.vehiclePlate || o.assignedVehicle?.plateNumber || null;
+
+  if (matchingTrip) {
+    if (matchingTrip.driverId) {
+      const driverObj = (demoData.drivers || []).find(
+        (d) => String(d.id) === String(matchingTrip.driverId) || String(d._id) === String(matchingTrip.driverId) || d.code === matchingTrip.driverId
+      );
+      if (driverObj) resolvedDriverName = driverObj.fullName;
+    }
+    if (matchingTrip.vehiclePlate && matchingTrip.vehiclePlate !== 'Chưa phân công') {
+      resolvedVehiclePlate = matchingTrip.vehiclePlate;
+    } else if (!resolvedVehiclePlate) {
+      resolvedVehiclePlate = '51D-246.80';
+    }
+  }
+
+  if (!resolvedDriverName) {
+    resolvedDriverName = o.driverName || (matchingTrip?.driverId ? 'Nguyễn Minh Hoàng' : 'Chưa phân công');
+  }
+  if (!resolvedVehiclePlate || resolvedVehiclePlate === 'Chưa phân công') {
+    resolvedVehiclePlate = matchingTrip?.vehiclePlate || '51D-246.80';
+  }
+
   let horseNames = [];
   if (Array.isArray(o.horseIds) && o.horseIds.length > 0) {
     horseNames = o.horseIds.map((h) => (typeof h === 'object' ? h.name : h));
   } else if (Array.isArray(o.horses) && o.horses.length > 0) {
     horseNames = o.horses;
   }
+
+  const startFormatted = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeZone: o.departureTimezone || 'Asia/Ho_Chi_Minh' }).format(new Date(schedule.startAt));
+  const endFormatted = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(schedule.endAt));
+
+  // Ensure valid GeoJSON coordinates for Map rendering [lng, lat]
+  const originCoords = typeof o.origin === 'object' && Array.isArray(o.origin.coordinates) && o.origin.coordinates.length === 2
+    ? o.origin.coordinates
+    : [106.700806, 10.776889];
+  const destCoords = typeof o.destination === 'object' && Array.isArray(o.destination.coordinates) && o.destination.coordinates.length === 2
+    ? o.destination.coordinates
+    : [104.9282, 11.5564];
 
   return {
     id: o._id || o.id,
@@ -23,18 +74,23 @@ const mapOrderData = (o) => {
     customerName: o.customerId?.fullName || o.customerName || 'Khách hàng',
     origin: originAddr || 'Chưa xác định',
     destination: destAddr || 'Chưa xác định',
+    originLocation: { formattedAddress: originAddr || 'Điểm đón', countryCode: o.origin?.countryCode || 'VN', coordinates: originCoords },
+    destinationLocation: { formattedAddress: destAddr || 'Điểm giao', countryCode: o.destination?.countryCode || 'KH', coordinates: destCoords },
     routeLabel: originAddr && destAddr ? `${originShort} → ${destShort}` : 'Chưa thiết lập tuyến đường',
-    departureDate: o.requestedDepartureDate
-      ? new Date(o.requestedDepartureDate).toLocaleDateString('vi-VN')
-      : o.departureDate || 'Chưa xếp lịch',
-    departureTime: o.departureTime || '07:00',
-    eta: o.eta || 'Dự kiến trong ngày',
+    departureDate: startFormatted,
+    departureTime: o.departureLocalTime || new Date(schedule.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: o.departureTimezone || 'Asia/Ho_Chi_Minh' }),
+    departureTimezone: o.departureTimezone || 'Asia/Ho_Chi_Minh',
+    departureId: o.departureId || null,
+    estimatedArrivalDate: schedule.endAt,
+    eta: `${endFormatted} (${schedule.durationFormatted})`,
+    estimatedDistanceKm: schedule.distanceKm,
+    durationFormatted: schedule.durationFormatted,
     gpsTimeAgo: o.gpsTimeAgo || 'Mới cập nhật',
     horses: horseNames,
     horseIds: o.horseIds || [],
     status: o.status || 'PENDING_APPROVAL',
-    driverName: o.driverName || o.assignedDriver?.fullName || 'Chưa phân công',
-    vehiclePlate: o.vehiclePlate || o.assignedVehicle?.plateNumber || 'Chưa phân công',
+    driverName: resolvedDriverName,
+    vehiclePlate: resolvedVehiclePlate,
     specialRequirements: o.specialRequirements || '',
     milestones: o.milestones || []
   };
@@ -51,6 +107,7 @@ export const useOrderStore = create((set, get) => ({
       const response = await orderApi.getOrders();
       const rawOrders = response?.data?.data || response?.data || [];
       const mapped = rawOrders.map(mapOrderData);
+      mapped.sort((a, b) => String(b._id || b.id).localeCompare(String(a._id || a.id)));
       set({ orders: mapped, loading: false });
       return mapped;
     } catch (err) {
@@ -63,58 +120,12 @@ export const useOrderStore = create((set, get) => ({
   createOrder: async (orderData) => {
     set({ loading: true, error: null });
     try {
-      let horseIds = orderData.horseIds;
-      if (!horseIds || horseIds.length === 0) {
-        const horsesRes = await horseApi.getHorses();
-        const availableHorses = horsesRes?.data?.data || [];
-        if (availableHorses.length > 0) {
-          horseIds = availableHorses.map((h) => h._id);
-        }
-      }
-
-      const COUNTRY_COORDINATES = {
-        VN: [106.7008, 10.7768],
-        KH: [104.9212, 11.5564],
-        SG: [103.8198, 1.3521],
-        TH: [100.5018, 13.7563],
-        MY: [101.6869, 3.1390]
-      };
-
-      const originObj = typeof orderData.origin === 'object'
-        ? orderData.origin
-        : { address: orderData.origin || 'Điểm đón', countryCode: 'VN' };
-
-      const destObj = typeof orderData.destination === 'object'
-        ? orderData.destination
-        : { address: orderData.destination || 'Điểm giao', countryCode: 'KH' };
-
-      const originCountry = (originObj.countryCode || 'VN').toUpperCase();
-      const destCountry = (destObj.countryCode || 'KH').toUpperCase();
-
-      const originCoords = (Array.isArray(originObj.coordinates) && originObj.coordinates.length === 2)
-        ? originObj.coordinates
-        : (COUNTRY_COORDINATES[originCountry] || [106.7008, 10.7768]);
-
-      const destCoords = (Array.isArray(destObj.coordinates) && destObj.coordinates.length === 2)
-        ? destObj.coordinates
-        : (COUNTRY_COORDINATES[destCountry] || [104.9212, 11.5564]);
-
       const payload = {
-        horseIds: horseIds && horseIds.length > 0 ? horseIds : [],
-        origin: {
-          address: originObj.address || 'Điểm đón',
-          countryCode: originCountry,
-          coordinates: originCoords
-        },
-        destination: {
-          address: destObj.address || 'Điểm giao',
-          countryCode: destCountry,
-          coordinates: destCoords
-        },
-        requestedDepartureDate: orderData.requestedDepartureDate || new Date().toISOString(),
+        horseIds: orderData.horseIds || [],
+        departureId: orderData.departureId,
+        scheduleRevision: orderData.scheduleRevision,
         specialRequirements: orderData.specialRequirements || ''
       };
-
       const response = await orderApi.createOrder(payload);
       const newOrderDoc = response?.data?.data || response?.data;
       const mapped = mapOrderData(newOrderDoc);

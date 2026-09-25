@@ -146,7 +146,10 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
 
 ---
 
-## 5. QUY TRÌNH NGHIỆP VỤ ĐẶC THÙ (BUSINESS WORKFLOWS)
+## 5. QUY TRÌNH NGHIỆP VỤ ĐẶC THÙ (BUSINESS WORKFLOWS & UML 2.0 DIAGRAMS)
+
+> [!NOTE]
+> Toàn bộ sơ đồ quy trình chi tiết thiết kế theo **chuẩn UML 2.0** (gồm *Use Case Diagram*, *State Machine Diagram*, *Activity Diagrams với Swimlanes*, và *Sequence Diagrams*) đã được tổng hợp chi tiết tại tệp: **[UML_2.0_FLOW_DIAGRAMS.md](file:///d:/WDP301/UML_2.0_FLOW_DIAGRAMS.md)**.
 
 ### 5.1 Sơ Đồ Trạng Thái Đơn Vận Chuyển (Transport Request Lifecycle)
 

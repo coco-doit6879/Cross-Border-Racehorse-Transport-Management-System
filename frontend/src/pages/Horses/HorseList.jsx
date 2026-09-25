@@ -1,409 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Table,
-  Button,
-  Input,
-  Select,
-  Tag,
-  Modal,
-  Form,
-  Space,
-  Popconfirm,
-  message,
-  Card
-} from 'antd';
-import {
-  Plus,
-  Search,
-  FileText,
-  Trash2,
-  Edit,
-  Eye,
-  CheckCircle2,
-  Clock,
-  ShieldAlert
-} from 'lucide-react';
+import { Alert, Button, Card, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useHorseStore } from '../../store/useHorseStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import HorseProfileForm, { canReviewHorse, reviewColors, reviewLabels } from './HorseProfileForm';
 
-const { Option } = Select;
-
-const HorseList = () => {
+export default function HorseList() {
   const navigate = useNavigate();
-  const { horses, fetchHorses, addHorse, deleteHorse } = useHorseStore();
-
-  useEffect(() => {
-    fetchHorses().catch(() => {});
-  }, [fetchHorses]);
-
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBreed, setSelectedBreed] = useState('ALL');
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [form] = Form.useForm();
-
-  // Filter horses
-  const filteredHorses = horses.filter((h) => {
-    const matchQuery =
-      h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.microchipId.includes(searchQuery) ||
-      (h.feiPassportNo && h.feiPassportNo.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchBreed = selectedBreed === 'ALL' || h.breed === selectedBreed;
-
-    return matchQuery && matchBreed;
-  });
-
-  const handleCreateHorse = (values) => {
-    const microchipRegex = /^\d{15}$/;
-    if (!microchipRegex.test(values.microchipId)) {
-      message.error('Mã vi mạch (Microchip ID) phải chứa chính xác 15 chữ số!');
-      return;
-    }
-
-    addHorse(values);
-    message.success(`Đã thêm mới hồ sơ ngựa "${values.name}" vào hệ thống!`);
-    setIsModalVisible(false);
-    form.resetFields();
+  const { horses, fetchHorses, addHorse, loading, error } = useHorseStore();
+  const user = useAuthStore((state) => state.user);
+  const reviewer = canReviewHorse(user);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('ALL');
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { fetchHorses().catch(() => {}); }, [fetchHorses]);
+  const create = async (values) => {
+    setSaving(true);
+    try {
+      await addHorse(values);
+      message.success('Đã gửi hồ sơ ngựa. Vui lòng chờ kiểm duyệt sức khỏe.');
+      setOpen(false);
+    } catch (err) { message.error(err.response?.data?.message || 'Không thể tạo hồ sơ.'); }
+    finally { setSaving(false); }
   };
-
-  const handleDelete = (id, name) => {
-    deleteHorse(id);
-    message.success(`Đã xóa hồ sơ ngựa "${name}".`);
-  };
-
+  const filtered = horses.filter((h) => (status === 'ALL' || h.reviewStatus === status) && `${h.name} ${h.microchipId} ${h.feiPassportNo}`.toLowerCase().includes(search.toLowerCase()));
   const columns = [
-    {
-      title: 'Tên ngựa',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{text}</div>
-          <div style={{ fontSize: 12, color: '#6B7280' }}>Chủ sở hữu: {record.ownerName || 'Khách hàng sở hữu'}</div>
-        </div>
-      )
-    },
-    {
-      title: 'Mã vi mạch (15 chữ số ISO)',
-      dataIndex: 'microchipId',
-      key: 'microchipId',
-      render: (text) => (
-        <Tag
-          color="geekblue"
-          style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 12, padding: '2px 8px' }}
-        >
-          {text}
-        </Tag>
-      )
-    },
-    {
-      title: 'Số Hộ chiếu FEI',
-      dataIndex: 'feiPassportNo',
-      key: 'feiPassportNo',
-      render: (text) => (
-        <span style={{ fontWeight: 600, color: '#0F3E2E' }}>
-          {text || <span style={{ color: '#9CA3AF' }}>Chưa cấp</span>}
-        </span>
-      )
-    },
-    {
-      title: 'Giống',
-      dataIndex: 'breed',
-      key: 'breed'
-    },
-    {
-      title: 'Tuổi / Cân nặng',
-      key: 'age_weight',
-      render: (_, record) => (
-        <span style={{ fontSize: 13, color: '#374151' }}>
-          {record.age} • {record.weight} kg
-        </span>
-      )
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        if (status === 'IN_TRANSIT') {
-          return (
-            <span
-              style={{
-                backgroundColor: '#ECFDF5',
-                color: '#059669',
-                border: '1px solid #A7F3D0',
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: 6
-              }}
-            >
-              Đang vận chuyển
-            </span>
-          );
-        }
-        return (
-          <span
-            style={{
-              backgroundColor: '#EFF6FF',
-              color: '#2563EB',
-              border: '1px solid #BFDBFE',
-              fontSize: 12,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 6
-            }}
-          >
-            Sẵn sàng
-          </span>
-        );
-      }
-    },
-    {
-      title: 'Thao tác',
-      key: 'actions',
-      align: 'right',
-      render: (_, record) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<Eye size={13} />}
-            onClick={() => navigate(`/horses/${record.id}`)}
-            style={{
-              backgroundColor: '#0F3E2E',
-              borderColor: '#0F3E2E',
-              color: '#FFFFFF',
-              borderRadius: 6,
-              fontWeight: 500
-            }}
-          >
-            Hồ sơ & Giấy tờ
-          </Button>
-          <Popconfirm
-            title="Xác nhận xóa"
-            description={`Bạn có chắc chắn muốn xóa hồ sơ ngựa ${record.name}?`}
-            onConfirm={() => handleDelete(record.id, record.name)}
-            okText="Xóa"
-            cancelText="Hủy"
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" icon={<Trash2 size={13} />} danger style={{ borderRadius: 6 }} />
-          </Popconfirm>
-        </Space>
-      )
-    }
+    { title: 'Tên ngựa', dataIndex: 'name', render: (name, h) => <div><strong>{name}</strong><div>{h.ownerName}</div></div> },
+    { title: 'Mã vi chip', dataIndex: 'microchipId' },
+    { title: 'Số hộ chiếu', dataIndex: 'feiPassportNo' },
+    { title: 'Giống ngựa', dataIndex: 'breed' },
+    { title: 'Tuổi / Cân nặng', render: (_, h) => `${h.age} • ${h.weight || '—'} kg` },
+    { title: 'Kiểm duyệt sức khỏe', dataIndex: 'reviewStatus', render: (value) => <Tag color={reviewColors[value]}>{reviewLabels[value]}</Tag> },
+    { title: 'Thao tác', render: (_, h) => <Button onClick={() => navigate(`/horses/${h.id}`)}>{reviewer ? 'Xem & kiểm duyệt' : 'Hồ sơ & giấy tờ'}</Button> }
   ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Top Title & Actions */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: 12,
-          padding: '20px 24px'
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#111827' }}>
-            Quản lý Hồ sơ & Đàn ngựa đua
-          </h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#6B7280' }}>
-            Danh mục lý lịch số hóa và hồ sơ hộ chiếu quốc tế (FEI Passports) của đàn ngựa.
-          </p>
-        </div>
-
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setIsModalVisible(true)}
-          style={{
-            backgroundColor: '#0F3E2E',
-            borderColor: '#0F3E2E',
-            height: 40,
-            padding: '0 20px',
-            fontSize: 14,
-            fontWeight: 600,
-            borderRadius: 8
-          }}
-        >
-          Thêm ngựa mới
-        </Button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: 10,
-          padding: '14px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 16
-        }}
-      >
-        <Input
-          prefix={<Search size={15} color="#9CA3AF" />}
-          placeholder="Tìm theo tên ngựa, mã chip 15 số, hoặc số FEI..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ maxWidth: 420 }}
-          allowClear
-        />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 13, color: '#6B7280' }}>Lọc theo giống:</span>
-          <Select
-            value={selectedBreed}
-            onChange={setSelectedBreed}
-            style={{ width: 180 }}
-            options={[
-              { value: 'ALL', label: 'Tất cả giống loài' },
-              { value: 'Thoroughbred', label: 'Thoroughbred' },
-              { value: 'Arabian', label: 'Arabian' },
-              { value: 'Warmblood', label: 'Warmblood' },
-              { value: 'Quarter Horse', label: 'Quarter Horse' }
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* Horse Table */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: 12,
-          overflow: 'hidden'
-        }}
-      >
-        <Table
-          columns={columns}
-          dataSource={filteredHorses}
-          rowKey="id"
-          pagination={{ pageSize: 8 }}
-        />
-      </div>
-
-      {/* Modal: Thêm Ngựa Mới */}
-      <Modal
-        title={
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#0F3E2E' }}>
-            Đăng ký hồ sơ ngựa đua mới
-          </div>
-        }
-        open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-        }}
-        onOk={() => form.submit()}
-        okText="Thêm hồ sơ"
-        cancelText="Hủy bỏ"
-        okButtonProps={{
-          style: { backgroundColor: '#0F3E2E', borderColor: '#0F3E2E', borderRadius: 6 }
-        }}
-        cancelButtonProps={{ style: { borderRadius: 6 } }}
-        width={620}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreateHorse} style={{ marginTop: 16 }}>
-          <Form.Item
-            label={<span style={{ fontWeight: 600, fontSize: 13 }}>Tên ngựa *</span>}
-            name="name"
-            rules={[{ required: true, message: 'Vui lòng nhập tên ngựa' }]}
-          >
-            <Input placeholder="Ví dụ: Red Comet" />
-          </Form.Item>
-
-          <Form.Item
-            label={
-              <span style={{ fontWeight: 600, fontSize: 13 }}>
-                Mã vi mạch (Microchip ID) - Đúng 15 chữ số *
-              </span>
-            }
-            name="microchipId"
-            extra={
-              <span style={{ fontSize: 11, color: '#6B7280' }}>
-                Chuẩn quốc tế ISO 11784/11785 dùng quét chip cửa khẩu
-              </span>
-            }
-            rules={[
-              { required: true, message: 'Vui lòng nhập mã vi mạch' },
-              { pattern: /^\d{15}$/, message: 'Mã vi mạch phải gồm đúng 15 chữ số' }
-            ]}
-          >
-            <Input placeholder="104123456789099" maxLength={15} />
-          </Form.Item>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <Form.Item
-              label={<span style={{ fontWeight: 600, fontSize: 13 }}>Số hộ chiếu FEI</span>}
-              name="feiPassportNo"
-            >
-              <Input placeholder="FEI-2026-XXXX" />
-            </Form.Item>
-
-            <Form.Item
-              label={<span style={{ fontWeight: 600, fontSize: 13 }}>Giống loài *</span>}
-              name="breed"
-              rules={[{ required: true, message: 'Vui lòng chọn giống loài' }]}
-            >
-              <Select placeholder="Chọn giống">
-                <Option value="Thoroughbred">Thoroughbred (Thuần chủng)</Option>
-                <Option value="Arabian">Arabian</Option>
-                <Option value="Warmblood">Warmblood</Option>
-                <Option value="Quarter Horse">Quarter Horse</Option>
-              </Select>
-            </Form.Item>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-            <Form.Item
-              label={<span style={{ fontWeight: 600, fontSize: 13 }}>Tuổi *</span>}
-              name="age"
-              rules={[{ required: true, message: 'Nhập tuổi' }]}
-            >
-              <Input placeholder="4 năm" />
-            </Form.Item>
-
-            <Form.Item
-              label={<span style={{ fontWeight: 600, fontSize: 13 }}>Cân nặng (kg) *</span>}
-              name="weight"
-              rules={[{ required: true, message: 'Nhập cân nặng' }]}
-            >
-              <Input placeholder="450" />
-            </Form.Item>
-
-            <Form.Item
-              label={<span style={{ fontWeight: 600, fontSize: 13 }}>Giới tính</span>}
-              name="gender"
-              initialValue="STALLION"
-            >
-              <Select>
-                <Option value="STALLION">Ngựa đực</Option>
-                <Option value="MARE">Ngựa cái</Option>
-                <Option value="GELDING">Ngựa thiến</Option>
-              </Select>
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            label={<span style={{ fontWeight: 600, fontSize: 13 }}>Tiền sử y tế & ghi chú chăm sóc</span>}
-            name="medicalHistory"
-          >
-            <Input.TextArea rows={2} placeholder="Thông tin tiêm chủng hoặc thể trạng đặc biệt..." />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
-  );
-};
-
-export default HorseList;
+  return <Space direction="vertical" size={20} style={{ width: '100%' }}>
+    <Card title={reviewer ? 'Kiểm duyệt hồ sơ & sức khỏe ngựa' : 'Hồ sơ đàn ngựa'} extra={user?.role === 'CUSTOMER' && <Button type="primary" onClick={() => setOpen(true)}>Thêm ngựa mới</Button>}>
+      <p>{reviewer ? 'Đối chiếu nhận dạng, hộ chiếu và hồ sơ tiêm chủng trước khi duyệt sức khỏe.' : 'Khai báo thông tin và gửi hồ sơ cho Chuyên viên Thủ tục & Kiểm dịch.'}</p>
+      <Space wrap>
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm tên ngựa, mã chip, số hộ chiếu" style={{ width: 320 }} allowClear />
+        <Select value={status} onChange={setStatus} style={{ width: 220 }} options={[{ value: 'ALL', label: 'Tất cả trạng thái' }, ...Object.entries(reviewLabels).map(([value, label]) => ({ value, label }))]} />
+        <Button onClick={() => fetchHorses().catch(() => {})}>Tải lại</Button>
+      </Space>
+    </Card>
+    {error && <Alert type="error" showIcon message={error} />}
+    <Table columns={columns} dataSource={filtered} rowKey="id" loading={loading} scroll={{ x: 950 }} pagination={{ pageSize: 8 }} />
+    <Modal title="Đăng ký hồ sơ ngựa mới" open={open} onCancel={() => !saving && setOpen(false)} footer={null} width={1000} maskClosable={false}>
+      {open && <HorseProfileForm onSave={create} saving={saving} />}
+    </Modal>
+  </Space>;
+}

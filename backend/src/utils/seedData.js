@@ -20,6 +20,7 @@ const seedData = async () => {
 
     // Seed Users
     const manager = await User.create({
+      username: 'manager',
       fullName: 'Alex Manager',
       email: 'manager@cbrt.com',
       password: 'password123',
@@ -28,6 +29,7 @@ const seedData = async () => {
     });
 
     const specialist = await User.create({
+      username: 'specialist',
       fullName: 'Sarah Specialist',
       email: 'specialist@cbrt.com',
       password: 'password123',
@@ -36,22 +38,25 @@ const seedData = async () => {
     });
 
     const coordinator = await User.create({
+      username: 'coordinator',
       fullName: 'Chris Coordinator',
       email: 'coordinator@cbrt.com',
       password: 'password123',
-      role: 'ROUTE_COORDINATOR',
+      role: 'FLEET_COORDINATOR',
       phone: '+1 555-0194'
     });
 
     const driver = await User.create({
+      username: 'driver',
       fullName: 'David Driver',
       email: 'driver@cbrt.com',
       password: 'password123',
-      role: 'DRIVER_ESCORT',
+      role: 'DRIVER',
       phone: '+1 555-0195'
     });
 
     const customer = await User.create({
+      username: 'customer',
       fullName: 'Edward Owner (Royal Stables)',
       email: 'customer@cbrt.com',
       password: 'password123',
@@ -65,22 +70,26 @@ const seedData = async () => {
     const horse1 = await Horse.create({
       name: 'Thunderbolt Star',
       microchipId: '985141000123456',
-      feiPassportNo: 'FEI-2026-US-8891',
+      feiPassportNumber: 'FEI-2026-US-8891',
       breed: 'Thoroughbred',
-      age: 5,
-      weight: 520,
-      medicalHistory: 'Fully vaccinated (Equine Influenza, Coggins negative)',
+      dateOfBirth: new Date('2021-05-12'),
+      gender: 'STALLION',
+      weightKg: 520,
+      passportScanUrl: 'https://example.com/scans/passport1.pdf',
+      medicalHistoryNotes: 'Fully vaccinated (Equine Influenza, Coggins negative)',
       ownerId: customer._id
     });
 
     const horse2 = await Horse.create({
       name: 'Pegasus Spirit',
       microchipId: '985141000654321',
-      feiPassportNo: 'FEI-2026-FR-7712',
+      feiPassportNumber: 'FEI-2026-FR-7712',
       breed: 'Arabian',
-      age: 4,
-      weight: 480,
-      medicalHistory: 'No chronic diseases, fit for long distance transport',
+      dateOfBirth: new Date('2022-03-20'),
+      gender: 'MARE',
+      weightKg: 480,
+      passportScanUrl: 'https://example.com/scans/passport2.pdf',
+      medicalHistoryNotes: 'No chronic diseases, fit for long distance transport',
       ownerId: customer._id
     });
 
@@ -88,15 +97,24 @@ const seedData = async () => {
 
     // Seed Sample Order
     const order = await Order.create({
-      orderCode: 'TR-2026-0001',
+      bookingCode: 'TR-2026-0001',
       customerId: customer._id,
-      origin: 'Kenting Racecourse, SG',
-      destination: 'Chiba Equestrian Club, JP',
-      horses: [horse1._id, horse2._id],
+      horseIds: [horse1._id, horse2._id],
+      origin: {
+        address: 'Kenting Racecourse, SG',
+        countryCode: 'SG',
+        coordinates: [103.8198, 1.3521]
+      },
+      destination: {
+        address: 'Chiba Equestrian Club, JP',
+        countryCode: 'JP',
+        coordinates: [140.1233, 35.6074]
+      },
+      requestedDepartureDate: new Date('2026-10-01'),
       status: 'APPROVED'
     });
 
-    console.log(`Created Sample Order: ${order.orderCode}`);
+    console.log(`Created Sample Order: ${order.bookingCode}`);
 
     console.log('\n--- SEEDING COMPLETED SUCCESSFULLY ---');
     console.log('Sample Accounts for testing:');
