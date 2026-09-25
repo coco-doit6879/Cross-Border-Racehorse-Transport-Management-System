@@ -9,5 +9,6 @@ export const orderApi = {
   createOrder: (data) => apiClient.post('/orders', data),
   updateStatus: (id, status) => apiClient.patch(`/orders/${id}/status`, { status }),
   cancelOrder: (id, reason) => apiClient.patch(`/orders/${id}/cancel`, { reason }),
-  payOrder: (id, paymentMethod) => apiClient.post(`/orders/${id}/payment`, { paymentMethod })
+  createVnpayPayment: (id) => apiClient.post(`/orders/${id}/payments/vnpay`),
+  getPayment: (txnRef) => apiClient.get(`/payments/${txnRef}`)
 };

@@ -116,22 +116,6 @@ test('server calculates route and optional service prices without trusting clien
   assert.throws(() => orderPricingService.calculatePricing({ basePriceVnd: 9000000, horseCount: 1, addOnIds: ['PREMIUM_STALL', 'PREMIUM_STALL'] }), /không hợp lệ/);
 });
 
-test('customer can pay an approved priced order and cannot pay before approval', async (t) => {
-  const approved = { _id: '444444444444444444444444', bookingCode: 'TR-2026-0001', customerId: actor, status: 'APPROVED', paymentStatus: 'UNPAID', pricing: { totalAmountVnd: 9000000 }, async save() {} };
-  t.mock.method(Order, 'findById', async () => approved);
-  t.mock.method(AuditLog, 'create', async () => ({}));
-  const paid = await call(orders.payOrder, { ...req({ paymentMethod: 'CARD' }), params: { id: approved._id } });
-  assert.equal(paid.statusCode, 200);
-  assert.equal(paid.body.data.paymentStatus, 'PAID');
-  assert.equal(paid.body.data.paymentMethod, 'CARD');
-  assert.match(paid.body.data.paymentReference, /^PAY-/);
-
-  approved.status = 'PENDING_APPROVAL'; approved.paymentStatus = 'UNPAID';
-  const blocked = await call(orders.payOrder, { ...req({ paymentMethod: 'CARD' }), params: { id: approved._id } });
-  assert.equal(blocked.statusCode, 400);
-  assert.match(blocked.body.message, /sau khi đơn đã được phê duyệt/);
-});
-
 test('booking rejects horses whose current fixed stop differs from pickup stop', async (t) => {
   mockConfiguration(t);
   const departure = service.generateDepartures(config)[0];

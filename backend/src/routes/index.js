@@ -20,6 +20,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/horses', horseRoutes);
 router.use('/orders', orderRoutes);
+router.use('/payments', require('./paymentRoutes'));
 router.use('/compliance', complianceRoutes);
 router.use('/routes', routeRoutes);
 router.use('/health-logs', healthLogRoutes);

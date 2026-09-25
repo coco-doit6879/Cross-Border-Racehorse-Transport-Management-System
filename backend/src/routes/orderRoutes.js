@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { protect, checkPermission } = require('../middlewares/authMiddleware');
+const paymentController = require('../controllers/paymentController');
 
 /**
  * @swagger
@@ -116,9 +117,9 @@ router.patch('/:id/cancel', protect, orderController.cancelOrder);
 
 /**
  * @swagger
- * /orders/{id}/payment:
+ * /orders/{id}/payments/vnpay:
  *   post:
- *     summary: Pay an approved transport order using its locked price snapshot
+ *     summary: Create a VNPAY payment URL for an approved order
  *     tags: [Booking Orders]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -126,19 +127,10 @@ router.patch('/:id/cancel', protect, orderController.cancelOrder);
  *         name: id
  *         required: true
  *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [paymentMethod]
- *             properties:
- *               paymentMethod: { type: string, enum: [BANK_TRANSFER, CARD, E_WALLET] }
  *     responses:
- *       200: { description: Payment confirmed }
+ *       201: { description: VNPAY payment URL created }
  *       400: { description: Order is not payable }
  */
-router.post('/:id/payment', protect, checkPermission('booking:create'), orderController.payOrder);
+router.post('/:id/payments/vnpay', protect, checkPermission('booking:create'), paymentController.createVnpayPayment);
 
 module.exports = router;

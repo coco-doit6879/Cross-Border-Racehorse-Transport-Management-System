@@ -7,6 +7,7 @@ import Overview from '../pages/Dashboard/Overview';
 import OrderList from '../pages/Orders/OrderList';
 import CreateOrder from '../pages/Orders/CreateOrder';
 import OrderDetail from '../pages/Orders/OrderDetail';
+import VnpayResult from '../pages/Payments/VnpayResult';
 import HorseList from '../pages/Horses/HorseList';
 import PassportDetail from '../pages/Horses/PassportDetail';
 import RouteMap from '../pages/Routes/RouteMap';
@@ -87,6 +88,7 @@ const AppRoutes = () => (
           <Route path="/orders" element={<OrderList />} />
           <Route path="/orders/create" element={<CreateOrder />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
+          <Route path="/payments/vnpay/result" element={<VnpayResult />} />
           <Route path="/horses" element={<HorseList />} />
           <Route path="/horses/:id" element={<PassportDetail />} />
           <Route path="/routes/tracking" element={<RouteMap />} />

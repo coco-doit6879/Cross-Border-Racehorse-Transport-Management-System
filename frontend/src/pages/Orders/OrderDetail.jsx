@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Divider, Modal, Radio, Space, Tag, Steps, message } from 'antd';
+import { Button, Card, Divider, Modal, Space, Tag, Steps, message } from 'antd';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useOrderStore } from '../../store/useOrderStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -11,10 +11,9 @@ const formatVnd = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency',
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { orders, fetchOrderById, payOrder, loading, error } = useOrderStore();
+  const { orders, fetchOrderById, createVnpayPayment, loading, error } = useOrderStore();
   const { user } = useAuthStore();
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
 
   const order = orders.find((o) => String(o.id || o._id) === String(id) || o.orderCode === id);
 
@@ -46,11 +45,11 @@ const OrderDetail = () => {
   const canPay = user?.role === 'CUSTOMER' && order.paymentStatus !== 'PAID' && ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status) && order.pricing?.totalAmountVnd;
   const handlePayment = async () => {
     try {
-      await payOrder(order.id || order._id, paymentMethod);
-      setPaymentOpen(false);
-      message.success('Thanh toán thành công.');
+      const payment = await createVnpayPayment(order.id || order._id);
+      if (!payment?.paymentUrl) throw new Error('VNPAY không trả về địa chỉ thanh toán.');
+      window.location.assign(payment.paymentUrl);
     } catch (err) {
-      message.error(err.response?.data?.message || err.message || 'Không thể thanh toán.');
+      message.error(err.response?.data?.message || err.message || 'Không thể mở cổng thanh toán VNPAY.');
     }
   };
 
@@ -185,15 +184,9 @@ const OrderDetail = () => {
           {order.paymentStatus === 'PAID' && <p style={{ color: '#64748b', marginBottom: 0 }}>Mã giao dịch: {order.paymentReference} · {order.paidAt ? new Date(order.paidAt).toLocaleString('vi-VN') : ''}</p>}
         </div> : <p style={{ color: '#64748b', margin: 0 }}>Đơn cũ chưa có bảng giá. Vui lòng liên hệ bộ phận điều hành.</p>}
       </Card>
-      <Modal title="Xác nhận thanh toán" open={paymentOpen} onCancel={() => setPaymentOpen(false)} onOk={handlePayment} confirmLoading={loading} okText={`Thanh toán ${formatVnd(order.pricing?.totalAmountVnd)}`} cancelText="Hủy">
+      <Modal title="Thanh toán qua VNPAY" open={paymentOpen} onCancel={() => setPaymentOpen(false)} onOk={handlePayment} confirmLoading={loading} okText={`Sang VNPAY · ${formatVnd(order.pricing?.totalAmountVnd)}`} cancelText="Hủy">
         <p>Số tiền cần thanh toán: <strong>{formatVnd(order.pricing?.totalAmountVnd)}</strong></p>
-        <Radio.Group value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
-          <Space direction="vertical">
-            <Radio value="BANK_TRANSFER">Chuyển khoản ngân hàng</Radio>
-            <Radio value="CARD">Thẻ thanh toán</Radio>
-            <Radio value="E_WALLET">Ví điện tử</Radio>
-          </Space>
-        </Radio.Group>
+        <p style={{ color: '#64748b', marginBottom: 0 }}>Bạn sẽ được chuyển đến VNPAY để chọn QR ngân hàng, thẻ nội địa hoặc thẻ quốc tế. Hệ thống chỉ ghi nhận đã thanh toán sau khi VNPAY xác nhận.</p>
       </Modal>
     </div>
   );

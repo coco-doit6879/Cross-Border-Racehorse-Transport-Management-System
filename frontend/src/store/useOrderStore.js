@@ -197,19 +197,15 @@ export const useOrderStore = create((set, get) => ({
     }
   },
 
-  payOrder: async (orderId, paymentMethod) => {
+  createVnpayPayment: async (orderId) => {
     set({ loading: true, error: null });
     try {
-      const response = await orderApi.payOrder(orderId, paymentMethod);
-      const updatedDoc = response?.data?.data || response?.data;
-      const mapped = mapOrderData(updatedDoc);
-      set((state) => ({
-        orders: state.orders.map((order) => (String(order.id || order._id) === String(mapped.id) ? mapped : order)),
-        loading: false
-      }));
-      return mapped;
+      const response = await orderApi.createVnpayPayment(orderId);
+      const payment = response?.data?.data || response?.data;
+      set({ loading: false });
+      return payment;
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || 'Không thể thanh toán đơn vận chuyển';
+      const msg = err?.response?.data?.message || err.message || 'Không thể khởi tạo thanh toán VNPAY';
       set({ error: msg, loading: false });
       throw err;
     }

@@ -94,7 +94,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['BANK_TRANSFER', 'CARD', 'E_WALLET']
+    enum: ['BANK_TRANSFER', 'CARD', 'E_WALLET', 'VNPAY']
   },
   paymentReference: String,
   paidAt: Date,
