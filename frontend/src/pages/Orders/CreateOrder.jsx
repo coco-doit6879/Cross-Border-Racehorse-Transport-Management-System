@@ -44,7 +44,10 @@ export default function CreateOrder() {
   const destination = stops.find((stop) => stop.id === destinationStopId);
   const departures = (catalog?.departures || []).filter((item) => item.originStopId === originStopId && item.destinationStopId === destinationStopId);
   const departure = departures.find((item) => item.id === departureId);
-  const busyIds = new Set(orders.filter((order) => ['PENDING_APPROVAL', 'APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT', 'IN_TRANSIT', 'DELIVERING'].includes(order.status)).flatMap((order) => (order.horseIds || []).map((h) => String(typeof h === 'object' ? h._id || h.id : h))));
+  const busyIds = new Set(orders.filter((order) => {
+    const depositExpired = order.depositRequired && order.depositStatus === 'UNPAID' && order.depositDueAt && new Date(order.depositDueAt) <= new Date();
+    return !depositExpired && ['PENDING_APPROVAL', 'APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT', 'IN_TRANSIT', 'DELIVERING'].includes(order.status);
+  }).flatMap((order) => (order.horseIds || []).map((h) => String(typeof h === 'object' ? h._id || h.id : h))));
   const eligible = (horse) => Boolean(originStopId) && horse.currentStopId === originStopId && horse.reviewStatus === 'APPROVED' && horse.status !== 'IN_TRANSIT' && !busyIds.has(String(horse.id));
   const ineligibleReason = (horse) => {
     if (!originStopId) return 'Chọn điểm đón trước';
@@ -59,6 +62,8 @@ export default function CreateOrder() {
   const baseAmountVnd = (departure?.basePriceVnd || 0) * horseIds.length;
   const addOnsAmountVnd = departure && horseIds.length > 0 ? selectedAddOns.reduce((total, item) => total + item.unitPriceVnd * (item.pricingMode === 'PER_HORSE' ? horseIds.length : 1), 0) : 0;
   const totalAmountVnd = baseAmountVnd + addOnsAmountVnd;
+  const depositPercent = catalog?.depositPolicy?.percent || 20;
+  const depositAmountVnd = Math.min(totalAmountVnd, Math.ceil((totalAmountVnd * depositPercent / 100) / 1000) * 1000);
   const ready = Boolean(departure?.basePriceVnd && horseIds.length && totalAmountVnd > 0 && selectedHorses.length === horseIds.length && selectedHorses.every(eligible) && !loading && !error);
 
   const submit = async () => {
@@ -66,8 +71,8 @@ export default function CreateOrder() {
     setSubmitting(true);
     try {
       const order = await createOrder({ horseIds, departureId, scheduleRevision: catalog.revision, addOnIds, specialRequirements: notes });
-      message.success(`Đã gửi đơn ${order.bookingCode || ''} theo lịch chuyến đã chọn.`);
-      navigate('/orders');
+      message.success(`Đã tạo đơn ${order.bookingCode || ''}. Vui lòng đặt cọc để gửi duyệt.`);
+      navigate(`/orders/${order.id || order._id}`);
     } catch (err) {
       message.error(err.response?.data?.message || 'Không thể tạo đơn vận chuyển.');
       if (err.response?.status === 409) await load();
@@ -155,8 +160,9 @@ export default function CreateOrder() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Giá tuyến ({horseIds.length} ngựa){departure ? <small style={{ display: 'block', color: '#64748b' }}>{formatVnd(departure.basePriceVnd)} / ngựa</small> : null}</span><strong>{departure ? formatVnd(baseAmountVnd) : 'Chưa chọn tuyến'}</strong></div>
               {departure && horseIds.length > 0 && selectedAddOns.map((item) => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, color: '#475569' }}><span>{item.name}</span><span>{formatVnd(item.unitPriceVnd * (item.pricingMode === 'PER_HORSE' ? horseIds.length : 1))}</span></div>)}
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: 14, background: '#f0fdf4', borderRadius: 8, fontSize: 17 }}><strong>Tổng cộng</strong><strong style={{ color: '#0f3e2e' }}>{formatVnd(totalAmountVnd)}</strong></div>
-              <p style={{ color: '#64748b', margin: 0 }}>Đơn được gửi để phê duyệt. Bạn thanh toán theo tổng tiền đã chốt sau khi đơn được duyệt.</p>
-              <Button type="primary" block size="large" loading={submitting} disabled={!ready} onClick={submit}>Gửi yêu cầu · {formatVnd(totalAmountVnd)}</Button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: 14, background: '#fff7ed', borderRadius: 8 }}><span>Đặt cọc {depositPercent}%</span><strong style={{ color: '#c2410c' }}>{formatVnd(depositAmountVnd)}</strong></div>
+              <p style={{ color: '#64748b', margin: 0 }}>Sau khi tạo đơn, bạn có {catalog?.depositPolicy?.windowMinutes || 30} phút để đặt cọc. Đơn chỉ được gửi duyệt khi đã nhận tiền cọc; phần còn lại phải thanh toán đủ trước khi phân công vận chuyển.</p>
+              <Button type="primary" block size="large" loading={submitting} disabled={!ready} onClick={submit}>Tạo đơn và đặt cọc · {formatVnd(depositAmountVnd)}</Button>
             </Space>
           </Card>
         </Col>

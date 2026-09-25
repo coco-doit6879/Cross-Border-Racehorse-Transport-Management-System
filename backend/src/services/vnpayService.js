@@ -47,9 +47,15 @@ function verify(query) {
   return crypto.timingSafeEqual(Buffer.from(received, 'hex'), Buffer.from(expected, 'hex'));
 }
 
-function createPaymentUrl({ txnRef, amountVnd, orderInfo, returnUrl, clientIp, createdAt = new Date() }) {
+function createPaymentUrl({ txnRef, amountVnd, orderInfo, returnUrl, clientIp, createdAt = new Date(), expiresAt: requestedExpiry }) {
   assertConfigured();
-  const expiresAt = new Date(createdAt.getTime() + 15 * 60 * 1000);
+  const defaultExpiry = new Date(createdAt.getTime() + 15 * 60 * 1000);
+  const expiresAt = requestedExpiry && new Date(requestedExpiry) < defaultExpiry ? new Date(requestedExpiry) : defaultExpiry;
+  if (expiresAt <= createdAt) {
+    const error = new Error('Phiên thanh toán đã hết hạn.');
+    error.status = 410;
+    throw error;
+  }
   const params = {
     vnp_Version: '2.1.0',
     vnp_Command: 'pay',

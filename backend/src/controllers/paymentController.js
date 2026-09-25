@@ -5,7 +5,7 @@ const PaymentTransaction = require('../models/PaymentTransaction');
 const vnpayService = require('../services/vnpayService');
 const { logAudit } = require('../utils/auditLogger');
 
-const payableStatuses = ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'];
+const balancePayableStatuses = ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'];
 const responseMessages = {
   '00': 'Giao dịch thành công',
   '07': 'Giao dịch bị nghi ngờ',
@@ -34,24 +34,36 @@ exports.createVnpayPayment = async (req, res, next) => {
     if (!order) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn vận chuyển.' });
     if (String(order.customerId) !== String(req.user._id)) return res.status(403).json({ success: false, message: 'Bạn chỉ có thể thanh toán đơn của mình.' });
     if (order.paymentStatus === 'PAID') return res.status(409).json({ success: false, message: 'Đơn đã được thanh toán.' });
-    if (!payableStatuses.includes(order.status)) return res.status(400).json({ success: false, message: 'Chỉ thanh toán sau khi đơn được duyệt và trước khi khởi hành.' });
-    const amountVnd = Number(order.pricing?.totalAmountVnd);
+    const isDeposit = order.depositRequired && order.depositStatus !== 'PAID';
+    if (isDeposit && order.status !== 'PENDING_APPROVAL') return res.status(400).json({ success: false, message: 'Đơn không còn ở giai đoạn đặt cọc.' });
+    if (isDeposit && order.depositDueAt && order.depositDueAt <= new Date()) return res.status(410).json({ success: false, errorCode: 'DEPOSIT_EXPIRED', message: 'Thời hạn đặt cọc đã hết. Vui lòng hủy đơn và tạo lại.' });
+    if (!isDeposit && !balancePayableStatuses.includes(order.status)) return res.status(400).json({ success: false, message: 'Phần còn lại chỉ được thanh toán sau khi đơn được duyệt và trước khi khởi hành.' });
+
+    const totalAmountVnd = Number(order.pricing?.totalAmountVnd);
+    const paidDepositVnd = order.depositStatus === 'PAID' ? Number(order.depositAmountVnd || 0) : 0;
+    const amountVnd = isDeposit ? Number(order.depositAmountVnd) : totalAmountVnd - paidDepositVnd;
     if (!Number.isSafeInteger(amountVnd) || amountVnd <= 0) return res.status(400).json({ success: false, message: 'Đơn chưa có tổng tiền hợp lệ.' });
+
+    const purpose = isDeposit ? 'DEPOSIT' : 'BALANCE';
+    const existingPending = await PaymentTransaction.findOne({ orderId: order._id, purpose, status: 'PENDING', expiresAt: { $gt: new Date() } });
+    if (existingPending?.paymentUrl) return res.json({ success: true, message: 'Tiếp tục phiên thanh toán đang còn hiệu lực.', data: { txnRef: existingPending.txnRef, purpose, amountVnd: existingPending.amountVnd, paymentUrl: existingPending.paymentUrl, expiresAt: existingPending.expiresAt, resumed: true } });
+    if (existingPending) return res.status(409).json({ success: false, errorCode: 'PAYMENT_IN_PROGRESS', message: 'Đơn đang có một phiên thanh toán còn hiệu lực. Vui lòng thử lại sau khi phiên đó hết hạn.' });
 
     const txnRef = `${Date.now()}${crypto.randomInt(100000, 999999)}`;
     const { paymentUrl, expiresAt } = vnpayService.createPaymentUrl({
       txnRef,
       amountVnd,
-      orderInfo: `Thanh toan don van chuyen ${order.bookingCode}`,
+      orderInfo: `${isDeposit ? 'Dat coc' : 'Thanh toan con lai'} don van chuyen ${order.bookingCode}`,
       returnUrl: returnUrl(),
-      clientIp: clientIp(req)
+      clientIp: clientIp(req),
+      expiresAt: isDeposit ? order.depositDueAt : undefined
     });
-    await PaymentTransaction.create({ orderId: order._id, customerId: req.user._id, txnRef, amountVnd, expiresAt });
+    await PaymentTransaction.create({ orderId: order._id, customerId: req.user._id, purpose, txnRef, amountVnd, paymentUrl, expiresAt });
     await logAudit({
       actorId: req.user._id, action: 'VNPAY_PAYMENT_CREATED', resource: 'PaymentTransaction', resourceId: txnRef,
-      result: 'SUCCESS', metadata: { orderId: order._id.toString(), amountVnd }, ipAddress: req.ip, userAgent: req.get('User-Agent')
+      result: 'SUCCESS', metadata: { orderId: order._id.toString(), purpose, amountVnd }, ipAddress: req.ip, userAgent: req.get('User-Agent')
     });
-    res.status(201).json({ success: true, data: { txnRef, paymentUrl, expiresAt } });
+    res.status(201).json({ success: true, data: { txnRef, purpose, amountVnd, paymentUrl, expiresAt } });
   } catch (error) { next(error); }
 };
 
@@ -74,10 +86,22 @@ async function applyIpn(query) {
   await transaction.save();
 
   if (success) {
-    await Order.updateOne(
-      { _id: transaction.orderId, paymentStatus: { $ne: 'PAID' } },
-      { $set: { paymentStatus: 'PAID', paymentMethod: 'VNPAY', paymentReference: query.vnp_TransactionNo || transaction.txnRef, paidAt: new Date() } }
-    );
+    const reference = query.vnp_TransactionNo || transaction.txnRef;
+    if (transaction.purpose === 'DEPOSIT') {
+      const order = await Order.findOneAndUpdate(
+        { _id: transaction.orderId, depositStatus: { $ne: 'PAID' } },
+        { $set: { depositStatus: 'PAID', depositReference: reference, depositedAt: new Date(), paymentStatus: 'PARTIALLY_PAID', paymentMethod: 'VNPAY' } },
+        { new: true }
+      );
+      if (order && Number(order.depositAmountVnd) >= Number(order.pricing?.totalAmountVnd)) {
+        order.paymentStatus = 'PAID'; order.paymentReference = reference; order.paidAt = new Date(); await order.save();
+      }
+    } else {
+      await Order.updateOne(
+        { _id: transaction.orderId, paymentStatus: { $ne: 'PAID' } },
+        { $set: { paymentStatus: 'PAID', paymentMethod: 'VNPAY', paymentReference: reference, paidAt: new Date() } }
+      );
+    }
   }
   return { code: '00', message: 'Confirm Success', transaction };
 }

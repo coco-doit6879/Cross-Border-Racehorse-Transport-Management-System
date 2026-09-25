@@ -33,19 +33,8 @@ const TripDetailContent = () => {
     setProcessingStatus(true);
     try {
       const targetId = trip.orderId || trip._id || trip.id || trip.orderCode;
-
-      managerDemoService.updateTripStatus(trip.id, 'APPROVED');
-      if (trip._id) managerDemoService.updateTripStatus(trip._id, 'APPROVED');
-      if (trip.code) managerDemoService.updateTripStatus(trip.code, 'APPROVED');
-      if (trip.orderCode) managerDemoService.updateTripStatus(trip.orderCode, 'APPROVED');
-      if (trip.orderId) managerDemoService.updateTripStatus(trip.orderId, 'APPROVED');
-
       await execute(async () => {
-        try {
-          await approveOrder(targetId);
-        } catch (e) {
-          console.warn('Backend order approval fallback:', e);
-        }
+        await approveOrder(targetId);
         managerDemoService.updateTripStatus(trip.id, 'APPROVED');
         if (trip._id) managerDemoService.updateTripStatus(trip._id, 'APPROVED');
         if (trip.code) managerDemoService.updateTripStatus(trip.code, 'APPROVED');
@@ -73,11 +62,7 @@ const TripDetailContent = () => {
       if (trip.orderId) managerDemoService.updateTripStatus(trip.orderId, 'REJECTED', rejectionReason);
 
       await execute(async () => {
-        try {
-          await rejectOrder(targetId, rejectionReason);
-        } catch (e) {
-          console.warn('Backend order rejection fallback:', e);
-        }
+        await rejectOrder(targetId, rejectionReason);
         managerDemoService.updateTripStatus(trip.id, 'REJECTED', rejectionReason);
         if (trip._id) managerDemoService.updateTripStatus(trip._id, 'REJECTED', rejectionReason);
         if (trip.code) managerDemoService.updateTripStatus(trip.code, 'REJECTED', rejectionReason);
@@ -109,7 +94,8 @@ const TripDetailContent = () => {
                 type="button"
                 style={{ backgroundColor: '#15803D', borderColor: '#15803D' }}
                 onClick={handleApprove}
-                disabled={processingStatus}
+                disabled={processingStatus || (trip.depositRequired && trip.depositStatus !== 'PAID')}
+                title={trip.depositRequired && trip.depositStatus !== 'PAID' ? 'Khách hàng chưa thanh toán tiền cọc' : undefined}
               >
                 <CheckCircle size={17} /> Duyệt đơn
               </button>

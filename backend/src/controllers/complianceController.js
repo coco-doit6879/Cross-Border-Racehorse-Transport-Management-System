@@ -114,8 +114,8 @@ exports.uploadComplianceDoc = async (req, res, next) => {
       });
     }
 
-    // Advance order to DOCS_PROCESSING if still PENDING_APPROVAL / APPROVED
-    if (['APPROVED', 'PENDING_APPROVAL'].includes(order.status)) {
+    // Documents only start after the booking has passed deposit and approval.
+    if (order.status === 'APPROVED') {
       order.status = 'DOCS_PROCESSING';
       await order.save();
     }

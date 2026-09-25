@@ -137,6 +137,14 @@ exports.dispatchRoute = async (req, res, next) => {
       });
     }
 
+    if (order.paymentStatus !== 'PAID') {
+      return res.status(409).json({
+        success: false,
+        errorCode: 'PAYMENT_REQUIRED',
+        message: 'Chỉ được phân công chuyến sau khi khách hàng đã thanh toán đủ.'
+      });
+    }
+
     const existingRoute = await TransportRoute.findOne({ orderId });
     if (existingRoute) {
       return res.status(400).json({
@@ -286,6 +294,14 @@ exports.updateTripStatus = async (req, res, next) => {
         return res.status(403).json({
           success: false,
           message: "Forbidden: Missing required permission 'trip:start'"
+        });
+      }
+      const order = await Order.findById(route.orderId);
+      if (!order || order.paymentStatus !== 'PAID') {
+        return res.status(409).json({
+          success: false,
+          errorCode: 'PAYMENT_REQUIRED',
+          message: 'Không thể bắt đầu vận chuyển khi đơn chưa được thanh toán đủ.'
         });
       }
     }

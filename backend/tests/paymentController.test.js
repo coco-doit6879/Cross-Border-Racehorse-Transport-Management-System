@@ -32,6 +32,20 @@ const pendingTransaction = () => ({
   async save() {}
 });
 
+test('successful deposit IPN records partial payment instead of marking the order fully paid', async (t) => {
+  const transaction = { ...pendingTransaction(), purpose: 'DEPOSIT', amountVnd: 1800000 };
+  let depositUpdate;
+  t.mock.method(PaymentTransaction, 'findOne', async () => transaction);
+  t.mock.method(Order, 'findOneAndUpdate', async (query, update) => {
+    depositUpdate = { query, update };
+    return { depositAmountVnd: 1800000, pricing: { totalAmountVnd: 9000000 }, async save() {} };
+  });
+  const result = await controller._applyIpn(signedQuery({ vnp_Amount: '180000000' }));
+  assert.equal(result.code, '00');
+  assert.equal(depositUpdate.update.$set.depositStatus, 'PAID');
+  assert.equal(depositUpdate.update.$set.paymentStatus, 'PARTIALLY_PAID');
+});
+
 test('valid successful VNPAY IPN marks transaction and matching order paid', async (t) => {
   const transaction = pendingTransaction();
   let orderUpdate;

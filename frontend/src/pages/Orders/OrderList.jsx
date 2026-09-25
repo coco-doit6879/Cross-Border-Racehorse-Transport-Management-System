@@ -197,7 +197,7 @@ const OrderList = () => {
     {
       title: 'Thanh toán',
       key: 'payment',
-      render: (_, record) => record.pricing?.totalAmountVnd ? <div><strong>{formatVnd(record.pricing.totalAmountVnd)}</strong><div><Tag color={record.paymentStatus === 'PAID' ? 'green' : 'orange'}>{record.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}</Tag></div></div> : <span style={{ color: '#94a3b8' }}>Chưa có giá</span>
+      render: (_, record) => record.pricing?.totalAmountVnd ? <div><strong>{formatVnd(record.pricing.totalAmountVnd)}</strong><div><Tag color={record.paymentStatus === 'PAID' ? 'green' : record.paymentStatus === 'PARTIALLY_PAID' ? 'blue' : 'orange'}>{record.paymentStatus === 'PAID' ? 'Đã thanh toán đủ' : record.paymentStatus === 'PARTIALLY_PAID' ? `Đã cọc ${formatVnd(record.depositAmountVnd)}` : record.depositRequired ? `Chờ cọc ${formatVnd(record.depositAmountVnd)}` : 'Chưa thanh toán'}</Tag></div></div> : <span style={{ color: '#94a3b8' }}>Chưa có giá</span>
     },
     {
       title: 'Thao tác',
@@ -205,7 +205,7 @@ const OrderList = () => {
       align: 'right',
       render: (_, record) => (
         <Space>
-          {record.status === 'PENDING_APPROVAL' && isManager && (
+          {record.status === 'PENDING_APPROVAL' && isManager && (!record.depositRequired || record.depositStatus === 'PAID') && (
             <>
               <Button
                 size="small"

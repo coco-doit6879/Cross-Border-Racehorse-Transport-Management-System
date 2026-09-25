@@ -88,7 +88,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['UNPAID', 'PAID', 'REFUNDED'],
+    enum: ['UNPAID', 'PARTIALLY_PAID', 'PAID', 'REFUNDED'],
     default: 'UNPAID',
     index: true
   },
@@ -98,6 +98,18 @@ const orderSchema = new mongoose.Schema({
   },
   paymentReference: String,
   paidAt: Date,
+  depositRequired: { type: Boolean, default: false },
+  depositPercent: { type: Number, min: 1, max: 100 },
+  depositAmountVnd: { type: Number, min: 0 },
+  depositStatus: {
+    type: String,
+    enum: ['NOT_REQUIRED', 'UNPAID', 'PAID', 'REFUND_PENDING', 'REFUNDED'],
+    default: 'NOT_REQUIRED',
+    index: true
+  },
+  depositDueAt: Date,
+  depositReference: String,
+  depositedAt: Date,
   status: {
     type: String,
     enum: [
@@ -116,7 +128,8 @@ const orderSchema = new mongoose.Schema({
   },
   rejectionReason: {
     type: String
-  }
+  },
+  cancellationReason: String
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

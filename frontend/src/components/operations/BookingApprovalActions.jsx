@@ -23,6 +23,10 @@ const BookingApprovalActions = ({ order, user, onUpdatedOrder, onRefresh }) => {
     return <div className="approval-note approval-note--warning">Tài khoản hiện tại không được phép phê duyệt đơn.</div>;
   }
 
+  if (order.depositRequired && order.depositStatus !== 'PAID') {
+    return <div className="approval-note approval-note--warning">Chưa thể phê duyệt: khách hàng chưa thanh toán tiền cọc.</div>;
+  }
+
   const approve = async () => {
     if (actionLock.current) return;
     actionLock.current = true;

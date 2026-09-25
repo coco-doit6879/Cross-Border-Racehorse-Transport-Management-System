@@ -4,6 +4,7 @@ const Horse = require('../models/Horse');
 const TransportRoute = require('../models/TransportRoute');
 const transportScheduleService = require('../services/transportScheduleService');
 const orderPricingService = require('../services/orderPricingService');
+const orderDepositService = require('../services/orderDepositService');
 const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 const geocodingService = require('../services/geocodingService');
 const { logAudit } = require('../utils/auditLogger');
@@ -72,6 +73,10 @@ const attachRouteAssignments = async (orders) => {
 // @access  Private
 exports.getOrders = async (req, res, next) => {
   try {
+    await Order.updateMany(
+      { status: 'PENDING_APPROVAL', depositRequired: true, depositStatus: 'UNPAID', depositDueAt: { $lte: new Date() } },
+      { $set: { status: 'CANCELLED', cancellationReason: 'Hết thời hạn đặt cọc' } }
+    );
     let query = {};
     const permissions = req.user.effectivePermissions || [];
 
@@ -220,6 +225,26 @@ exports.createOrder = async (req, res, next) => {
       throw error;
     }
 
+    const activeUnpaidDeposit = await Order.findOne({
+      customerId: req.user._id,
+      depositRequired: true,
+      depositStatus: 'UNPAID',
+      status: 'PENDING_APPROVAL',
+      depositDueAt: { $gt: new Date() }
+    });
+    if (activeUnpaidDeposit) {
+      return res.status(409).json({
+        success: false,
+        errorCode: 'ACTIVE_UNPAID_DEPOSIT',
+        message: `Bạn đang có đơn ${activeUnpaidDeposit.bookingCode} chờ đặt cọc. Vui lòng thanh toán hoặc hủy đơn đó trước khi tạo đơn mới.`,
+        data: { orderId: activeUnpaidDeposit._id, depositDueAt: activeUnpaidDeposit.depositDueAt }
+      });
+    }
+
+    const depositPolicy = orderDepositService.getPolicy();
+    const depositAmountVnd = orderDepositService.calculateDeposit(pricing.totalAmountVnd);
+    const depositDueAt = orderDepositService.depositDueAt();
+
     const bookingCode = await generateBookingCode();
 
     // Initial status is locked to PENDING_APPROVAL
@@ -241,6 +266,11 @@ exports.createOrder = async (req, res, next) => {
       estimatedDistanceKm,
       pricing,
       paymentStatus: 'UNPAID',
+      depositRequired: true,
+      depositPercent: depositPolicy.percent,
+      depositAmountVnd,
+      depositStatus: 'UNPAID',
+      depositDueAt,
       requestedDepartureDate,
       specialRequirements,
       status: 'PENDING_APPROVAL'
@@ -252,7 +282,7 @@ exports.createOrder = async (req, res, next) => {
       resource: 'Order',
       resourceId: order._id.toString(),
       result: 'SUCCESS',
-      metadata: { estimatedDistanceKm, totalAmountVnd: pricing.totalAmountVnd, addOnIds },
+      metadata: { estimatedDistanceKm, totalAmountVnd: pricing.totalAmountVnd, depositAmountVnd, depositDueAt, addOnIds },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
@@ -330,6 +360,14 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
 
+    if (status === 'APPROVED' && order.depositRequired && order.depositStatus !== 'PAID') {
+      return res.status(409).json({
+        success: false,
+        errorCode: 'DEPOSIT_REQUIRED',
+        message: 'Chỉ được phê duyệt sau khi khách hàng đã thanh toán tiền cọc.'
+      });
+    }
+
     // Require rejectionReason if rejecting order
     if (status === 'REJECTED' && !rejectionReason) {
       return res.status(400).json({
@@ -342,6 +380,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     if (rejectionReason) {
       order.rejectionReason = rejectionReason;
     }
+    if (status === 'REJECTED' && order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
 
     await order.save();
     if (status === 'COMPLETED') await moveOrderHorsesToDestination(order);
@@ -382,7 +421,7 @@ exports.cancelOrder = async (req, res, next) => {
 
     const permissions = req.user.effectivePermissions || [];
     const isOwner = order.customerId.toString() === req.user._id.toString();
-    const isManager = permissions.includes('booking:approve') || permissions.includes('booking:create');
+    const isManager = permissions.includes('booking:approve');
 
     if (!isOwner && !isManager) {
       return res.status(403).json({
@@ -401,6 +440,7 @@ exports.cancelOrder = async (req, res, next) => {
     const previousStatus = order.status;
     order.status = 'CANCELLED';
     order.cancellationReason = req.body.reason || 'Khách hàng hủy đơn';
+    if (order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
     await order.save();
 
     await logAudit({

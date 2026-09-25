@@ -103,6 +103,9 @@ test('booking persists canonical stops and full timestamp from published schedul
   assert.equal(saved.pricing.routeBaseUnitPriceVnd, departure.basePriceVnd);
   assert.equal(saved.pricing.totalAmountVnd, departure.basePriceVnd);
   assert.equal(saved.paymentStatus, 'UNPAID');
+  assert.equal(saved.depositRequired, true);
+  assert.equal(saved.depositStatus, 'UNPAID');
+  assert.equal(saved.depositAmountVnd, Math.ceil((departure.basePriceVnd * 0.2) / 1000) * 1000);
 });
 
 test('server calculates route and optional service prices without trusting client totals', () => {
@@ -114,6 +117,16 @@ test('server calculates route and optional service prices without trusting clien
   assert.equal(pricing.addOns[1].quantity, 1);
   assert.throws(() => orderPricingService.calculatePricing({ basePriceVnd: 9000000, horseCount: 1, addOnIds: ['UNKNOWN'] }), /không còn được cung cấp/);
   assert.throws(() => orderPricingService.calculatePricing({ basePriceVnd: 9000000, horseCount: 1, addOnIds: ['PREMIUM_STALL', 'PREMIUM_STALL'] }), /không hợp lệ/);
+});
+
+test('customer cannot create another booking while an unpaid deposit hold is active', async (t) => {
+  mockConfiguration(t);
+  const departure = service.generateDepartures(config)[0];
+  t.mock.method(Horse, 'find', async () => [{ _id: horseId, reviewStatus: 'APPROVED', currentStopId: departure.originStopId }]);
+  t.mock.method(Order, 'findOne', async (query) => query.depositRequired ? { _id: '555555555555555555555555', bookingCode: 'TR-2026-0099', depositDueAt: new Date(Date.now() + 600000) } : null);
+  const response = await call(orders.createOrder, req({ horseIds: [horseId], departureId: departure.id, scheduleRevision: 0 }));
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.body.errorCode, 'ACTIVE_UNPAID_DEPOSIT');
 });
 
 test('booking rejects horses whose current fixed stop differs from pickup stop', async (t) => {

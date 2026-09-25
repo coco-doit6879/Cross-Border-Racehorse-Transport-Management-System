@@ -62,6 +62,13 @@ const mapOrderData = (o) => {
     paymentMethod: o.paymentMethod || null,
     paymentReference: o.paymentReference || null,
     paidAt: o.paidAt || null,
+    depositRequired: Boolean(o.depositRequired),
+    depositPercent: o.depositPercent || null,
+    depositAmountVnd: o.depositAmountVnd || 0,
+    depositStatus: o.depositStatus || 'NOT_REQUIRED',
+    depositDueAt: o.depositDueAt || null,
+    depositReference: o.depositReference || null,
+    depositedAt: o.depositedAt || null,
     specialRequirements: o.specialRequirements || '',
     milestones: o.milestones || []
   };

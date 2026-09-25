@@ -31,7 +31,7 @@ export const ASSIGNMENT_LABELS = { FULL: 'Đủ nhân sự', PARTIAL: 'Thiếu n
 
 export const isTripEditable = (trip) => {
   if (!trip) return false;
-  return !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(trip.status);
+  return trip.paymentStatus === 'PAID' && !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(trip.status);
 };
 
 

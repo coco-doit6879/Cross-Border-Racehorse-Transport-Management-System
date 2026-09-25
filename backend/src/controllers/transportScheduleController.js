@@ -2,6 +2,7 @@ const TransportSchedule = require('../models/TransportSchedule');
 const service = require('../services/transportScheduleService');
 const { COUNTRIES, STOPS, TIME_SLOTS, BOOKING_WINDOW_DAYS, MIN_NOTICE_HOURS, CURRENCY, ADD_ONS } = require('../config/transportCatalog');
 const { logAudit } = require('../utils/auditLogger');
+const orderDepositService = require('../services/orderDepositService');
 
 exports.getCatalog = async (req, res, next) => {
   try {
@@ -9,7 +10,7 @@ exports.getCatalog = async (req, res, next) => {
     res.json({ success: true, data: {
       countries: COUNTRIES, stops: STOPS, timeSlots: TIME_SLOTS,
       bookingWindowDays: BOOKING_WINDOW_DAYS, minNoticeHours: MIN_NOTICE_HOURS,
-      currency: CURRENCY, addOns: ADD_ONS,
+      currency: CURRENCY, addOns: ADD_ONS, depositPolicy: orderDepositService.getPolicy(),
       revision: configuration.revision, rules: configuration.rules,
       departures: service.generateDepartures(configuration)
     } });

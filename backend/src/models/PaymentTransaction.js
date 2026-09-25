@@ -19,7 +19,15 @@ const paymentTransactionSchema = new mongoose.Schema({
     default: 'VNPAY',
     required: true
   },
+  purpose: {
+    type: String,
+    enum: ['DEPOSIT', 'BALANCE'],
+    default: 'BALANCE',
+    required: true,
+    index: true
+  },
   txnRef: { type: String, required: true, unique: true, index: true },
+  paymentUrl: String,
   amountVnd: { type: Number, required: true, min: 1 },
   status: {
     type: String,

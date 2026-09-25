@@ -30,19 +30,23 @@ const OrderDetail = () => {
   }
 
   const progressSteps = [
-    { title: 'Phê duyệt đơn', description: order.status === 'PENDING_APPROVAL' ? 'Đang chờ phê duyệt' : 'Đã xử lý' },
+    { title: 'Đặt cọc', description: order.depositRequired ? (order.depositStatus === 'PAID' ? 'Đã nhận tiền cọc' : 'Đang chờ đặt cọc') : 'Không áp dụng' },
+    { title: 'Phê duyệt đơn', description: order.status === 'PENDING_APPROVAL' ? (order.depositStatus === 'PAID' || !order.depositRequired ? 'Đang chờ phê duyệt' : 'Mở sau khi đặt cọc') : 'Đã xử lý' },
     { title: 'Hồ sơ và kiểm dịch', description: ['APPROVED', 'DOCS_PROCESSING'].includes(order.status) ? 'Đang xử lý' : order.status === 'PENDING_APPROVAL' ? 'Chưa bắt đầu' : 'Đã xử lý' },
     { title: 'Vận chuyển', description: ['IN_TRANSIT', 'DELIVERING'].includes(order.status) ? 'Đang thực hiện' : order.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa bắt đầu' },
     { title: 'Bàn giao', description: order.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa bắt đầu' }
   ];
   const progressIndex = order.status === 'COMPLETED'
-    ? 4
+    ? 5
     : ['IN_TRANSIT', 'DELIVERING'].includes(order.status)
-      ? 2
+      ? 3
       : ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status)
-        ? 1
-        : 0;
-  const canPay = user?.role === 'CUSTOMER' && order.paymentStatus !== 'PAID' && ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status) && order.pricing?.totalAmountVnd;
+        ? 2
+        : order.depositStatus === 'PAID' || !order.depositRequired ? 1 : 0;
+  const needsDeposit = order.depositRequired && order.depositStatus !== 'PAID';
+  const canPayBalance = ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status);
+  const canPay = user?.role === 'CUSTOMER' && order.paymentStatus !== 'PAID' && (needsDeposit ? order.status === 'PENDING_APPROVAL' : canPayBalance) && order.pricing?.totalAmountVnd;
+  const paymentAmount = needsDeposit ? order.depositAmountVnd : Math.max(0, order.pricing?.totalAmountVnd - (order.depositStatus === 'PAID' ? order.depositAmountVnd : 0));
   const handlePayment = async () => {
     try {
       const payment = await createVnpayPayment(order.id || order._id);
@@ -176,16 +180,17 @@ const OrderDetail = () => {
           {(order.pricing.addOns || []).map((item) => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 10, color: '#475569' }}><span>{item.name} × {item.quantity}</span><span>{formatVnd(item.amountVnd)}</span></div>)}
           <Divider />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 18 }}><strong>Tổng thanh toán</strong><strong style={{ color: '#0f3e2e' }}>{formatVnd(order.pricing.totalAmountVnd)}</strong></div>
+          {order.depositRequired && <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: '#fff7ed', display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Tiền cọc {order.depositPercent}%</span><span><strong>{formatVnd(order.depositAmountVnd)}</strong> · <Tag color={order.depositStatus === 'PAID' ? 'green' : order.depositStatus === 'REFUND_PENDING' ? 'blue' : 'orange'}>{order.depositStatus === 'PAID' ? 'Đã đặt cọc' : order.depositStatus === 'REFUND_PENDING' ? 'Chờ hoàn cọc' : 'Chưa đặt cọc'}</Tag></span></div>}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
-            <Tag color={order.paymentStatus === 'PAID' ? 'green' : 'orange'}>{order.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}</Tag>
-            {canPay && <Button type="primary" icon={<CreditCard size={16} />} onClick={() => setPaymentOpen(true)}>Thanh toán ngay</Button>}
-            {user?.role === 'CUSTOMER' && order.status === 'PENDING_APPROVAL' && <span style={{ color: '#64748b' }}>Thanh toán được mở sau khi đơn được phê duyệt.</span>}
+            <Tag color={order.paymentStatus === 'PAID' ? 'green' : order.paymentStatus === 'PARTIALLY_PAID' ? 'blue' : 'orange'}>{order.paymentStatus === 'PAID' ? 'Đã thanh toán đủ' : order.paymentStatus === 'PARTIALLY_PAID' ? 'Đã đặt cọc' : 'Chưa thanh toán'}</Tag>
+            {canPay && <Button type="primary" icon={<CreditCard size={16} />} onClick={() => setPaymentOpen(true)}>{needsDeposit ? 'Đặt cọc ngay' : 'Thanh toán phần còn lại'}</Button>}
+            {user?.role === 'CUSTOMER' && order.status === 'PENDING_APPROVAL' && order.depositStatus === 'PAID' && <span style={{ color: '#64748b' }}>Phần còn lại được thanh toán sau khi đơn được duyệt.</span>}
           </div>
           {order.paymentStatus === 'PAID' && <p style={{ color: '#64748b', marginBottom: 0 }}>Mã giao dịch: {order.paymentReference} · {order.paidAt ? new Date(order.paidAt).toLocaleString('vi-VN') : ''}</p>}
         </div> : <p style={{ color: '#64748b', margin: 0 }}>Đơn cũ chưa có bảng giá. Vui lòng liên hệ bộ phận điều hành.</p>}
       </Card>
-      <Modal title="Thanh toán qua VNPAY" open={paymentOpen} onCancel={() => setPaymentOpen(false)} onOk={handlePayment} confirmLoading={loading} okText={`Sang VNPAY · ${formatVnd(order.pricing?.totalAmountVnd)}`} cancelText="Hủy">
-        <p>Số tiền cần thanh toán: <strong>{formatVnd(order.pricing?.totalAmountVnd)}</strong></p>
+      <Modal title={needsDeposit ? 'Đặt cọc qua VNPAY' : 'Thanh toán phần còn lại qua VNPAY'} open={paymentOpen} onCancel={() => setPaymentOpen(false)} onOk={handlePayment} confirmLoading={loading} okText={`Sang VNPAY · ${formatVnd(paymentAmount)}`} cancelText="Hủy">
+        <p>Số tiền cần thanh toán: <strong>{formatVnd(paymentAmount)}</strong></p>
         <p style={{ color: '#64748b', marginBottom: 0 }}>Bạn sẽ được chuyển đến VNPAY để chọn QR ngân hàng, thẻ nội địa hoặc thẻ quốc tế. Hệ thống chỉ ghi nhận đã thanh toán sau khi VNPAY xác nhận.</p>
       </Modal>
     </div>
