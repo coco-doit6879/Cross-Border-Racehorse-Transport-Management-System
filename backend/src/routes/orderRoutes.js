@@ -46,6 +46,11 @@ const { protect, checkPermission } = require('../middlewares/authMiddleware');
  *                 description: Revision returned by the schedule catalog
  *               specialRequirements:
  *                 type: string
+ *               addOnIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [ENHANCED_INSURANCE, DEDICATED_ATTENDANT, PREMIUM_STALL]
  *     responses:
  *       201:
  *         description: Transport order created in PENDING_APPROVAL status
@@ -108,5 +113,32 @@ router.route('/:id')
  */
 router.patch('/:id/status', protect, checkPermission('booking:approve'), orderController.updateOrderStatus);
 router.patch('/:id/cancel', protect, orderController.cancelOrder);
+
+/**
+ * @swagger
+ * /orders/{id}/payment:
+ *   post:
+ *     summary: Pay an approved transport order using its locked price snapshot
+ *     tags: [Booking Orders]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [paymentMethod]
+ *             properties:
+ *               paymentMethod: { type: string, enum: [BANK_TRANSFER, CARD, E_WALLET] }
+ *     responses:
+ *       200: { description: Payment confirmed }
+ *       400: { description: Order is not payable }
+ */
+router.post('/:id/payment', protect, checkPermission('booking:create'), orderController.payOrder);
 
 module.exports = router;

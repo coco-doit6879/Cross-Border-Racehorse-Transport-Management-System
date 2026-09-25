@@ -69,6 +69,7 @@ async function runVerification() {
       dateOfBirth: new Date('2020-01-01'),
       gender: 'STALLION',
       weightKg: 450,
+      currentStopId: 'VN-HCM',
       ownerId: new mongoose.Types.ObjectId(),
       passportScanUrl: 'https://example.com/scan.pdf'
     });

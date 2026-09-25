@@ -4,6 +4,7 @@ const DigitalPOD = require('../models/DigitalPOD');
 const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
 const { logAudit } = require('../utils/auditLogger');
+const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 
 // Event Permission Requirements Map
 const EVENT_REQUIRED_PERMISSIONS = {
@@ -162,6 +163,7 @@ exports.syncOfflineEvents = async (req, res, next) => {
             if (order) {
               order.status = 'COMPLETED';
               await order.save();
+              await moveOrderHorsesToDestination(order);
             }
             syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: false });
             break;

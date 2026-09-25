@@ -3,8 +3,6 @@ import { orderApi } from '../services/orderApi';
 import { horseApi } from '../services/horseApi';
 import { calculateTransportSchedule } from '../utils/transportCalculator';
 
-import { managerDemoService } from '../services/managerDemoService';
-
 const mapOrderData = (o) => {
   const originAddr = typeof o.origin === 'object' ? o.origin?.address || '' : o.origin || '';
   const destAddr = typeof o.destination === 'object' ? o.destination?.address || '' : o.destination || '';
@@ -13,40 +11,8 @@ const mapOrderData = (o) => {
 
   const schedule = calculateTransportSchedule(o.requestedDepartureDate || o.createdAt, o.origin, o.destination);
 
-  // Cross-lookup driver, escort, and vehicle plate from demo service / route data
-  const demoData = managerDemoService.getData();
-  const matchingTrip = (demoData.trips || []).find(
-    (t) =>
-      String(t.id) === String(o._id || o.id) ||
-      t.code === o.bookingCode ||
-      t.orderCode === o.bookingCode ||
-      t.orderCode === o.orderCode ||
-      String(t.orderId) === String(o._id || o.id)
-  );
-
-  let resolvedDriverName = o.driverName || o.assignedDriver?.fullName || null;
-  let resolvedVehiclePlate = o.vehiclePlate || o.assignedVehicle?.plateNumber || null;
-
-  if (matchingTrip) {
-    if (matchingTrip.driverId) {
-      const driverObj = (demoData.drivers || []).find(
-        (d) => String(d.id) === String(matchingTrip.driverId) || String(d._id) === String(matchingTrip.driverId) || d.code === matchingTrip.driverId
-      );
-      if (driverObj) resolvedDriverName = driverObj.fullName;
-    }
-    if (matchingTrip.vehiclePlate && matchingTrip.vehiclePlate !== 'Chưa phân công') {
-      resolvedVehiclePlate = matchingTrip.vehiclePlate;
-    } else if (!resolvedVehiclePlate) {
-      resolvedVehiclePlate = '51D-246.80';
-    }
-  }
-
-  if (!resolvedDriverName) {
-    resolvedDriverName = o.driverName || (matchingTrip?.driverId ? 'Nguyễn Minh Hoàng' : 'Chưa phân công');
-  }
-  if (!resolvedVehiclePlate || resolvedVehiclePlate === 'Chưa phân công') {
-    resolvedVehiclePlate = matchingTrip?.vehiclePlate || '51D-246.80';
-  }
+  const resolvedDriverName = o.driverName || o.assignedDriver?.fullName || 'Chưa phân công';
+  const resolvedVehiclePlate = o.vehiclePlate || o.assignedVehicle?.plateNumber || null;
 
   let horseNames = [];
   if (Array.isArray(o.horseIds) && o.horseIds.length > 0) {
@@ -91,6 +57,11 @@ const mapOrderData = (o) => {
     status: o.status || 'PENDING_APPROVAL',
     driverName: resolvedDriverName,
     vehiclePlate: resolvedVehiclePlate,
+    pricing: o.pricing || null,
+    paymentStatus: o.paymentStatus || 'UNPAID',
+    paymentMethod: o.paymentMethod || null,
+    paymentReference: o.paymentReference || null,
+    paidAt: o.paidAt || null,
     specialRequirements: o.specialRequirements || '',
     milestones: o.milestones || []
   };
@@ -117,6 +88,31 @@ export const useOrderStore = create((set, get) => ({
     }
   },
 
+  fetchOrderById: async (orderId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await orderApi.getOrderById(orderId);
+      const orderDoc = response?.data?.data || response?.data;
+      const mapped = mapOrderData(orderDoc);
+
+      set((state) => {
+        const exists = state.orders.some((order) => String(order.id || order._id) === String(mapped.id));
+        return {
+          orders: exists
+            ? state.orders.map((order) => (String(order.id || order._id) === String(mapped.id) ? mapped : order))
+            : [mapped, ...state.orders],
+          loading: false
+        };
+      });
+
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể tải chi tiết đơn vận chuyển';
+      set({ error: msg, loading: false });
+      throw err;
+    }
+  },
+
   createOrder: async (orderData) => {
     set({ loading: true, error: null });
     try {
@@ -124,6 +120,7 @@ export const useOrderStore = create((set, get) => ({
         horseIds: orderData.horseIds || [],
         departureId: orderData.departureId,
         scheduleRevision: orderData.scheduleRevision,
+        addOnIds: orderData.addOnIds || [],
         specialRequirements: orderData.specialRequirements || ''
       };
       const response = await orderApi.createOrder(payload);
@@ -195,6 +192,24 @@ export const useOrderStore = create((set, get) => ({
       return mapped;
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || 'Không thể hủy đơn vận chuyển';
+      set({ error: msg, loading: false });
+      throw err;
+    }
+  },
+
+  payOrder: async (orderId, paymentMethod) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await orderApi.payOrder(orderId, paymentMethod);
+      const updatedDoc = response?.data?.data || response?.data;
+      const mapped = mapOrderData(updatedDoc);
+      set((state) => ({
+        orders: state.orders.map((order) => (String(order.id || order._id) === String(mapped.id) ? mapped : order)),
+        loading: false
+      }));
+      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể thanh toán đơn vận chuyển';
       set({ error: msg, loading: false });
       throw err;
     }

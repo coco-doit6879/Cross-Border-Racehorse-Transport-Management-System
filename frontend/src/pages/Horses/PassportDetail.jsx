@@ -56,7 +56,7 @@ export default function PassportDetail() {
     {editing ? <HorseProfileForm horse={horse} onSave={save} saving={saving} /> : <>
       <Card title="Thông tin nhận dạng">
         <Descriptions bordered column={{ xs: 1, sm: 2 }} items={[
-          ['Chủ sở hữu', horse.ownerName], ['Mã vi chip', horse.microchipId], ['Số hộ chiếu', horse.feiPassportNumber], ['Giống', horse.breed], ['Ngày sinh', horse.dateOfBirth?.slice(0, 10)], ['Giới tính', { STALLION: 'Đực', MARE: 'Cái', GELDING: 'Thiến' }[horse.gender]], ['Cân nặng', `${horse.weightKg} kg`], ['Màu lông', horse.color], ['Đặc điểm nhận dạng', horse.identifyingMarks || 'Không khai báo'], ['Tiêm phòng cúm ngựa gần nhất', horse.lastVaccinationDate?.slice(0, 10)], ['Tiền sử y tế', horse.medicalHistoryNotes || 'Không khai báo']
+          ['Chủ sở hữu', horse.ownerName], ['Mã vi chip', horse.microchipId], ['Số hộ chiếu', horse.feiPassportNumber], ['Địa điểm hiện tại', horse.currentStopId], ['Giống', horse.breed], ['Ngày sinh', horse.dateOfBirth?.slice(0, 10)], ['Giới tính', { STALLION: 'Đực', MARE: 'Cái', GELDING: 'Thiến' }[horse.gender]], ['Cân nặng', `${horse.weightKg} kg`], ['Màu lông', horse.color], ['Đặc điểm nhận dạng', horse.identifyingMarks || 'Không khai báo'], ['Tiêm phòng cúm ngựa gần nhất', horse.lastVaccinationDate?.slice(0, 10)], ['Tiền sử y tế', horse.medicalHistoryNotes || 'Không khai báo']
         ].map(([label, children]) => ({ key: label, label, children: children || 'Chưa khai báo' }))} />
       </Card>
       <Row gutter={[20, 20]}>

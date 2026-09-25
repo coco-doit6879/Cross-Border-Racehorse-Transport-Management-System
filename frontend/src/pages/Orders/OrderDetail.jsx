@@ -1,17 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Tag, Steps } from 'antd';
-import { ArrowLeft, Truck, MapPin, CheckCircle, Clock } from 'lucide-react';
+import { Button, Card, Divider, Modal, Radio, Space, Tag, Steps, message } from 'antd';
+import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useOrderStore } from '../../store/useOrderStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 import LocationMap from '../../components/common/LocationMap';
+const formatVnd = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { orders } = useOrderStore();
+  const { orders, fetchOrderById, payOrder, loading, error } = useOrderStore();
+  const { user } = useAuthStore();
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
 
-  const order = orders.find((o) => o.id === id || o.orderCode === id) || orders[0];
+  const order = orders.find((o) => String(o.id || o._id) === String(id) || o.orderCode === id);
+
+  useEffect(() => {
+    if (!order && id) fetchOrderById(id).catch(() => {});
+  }, [fetchOrderById, id, order]);
+
+  if (!order) {
+    return (
+      <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 12, padding: 28 }}>
+        {loading ? 'Đang tải chi tiết đơn vận chuyển...' : error || 'Không tìm thấy đơn vận chuyển.'}
+      </div>
+    );
+  }
+
+  const progressSteps = [
+    { title: 'Phê duyệt đơn', description: order.status === 'PENDING_APPROVAL' ? 'Đang chờ phê duyệt' : 'Đã xử lý' },
+    { title: 'Hồ sơ và kiểm dịch', description: ['APPROVED', 'DOCS_PROCESSING'].includes(order.status) ? 'Đang xử lý' : order.status === 'PENDING_APPROVAL' ? 'Chưa bắt đầu' : 'Đã xử lý' },
+    { title: 'Vận chuyển', description: ['IN_TRANSIT', 'DELIVERING'].includes(order.status) ? 'Đang thực hiện' : order.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa bắt đầu' },
+    { title: 'Bàn giao', description: order.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa bắt đầu' }
+  ];
+  const progressIndex = order.status === 'COMPLETED'
+    ? 4
+    : ['IN_TRANSIT', 'DELIVERING'].includes(order.status)
+      ? 2
+      : ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status)
+        ? 1
+        : 0;
+  const canPay = user?.role === 'CUSTOMER' && order.paymentStatus !== 'PAID' && ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status) && order.pricing?.totalAmountVnd;
+  const handlePayment = async () => {
+    try {
+      await payOrder(order.id || order._id, paymentMethod);
+      setPaymentOpen(false);
+      message.success('Thanh toán thành công.');
+    } catch (err) {
+      message.error(err.response?.data?.message || err.message || 'Không thể thanh toán.');
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -78,11 +119,11 @@ const OrderDetail = () => {
             </div>
             <div>
               <span style={{ color: '#6B7280' }}>Biển số xe:</span>{' '}
-              <strong>{order?.vehiclePlate || 'Xe chuyên dụng 51D-246.80'}</strong>
+              <strong>{order?.vehiclePlate || 'Chưa phân công'}</strong>
             </div>
             <div>
               <span style={{ color: '#6B7280' }}>Tài xế phụ trách:</span>{' '}
-              <strong>{order?.driverName || 'Nguyễn Minh Hoàng'}</strong>
+              <strong>{order?.driverName || 'Chưa phân công'}</strong>
             </div>
             <div>
               <span style={{ color: '#6B7280' }}>Ngựa vận chuyển:</span>{' '}
@@ -125,28 +166,35 @@ const OrderDetail = () => {
           </div>
           <Steps
             direction="vertical"
-            current={1}
-            items={[
-              {
-                title: 'Khởi hành tại CLB đón',
-                description: 'Đã xuất phát lúc 08:15'
-              },
-              {
-                title: 'Trạm dừng nghỉ & Kiểm tra sức khỏe',
-                description: 'Đã hoàn tất lúc 09:30 tại Củ Chi'
-              },
-              {
-                title: 'Cửa khẩu kiểm dịch thông quan',
-                description: 'Đang tiến hành thủ tục'
-              },
-              {
-                title: 'Bàn giao & Ký nghiệm thu POD',
-                description: 'Dự kiến 16:30'
-              }
-            ]}
+            current={progressIndex}
+            items={progressSteps}
           />
         </div>
       </div>
+      <Card title={<Space><CreditCard size={18} /> Chi phí và thanh toán</Space>}>
+        {order.pricing?.totalAmountVnd ? <div style={{ maxWidth: 680 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><span>Giá tuyến: {formatVnd(order.pricing.routeBaseUnitPriceVnd)} × {order.pricing.horseCount} ngựa</span><strong>{formatVnd(order.pricing.baseAmountVnd)}</strong></div>
+          {(order.pricing.addOns || []).map((item) => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 10, color: '#475569' }}><span>{item.name} × {item.quantity}</span><span>{formatVnd(item.amountVnd)}</span></div>)}
+          <Divider />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 18 }}><strong>Tổng thanh toán</strong><strong style={{ color: '#0f3e2e' }}>{formatVnd(order.pricing.totalAmountVnd)}</strong></div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
+            <Tag color={order.paymentStatus === 'PAID' ? 'green' : 'orange'}>{order.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}</Tag>
+            {canPay && <Button type="primary" icon={<CreditCard size={16} />} onClick={() => setPaymentOpen(true)}>Thanh toán ngay</Button>}
+            {user?.role === 'CUSTOMER' && order.status === 'PENDING_APPROVAL' && <span style={{ color: '#64748b' }}>Thanh toán được mở sau khi đơn được phê duyệt.</span>}
+          </div>
+          {order.paymentStatus === 'PAID' && <p style={{ color: '#64748b', marginBottom: 0 }}>Mã giao dịch: {order.paymentReference} · {order.paidAt ? new Date(order.paidAt).toLocaleString('vi-VN') : ''}</p>}
+        </div> : <p style={{ color: '#64748b', margin: 0 }}>Đơn cũ chưa có bảng giá. Vui lòng liên hệ bộ phận điều hành.</p>}
+      </Card>
+      <Modal title="Xác nhận thanh toán" open={paymentOpen} onCancel={() => setPaymentOpen(false)} onOk={handlePayment} confirmLoading={loading} okText={`Thanh toán ${formatVnd(order.pricing?.totalAmountVnd)}`} cancelText="Hủy">
+        <p>Số tiền cần thanh toán: <strong>{formatVnd(order.pricing?.totalAmountVnd)}</strong></p>
+        <Radio.Group value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+          <Space direction="vertical">
+            <Radio value="BANK_TRANSFER">Chuyển khoản ngân hàng</Radio>
+            <Radio value="CARD">Thẻ thanh toán</Radio>
+            <Radio value="E_WALLET">Ví điện tử</Radio>
+          </Space>
+        </Radio.Group>
+      </Modal>
     </div>
   );
 };

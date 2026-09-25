@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const service = require('../src/services/transportScheduleService');
 const { STOPS, DEFAULT_RULES, TIME_SLOTS, MIN_NOTICE_HOURS } = require('../src/config/transportCatalog');
+const { ROLE_PERMISSIONS } = require('../src/utils/constants');
 const TransportSchedule = require('../src/models/TransportSchedule');
 const Order = require('../src/models/Order');
 const Horse = require('../src/models/Horse');
@@ -9,6 +10,8 @@ const User = require('../src/models/User');
 const AuditLog = require('../src/models/AuditLog');
 const orders = require('../src/controllers/orderController');
 const controller = require('../src/controllers/transportScheduleController');
+const horseLocationService = require('../src/services/horseLocationService');
+const orderPricingService = require('../src/services/orderPricingService');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const now = new Date('2026-09-20T00:00:00Z');
@@ -29,6 +32,11 @@ test('initial network has 1–3 fixed stops per country and valid unique routes'
     assert.ok(count >= 1 && count <= 3);
   }
   assert.equal(service.validateRules(DEFAULT_RULES).length, DEFAULT_RULES.length);
+});
+test('only fleet coordinator role owns fixed schedule management', () => {
+  assert.ok(ROLE_PERMISSIONS.FLEET_COORDINATOR.includes('schedule:manage'));
+  assert.ok(!ROLE_PERMISSIONS.LOGISTICS_MANAGER.includes('schedule:manage'));
+  assert.ok(!ROLE_PERMISSIONS.TRANSPORT_SPECIALIST.includes('schedule:manage'));
 });
 test('reject arbitrary stops, same-stop trips, duplicated routes and unlisted hours', () => {
   const valid = DEFAULT_RULES[0];
@@ -79,12 +87,12 @@ test('booking rejects caller-supplied location/date overrides even alongside a v
 });
 test('booking persists canonical stops and full timestamp from published schedule', async (t) => {
   mockConfiguration(t);
-  t.mock.method(Horse, 'find', async () => [{ _id: horseId, reviewStatus: 'APPROVED' }]);
+  const departure = service.generateDepartures(config)[0];
+  t.mock.method(Horse, 'find', async () => [{ _id: horseId, reviewStatus: 'APPROVED', currentStopId: departure.originStopId }]);
   t.mock.method(Order, 'countDocuments', async () => 0);
   t.mock.method(Order, 'findOne', async () => null);
   t.mock.method(Order, 'create', async (data) => ({ ...data, _id: '444444444444444444444444' }));
   t.mock.method(AuditLog, 'create', async () => ({}));
-  const departure = service.generateDepartures(config)[0];
   const response = await call(orders.createOrder, req({ horseIds: [horseId], departureId: departure.id, scheduleRevision: 0 }));
   assert.equal(response.statusCode, 201);
   const saved = response.body.data;
@@ -92,6 +100,53 @@ test('booking persists canonical stops and full timestamp from published schedul
   assert.equal(saved.departureLocalTime, departure.departureLocalTime);
   assert.equal(saved.departureTimezone, departure.timeZone);
   assert.deepEqual(saved.origin.coordinates, STOPS.find((s) => s.id === departure.originStopId).coordinates);
+  assert.equal(saved.pricing.routeBaseUnitPriceVnd, departure.basePriceVnd);
+  assert.equal(saved.pricing.totalAmountVnd, departure.basePriceVnd);
+  assert.equal(saved.paymentStatus, 'UNPAID');
+});
+
+test('server calculates route and optional service prices without trusting client totals', () => {
+  const pricing = orderPricingService.calculatePricing({ basePriceVnd: 9000000, horseCount: 2, addOnIds: ['ENHANCED_INSURANCE', 'DEDICATED_ATTENDANT'] });
+  assert.equal(pricing.baseAmountVnd, 18000000);
+  assert.equal(pricing.addOnsAmountVnd, 7000000);
+  assert.equal(pricing.totalAmountVnd, 25000000);
+  assert.equal(pricing.addOns[0].quantity, 2);
+  assert.equal(pricing.addOns[1].quantity, 1);
+  assert.throws(() => orderPricingService.calculatePricing({ basePriceVnd: 9000000, horseCount: 1, addOnIds: ['UNKNOWN'] }), /không còn được cung cấp/);
+  assert.throws(() => orderPricingService.calculatePricing({ basePriceVnd: 9000000, horseCount: 1, addOnIds: ['PREMIUM_STALL', 'PREMIUM_STALL'] }), /không hợp lệ/);
+});
+
+test('customer can pay an approved priced order and cannot pay before approval', async (t) => {
+  const approved = { _id: '444444444444444444444444', bookingCode: 'TR-2026-0001', customerId: actor, status: 'APPROVED', paymentStatus: 'UNPAID', pricing: { totalAmountVnd: 9000000 }, async save() {} };
+  t.mock.method(Order, 'findById', async () => approved);
+  t.mock.method(AuditLog, 'create', async () => ({}));
+  const paid = await call(orders.payOrder, { ...req({ paymentMethod: 'CARD' }), params: { id: approved._id } });
+  assert.equal(paid.statusCode, 200);
+  assert.equal(paid.body.data.paymentStatus, 'PAID');
+  assert.equal(paid.body.data.paymentMethod, 'CARD');
+  assert.match(paid.body.data.paymentReference, /^PAY-/);
+
+  approved.status = 'PENDING_APPROVAL'; approved.paymentStatus = 'UNPAID';
+  const blocked = await call(orders.payOrder, { ...req({ paymentMethod: 'CARD' }), params: { id: approved._id } });
+  assert.equal(blocked.statusCode, 400);
+  assert.match(blocked.body.message, /sau khi đơn đã được phê duyệt/);
+});
+
+test('booking rejects horses whose current fixed stop differs from pickup stop', async (t) => {
+  mockConfiguration(t);
+  const departure = service.generateDepartures(config)[0];
+  t.mock.method(Horse, 'find', async () => [{ _id: horseId, reviewStatus: 'APPROVED', currentStopId: departure.destinationStopId }]);
+  const response = await call(orders.createOrder, req({ horseIds: [horseId], departureId: departure.id, scheduleRevision: 0 }));
+  assert.equal(response.statusCode, 400);
+  assert.match(response.body.message, /phải đang ở điểm đón/);
+});
+
+test('trip completion moves every order horse to the fixed destination stop', async (t) => {
+  let query, update;
+  t.mock.method(Horse, 'updateMany', async (q, u) => { query = q; update = u; });
+  await horseLocationService.moveOrderHorsesToDestination({ horseIds: [horseId, '444444444444444444444444'], destinationStopId: 'TH-BKK' });
+  assert.deepEqual(query._id.$in, [horseId, '444444444444444444444444']);
+  assert.equal(update.$set.currentStopId, 'TH-BKK');
 });
 test('management update uses version check, stores normalized rules and preserves existing orders', async (t) => {
   mockConfiguration(t);

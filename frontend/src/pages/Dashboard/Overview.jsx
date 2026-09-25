@@ -234,7 +234,7 @@ const Overview = () => {
                   </div>
                   <div
                     style={{
-                      backgroundColor: '#0F3E2E',
+                      backgroundColor: activeTrip.vehiclePlate ? '#0F3E2E' : '#64748B',
                       color: '#FFFFFF',
                       padding: '4px 10px',
                       borderRadius: 6,
@@ -242,7 +242,7 @@ const Overview = () => {
                       fontWeight: 600
                     }}
                   >
-                    Biển số xe: {activeTrip.vehiclePlate}
+                    Biển số xe: {activeTrip.vehiclePlate || 'Chưa phân công'}
                   </div>
                 </div>
 

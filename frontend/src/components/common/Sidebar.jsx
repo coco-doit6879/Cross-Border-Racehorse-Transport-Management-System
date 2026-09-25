@@ -28,7 +28,7 @@ const Sidebar = () => {
   if ([USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.LOGISTICS_MANAGER].includes(user?.role)) {
     managerItems.push({ to: '/horses', label: user?.role === USER_ROLES.TRANSPORT_SPECIALIST ? 'Kiểm duyệt sức khỏe ngựa' : 'Hồ sơ ngựa', icon: PackageSearch });
   }
-  if ([USER_ROLES.LOGISTICS_MANAGER, USER_ROLES.FLEET_COORDINATOR].includes(user?.role)) {
+  if (user?.role === USER_ROLES.FLEET_COORDINATOR) {
     managerItems.push({ to: '/manager/schedules', label: 'Lịch vận chuyển cố định', icon: Route });
   }
 

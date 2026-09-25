@@ -44,7 +44,7 @@ const options = {
         },
         Horse: {
           type: 'object',
-          required: ['name', 'microchipId', 'feiPassportNumber', 'breed', 'dateOfBirth', 'gender', 'weightKg', 'color', 'photos', 'passportScanUrl', 'vaccinationRecordUrl', 'lastVaccinationDate'],
+          required: ['name', 'microchipId', 'feiPassportNumber', 'breed', 'dateOfBirth', 'gender', 'weightKg', 'color', 'currentStopId', 'photos', 'passportScanUrl', 'vaccinationRecordUrl', 'lastVaccinationDate'],
           properties: {
             id: { type: 'string', example: '66e5f1b2c3d4e5f6a7b8c9d1' },
             name: { type: 'string', example: 'Thunderbolt Star' },
@@ -55,6 +55,7 @@ const options = {
             gender: { type: 'string', enum: ['STALLION', 'MARE', 'GELDING'] },
             weightKg: { type: 'number', example: 520 },
             color: { type: 'string' },
+            currentStopId: { type: 'string', description: 'Current fixed transport stop ID; must match booking pickup stop' },
             identifyingMarks: { type: 'string' },
             photos: { type: 'array', minItems: 2, maxItems: 2, items: { type: 'string' }, description: 'Uploaded full-body and face file references, in that order' },
             passportScanUrl: { type: 'string' },

@@ -135,6 +135,7 @@ async function runPhase5Verification() {
       dateOfBirth: new Date('2021-01-01'),
       gender: 'STALLION',
       weightKg: 500,
+      currentStopId: 'VN-HCM',
       ownerId: customer._id,
       passportScanUrl: 'https://cbrt.com/docs/passport_p5.pdf'
     });

@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect, checkPermission } = require('../middlewares/authMiddleware');
+const { protect, checkPermission, authorize } = require('../middlewares/authMiddleware');
 const controller = require('../controllers/transportScheduleController');
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
  *     responses:
  *       200: { description: Catalog with schedule revision, local times and UTC departure timestamps }
  *   put:
- *     summary: Manager publishes weekly departure rules (schedule:manage)
+ *     summary: Fleet coordinator publishes weekly departure rules and prices
  *     tags: [Booking Orders]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -29,12 +29,13 @@ const router = express.Router();
  *                 type: array
  *                 items:
  *                   type: object
- *                   required: [originStopId, destinationStopId, weekdays, times, active]
+ *                   required: [originStopId, destinationStopId, weekdays, times, basePriceVnd, active]
  *                   properties:
  *                     originStopId: { type: string }
  *                     destinationStopId: { type: string }
  *                     weekdays: { type: array, items: { type: integer, minimum: 0, maximum: 6 } }
  *                     times: { type: array, items: { type: string, enum: ['08:00', '14:00'] } }
+ *                     basePriceVnd: { type: integer, minimum: 1 }
  *                     active: { type: boolean }
  *     responses:
  *       200: { description: Published schedule and new revision }
@@ -44,6 +45,6 @@ const router = express.Router();
  */
 
 router.get('/', protect, controller.getCatalog);
-router.put('/', protect, checkPermission('schedule:manage'), controller.updateSchedule);
+router.put('/', protect, authorize('FLEET_COORDINATOR'), checkPermission('schedule:manage'), controller.updateSchedule);
 
 module.exports = router;

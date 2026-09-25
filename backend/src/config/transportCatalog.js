@@ -19,14 +19,20 @@ const STOPS = [
 const TIME_SLOTS = ['08:00', '14:00'];
 const BOOKING_WINDOW_DAYS = 28;
 const MIN_NOTICE_HOURS = 24;
-const pairs = [
-  ['VN-HCM', 'VN-HAN'], ['VN-HCM', 'VN-DAD'], ['VN-HAN', 'VN-DAD'],
-  ['VN-HCM', 'KH-PNH'], ['KH-PNH', 'KH-REP'], ['KH-PNH', 'TH-BKK'],
-  ['TH-BKK', 'TH-CNX'], ['VN-HAN', 'TH-BKK'], ['VN-HCM', 'SG-SIN']
+const CURRENCY = 'VND';
+const ADD_ONS = [
+  { id: 'ENHANCED_INSURANCE', name: 'Bảo hiểm vận chuyển mở rộng', description: 'Mở rộng quyền lợi bảo hiểm trong suốt hành trình.', unitPriceVnd: 2000000, pricingMode: 'PER_HORSE' },
+  { id: 'DEDICATED_ATTENDANT', name: 'Nhân viên chăm sóc riêng', description: 'Bố trí một nhân viên theo dõi riêng trong chuyến.', unitPriceVnd: 3000000, pricingMode: 'PER_ORDER' },
+  { id: 'PREMIUM_STALL', name: 'Khoang yên tĩnh cao cấp', description: 'Khoang rộng, giảm tiếng ồn và tăng lớp đệm chống xóc.', unitPriceVnd: 1500000, pricingMode: 'PER_HORSE' }
 ];
-const DEFAULT_RULES = pairs.flatMap(([a, b]) => [
-  { originStopId: a, destinationStopId: b, weekdays: [1, 3, 5], times: ['08:00'], active: true },
-  { originStopId: b, destinationStopId: a, weekdays: [2, 4, 6], times: ['14:00'], active: true }
+const pairs = [
+  ['VN-HCM', 'VN-HAN', 18000000], ['VN-HCM', 'VN-DAD', 12000000], ['VN-HAN', 'VN-DAD', 11000000],
+  ['VN-HCM', 'KH-PNH', 9000000], ['KH-PNH', 'KH-REP', 6000000], ['KH-PNH', 'TH-BKK', 10000000],
+  ['TH-BKK', 'TH-CNX', 8000000], ['VN-HAN', 'TH-BKK', 20000000], ['VN-HCM', 'TH-BKK', 16000000], ['VN-HCM', 'SG-SIN', 22000000]
+];
+const DEFAULT_RULES = pairs.flatMap(([a, b, basePriceVnd]) => [
+  { originStopId: a, destinationStopId: b, weekdays: [1, 3, 5], times: ['08:00'], basePriceVnd, active: true },
+  { originStopId: b, destinationStopId: a, weekdays: [2, 4, 6], times: ['14:00'], basePriceVnd, active: true }
 ]);
 
-module.exports = { COUNTRIES, STOPS, TIME_SLOTS, BOOKING_WINDOW_DAYS, MIN_NOTICE_HOURS, DEFAULT_RULES };
+module.exports = { COUNTRIES, STOPS, TIME_SLOTS, BOOKING_WINDOW_DAYS, MIN_NOTICE_HOURS, CURRENCY, ADD_ONS, DEFAULT_RULES };

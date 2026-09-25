@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Upload, message } from 'antd';
 import { UploadCloud } from 'lucide-react';
 import { horseApi } from '../../services/horseApi';
+import { transportScheduleApi } from '../../services/transportScheduleApi';
 
 export const reviewLabels = { PENDING_REVIEW: 'Chờ duyệt sức khỏe', APPROVED: 'Đã duyệt sức khỏe', REJECTED: 'Cần bổ sung / Không đạt' };
 export const reviewColors = { PENDING_REVIEW: 'gold', APPROVED: 'green', REJECTED: 'red' };
@@ -54,11 +55,24 @@ export function ProfileFile({ value, onChange, imageOnly = false, disabled = fal
 export default function HorseProfileForm({ horse, onSave, saving }) {
   const [form] = Form.useForm();
   const [uploads, setUploads] = useState(0);
+  const [stops, setStops] = useState([]);
+  const [stopError, setStopError] = useState('');
   useEffect(() => {
     form.resetFields();
     if (horse) form.setFieldsValue({ ...horse, dateOfBirth: horse.dateOfBirth?.slice(0, 10), lastVaccinationDate: horse.lastVaccinationDate?.slice(0, 10), bodyPhoto: horse.photos?.[0], facePhoto: horse.photos?.[1] });
   }, [horse, form]);
+  useEffect(() => {
+    let active = true;
+    transportScheduleApi.getCatalog()
+      .then((response) => { if (active) setStops(response.data.data.stops || []); })
+      .catch(() => { if (active) setStopError('Không thể tải danh sách điểm vận chuyển cố định.'); });
+    return () => { active = false; };
+  }, []);
   const busy = (delta) => setUploads((n) => n + delta);
+  const stopOptions = Object.entries(stops.reduce((groups, stop) => {
+    (groups[stop.countryCode] ||= []).push({ value: stop.id, label: stop.name });
+    return groups;
+  }, {})).map(([label, options]) => ({ label, options }));
   return <Form form={form} layout="vertical" onFinish={({ bodyPhoto, facePhoto, ...values }) => onSave({ ...values, photos: [bodyPhoto, facePhoto] })}>
     <Alert type="info" showIcon message="Hồ sơ được gửi đến Chuyên viên Thủ tục & Kiểm dịch để xác minh nhận dạng và duyệt sức khỏe." description="Mỗi lần lưu thay đổi sẽ đưa hồ sơ về trạng thái chờ duyệt." style={{ marginBottom: 24 }} />
     <Card title="Thông tin nhận dạng" style={{ marginBottom: 20 }}>
@@ -70,6 +84,7 @@ export default function HorseProfileForm({ horse, onSave, saving }) {
         <Col xs={24} md={12}><Form.Item name="dateOfBirth" label="Ngày sinh (dùng tính tuổi)" rules={required}><Input type="date" max={today()} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="weightKg" label="Trọng lượng (kg)" rules={[{ required: true, type: 'number', min: 0.1, message: 'Nhập cân nặng lớn hơn 0.' }]}><InputNumber min={0.1} style={{ width: '100%' }} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="color" label="Màu sắc lông chính" rules={required}><Select options={['Nâu đỏ (Bay)', 'Hạt dẻ (Chestnut)', 'Đen (Black)', 'Xám (Grey)', 'Trắng (White)', 'Khác'].map((value) => ({ value, label: value }))} /></Form.Item></Col>
+        <Col xs={24} md={12}><Form.Item name="currentStopId" label="Địa điểm hiện tại của ngựa" extra="Ngựa chỉ được đặt chuyến có điểm đón trùng địa điểm này." rules={required}><Select loading={!stops.length && !stopError} options={stopOptions} placeholder="Chọn điểm tập kết hiện tại" /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="identifyingMarks" label="Đặc điểm dị biệt nhận dạng (nếu có)"><Input placeholder="Sao trắng trán, tất trắng chân sau…" /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="bodyPhoto" label="Ảnh toàn thân" rules={required}><ProfileFile imageOnly onBusy={busy} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="facePhoto" label="Ảnh khuôn mặt" rules={required}><ProfileFile imageOnly onBusy={busy} /></Form.Item></Col>
@@ -84,6 +99,7 @@ export default function HorseProfileForm({ horse, onSave, saving }) {
         <Col span={24}><Form.Item name="medicalHistoryNotes" label="Tiền sử y tế & lưu ý sức khỏe"><Input.TextArea rows={3} /></Form.Item></Col>
       </Row>
     </Card>
-    <Button htmlType="submit" type="primary" loading={saving} disabled={uploads > 0}>Gửi hồ sơ kiểm duyệt sức khỏe</Button>
+    {stopError && <Alert type="error" showIcon message={stopError} style={{ marginBottom: 16 }} />}
+    <Button htmlType="submit" type="primary" loading={saving} disabled={uploads > 0 || Boolean(stopError)}>Gửi hồ sơ kiểm duyệt sức khỏe</Button>
   </Form>;
 }

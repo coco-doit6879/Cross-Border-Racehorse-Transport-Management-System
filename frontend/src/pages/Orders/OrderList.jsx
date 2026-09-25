@@ -4,6 +4,7 @@ import { Table, Button, Input, Tag, Space, Card, Popconfirm, message } from 'ant
 import { Plus, Search, Eye, Truck, Clock, XCircle } from 'lucide-react';
 import { useOrderStore } from '../../store/useOrderStore';
 import { useAuthStore } from '../../store/useAuthStore';
+const formatVnd = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -192,6 +193,11 @@ const OrderList = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => renderStatus(status)
+    },
+    {
+      title: 'Thanh toán',
+      key: 'payment',
+      render: (_, record) => record.pricing?.totalAmountVnd ? <div><strong>{formatVnd(record.pricing.totalAmountVnd)}</strong><div><Tag color={record.paymentStatus === 'PAID' ? 'green' : 'orange'}>{record.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}</Tag></div></div> : <span style={{ color: '#94a3b8' }}>Chưa có giá</span>
     },
     {
       title: 'Thao tác',

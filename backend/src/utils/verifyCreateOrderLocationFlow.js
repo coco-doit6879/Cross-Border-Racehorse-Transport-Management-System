@@ -34,6 +34,7 @@ async function runTests() {
       dateOfBirth: new Date('2020-01-01'),
       gender: 'STALLION',
       weightKg: 480,
+      currentStopId: 'VN-HCM',
       ownerId: testCustomer._id,
       passportScanUrl: 'https://example.com/passport.pdf'
     });

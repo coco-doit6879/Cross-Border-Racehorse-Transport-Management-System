@@ -1,6 +1,7 @@
 const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
 const { logAudit } = require('../utils/auditLogger');
+const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 
 // Allowed Trip State Machine Transitions Map
 const ALLOWED_TRIP_TRANSITIONS = {
@@ -214,6 +215,7 @@ exports.updateTripStatus = async (req, res, next) => {
       if (['IN_TRANSIT', 'DELIVERING', 'COMPLETED', 'CANCELLED'].includes(status)) {
         order.status = status;
         await order.save();
+        if (status === 'COMPLETED') await moveOrderHorsesToDestination(order);
       }
     }
 

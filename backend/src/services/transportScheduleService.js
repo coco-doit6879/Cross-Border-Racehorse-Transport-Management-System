@@ -7,7 +7,14 @@ const localDate = (now, stop) => new Intl.DateTimeFormat('en-CA', { timeZone: st
 
 async function getConfiguration() {
   const saved = await TransportSchedule.findById('fixed-network').lean();
-  return saved || { revision: 0, rules: DEFAULT_RULES };
+  if (!saved) return { revision: 0, rules: DEFAULT_RULES };
+  return {
+    ...saved,
+    rules: saved.rules.map((rule) => ({
+      ...rule,
+      basePriceVnd: rule.basePriceVnd ?? DEFAULT_RULES.find((item) => item.originStopId === rule.originStopId && item.destinationStopId === rule.destinationStopId)?.basePriceVnd
+    }))
+  };
 }
 
 function validateRules(rules) {
@@ -20,8 +27,9 @@ function validateRules(rules) {
     seen.add(key);
     if (!Array.isArray(rule.weekdays) || !rule.weekdays.length || rule.weekdays.some((d) => !Number.isInteger(d) || d < 0 || d > 6) || new Set(rule.weekdays).size !== rule.weekdays.length) throw scheduleError('Chọn các ngày trong tuần hợp lệ.');
     if (!Array.isArray(rule.times) || !rule.times.length || rule.times.some((time) => !TIME_SLOTS.includes(time)) || new Set(rule.times).size !== rule.times.length) throw scheduleError('Chỉ được chọn khung giờ 08:00 hoặc 14:00.');
+    if (!Number.isSafeInteger(rule.basePriceVnd) || rule.basePriceVnd <= 0) throw scheduleError('Giá tuyến phải là số nguyên dương theo VND.');
     if (typeof rule.active !== 'boolean') throw scheduleError('Trạng thái tuyến không hợp lệ.');
-    return { originStopId: rule.originStopId, destinationStopId: rule.destinationStopId, weekdays: [...rule.weekdays].sort(), times: [...rule.times].sort(), active: rule.active };
+    return { originStopId: rule.originStopId, destinationStopId: rule.destinationStopId, weekdays: [...rule.weekdays].sort(), times: [...rule.times].sort(), basePriceVnd: rule.basePriceVnd, active: rule.active };
   });
 }
 
@@ -45,7 +53,8 @@ function generateDepartures(configuration, now = new Date()) {
           id: `${origin.id}_${destination.id}_${departureLocalDate}_${departureLocalTime.replace(':', '')}`,
           originStopId: origin.id, destinationStopId: destination.id,
           departureAt: departureAt.toISOString(), departureLocalDate, departureLocalTime,
-          timeZone: origin.timeZone, utcOffset: origin.utcOffset
+          timeZone: origin.timeZone, utcOffset: origin.utcOffset,
+          basePriceVnd: rule.basePriceVnd
         });
       }
     }
@@ -70,7 +79,8 @@ async function resolveDeparture(departureId, revision, now = new Date()) {
     requestedDepartureDate: departure.departureAt,
     departureLocalDate: departure.departureLocalDate,
     departureLocalTime: departure.departureLocalTime,
-    departureTimezone: departure.timeZone
+    departureTimezone: departure.timeZone,
+    basePriceVnd: departure.basePriceVnd
   };
 }
 

@@ -1,7 +1,10 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Horse = require('../models/Horse');
+const TransportRoute = require('../models/TransportRoute');
 const transportScheduleService = require('../services/transportScheduleService');
+const orderPricingService = require('../services/orderPricingService');
+const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 const geocodingService = require('../services/geocodingService');
 const { logAudit } = require('../utils/auditLogger');
 
@@ -39,6 +42,31 @@ const ALLOWED_ORDER_TRANSITIONS = {
   'CANCELLED': []
 };
 
+const attachRouteAssignments = async (orders) => {
+  const orderList = Array.isArray(orders) ? orders : [orders];
+  const orderIds = orderList.filter(Boolean).map((order) => order._id);
+
+  if (orderIds.length === 0) return Array.isArray(orders) ? [] : orders;
+
+  const routes = await TransportRoute.find({ orderId: { $in: orderIds } })
+    .select('orderId vehiclePlateNumber driverId')
+    .populate('driverId', 'fullName');
+  const routesByOrderId = new Map(routes.map((route) => [String(route.orderId), route]));
+
+  const enrichedOrders = orderList.map((order) => {
+    const data = typeof order.toObject === 'function' ? order.toObject() : order;
+    const route = routesByOrderId.get(String(order._id));
+
+    return {
+      ...data,
+      vehiclePlate: route?.vehiclePlateNumber || null,
+      driverName: route?.driverId?.fullName || null
+    };
+  });
+
+  return Array.isArray(orders) ? enrichedOrders : enrichedOrders[0];
+};
+
 // @desc    Get all orders (Filtered by customer / role)
 // @route   GET /api/v1/orders
 // @access  Private
@@ -61,10 +89,12 @@ exports.getOrders = async (req, res, next) => {
       .populate('customerId', 'fullName email phone username')
       .populate('horseIds', 'name microchipId feiPassportNumber breed weightKg');
 
+    const ordersWithAssignments = await attachRouteAssignments(orders);
+
     res.json({
       success: true,
       count: orders.length,
-      data: orders
+      data: ordersWithAssignments
     });
   } catch (error) {
     next(error);
@@ -106,9 +136,11 @@ exports.getOrderById = async (req, res, next) => {
       });
     }
 
+    const orderWithAssignment = await attachRouteAssignments(order);
+
     res.json({
       success: true,
-      data: order
+      data: orderWithAssignment
     });
   } catch (error) {
     next(error);
@@ -120,7 +152,7 @@ exports.getOrderById = async (req, res, next) => {
 // @access  Private (booking:create)
 exports.createOrder = async (req, res, next) => {
   try {
-    const { horseIds, departureId, scheduleRevision, specialRequirements } = req.body;
+    const { horseIds, departureId, scheduleRevision, specialRequirements, addOnIds = [] } = req.body;
 
     if (!horseIds || !Array.isArray(horseIds) || horseIds.length === 0) {
       return res.status(400).json({
@@ -169,8 +201,24 @@ exports.createOrder = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Chỉ ngựa có hồ sơ đã được Chuyên viên Thủ tục & Kiểm dịch duyệt sức khỏe mới được đặt vận chuyển.' });
     }
 
+    const horsesAtAnotherStop = ownedHorses.filter((horse) => horse.currentStopId !== departure.originStopId);
+    if (horsesAtAnotherStop.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Ngựa được chọn phải đang ở điểm đón ${departure.origin.address}. Vui lòng chọn ngựa có địa điểm hiện tại phù hợp.`
+      });
+    }
+
     // Calculate server-side Haversine estimated geographic distance
     const estimatedDistanceKm = geocodingService.calculateDistanceKm(origin.coordinates, destination.coordinates);
+
+    let pricing;
+    try {
+      pricing = orderPricingService.calculatePricing({ basePriceVnd: departure.basePriceVnd, horseCount: horseIds.length, addOnIds });
+    } catch (error) {
+      if (error.status) return res.status(error.status).json({ success: false, message: error.message });
+      throw error;
+    }
 
     const bookingCode = await generateBookingCode();
 
@@ -191,6 +239,8 @@ exports.createOrder = async (req, res, next) => {
         coordinates: [parseFloat(destination.coordinates[0]), parseFloat(destination.coordinates[1])] // [lng, lat]
       },
       estimatedDistanceKm,
+      pricing,
+      paymentStatus: 'UNPAID',
       requestedDepartureDate,
       specialRequirements,
       status: 'PENDING_APPROVAL'
@@ -202,7 +252,7 @@ exports.createOrder = async (req, res, next) => {
       resource: 'Order',
       resourceId: order._id.toString(),
       result: 'SUCCESS',
-      metadata: { estimatedDistanceKm },
+      metadata: { estimatedDistanceKm, totalAmountVnd: pricing.totalAmountVnd, addOnIds },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
@@ -294,6 +344,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     }
 
     await order.save();
+    if (status === 'COMPLETED') await moveOrderHorsesToDestination(order);
 
     await logAudit({
       actorId: req.user._id,
@@ -368,6 +419,58 @@ exports.cancelOrder = async (req, res, next) => {
       message: `Đã hủy đơn vận chuyển ${order.bookingCode} thành công`,
       data: order
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Confirm payment for an approved transport order
+// @route   POST /api/v1/orders/:id/payment
+// @access  Private (Order owner)
+exports.payOrder = async (req, res, next) => {
+  try {
+    const allowedMethods = ['BANK_TRANSFER', 'CARD', 'E_WALLET'];
+    const paymentMethod = req.body.paymentMethod;
+    if (!allowedMethods.includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn phương thức thanh toán hợp lệ.' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (String(order.customerId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Bạn chỉ có thể thanh toán đơn của mình.' });
+    }
+    if (!order.pricing?.totalAmountVnd) {
+      return res.status(400).json({ success: false, message: 'Đơn cũ chưa có bảng giá. Vui lòng liên hệ bộ phận điều hành.' });
+    }
+    if (order.paymentStatus === 'PAID') {
+      return res.json({ success: true, message: 'Đơn đã được thanh toán trước đó.', data: order });
+    }
+    if (!['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status)) {
+      return res.status(400).json({ success: false, message: 'Chỉ thanh toán sau khi đơn đã được phê duyệt và trước khi khởi hành.' });
+    }
+
+    order.paymentStatus = 'PAID';
+    order.paymentMethod = paymentMethod;
+    order.paymentReference = `PAY-${Date.now()}-${order.bookingCode}`;
+    order.paidAt = new Date();
+    await order.save();
+
+    await logAudit({
+      actorId: req.user._id,
+      action: 'ORDER_PAYMENT_CONFIRMED',
+      resource: 'Order',
+      resourceId: order._id.toString(),
+      result: 'SUCCESS',
+      metadata: { paymentMethod, paymentReference: order.paymentReference, totalAmountVnd: order.pricing.totalAmountVnd },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({ success: true, message: `Đã thanh toán đơn ${order.bookingCode}.`, data: order });
   } catch (error) {
     next(error);
   }

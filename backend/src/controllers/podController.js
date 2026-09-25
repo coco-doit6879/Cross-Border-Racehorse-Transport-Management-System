@@ -2,6 +2,7 @@ const DigitalPOD = require('../models/DigitalPOD');
 const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
 const { logAudit } = require('../utils/auditLogger');
+const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 
 const ALLOWED_SIGNER_ROLES = ['CUSTOMER', 'AUTHORIZED_RECIPIENT', 'STABLE_MANAGER', 'VETERINARIAN'];
 
@@ -79,6 +80,7 @@ exports.signPOD = async (req, res, next) => {
     if (order) {
       order.status = 'COMPLETED';
       await order.save();
+      await moveOrderHorsesToDestination(order);
     }
 
     await logAudit({

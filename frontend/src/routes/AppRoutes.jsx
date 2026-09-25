@@ -78,7 +78,7 @@ const AppRoutes = () => (
           <Route path="/horses" element={<HorseList />} />
           <Route path="/horses/:id" element={<PassportDetail />} />
           <Route path="/routes/tracking" element={<RouteMap />} />
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.LOGISTICS_MANAGER, USER_ROLES.FLEET_COORDINATOR]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR]} />}>
             <Route path="/manager/schedules" element={<TransportSchedulesPage />} />
           </Route>
 

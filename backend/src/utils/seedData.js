@@ -77,6 +77,7 @@ const seedData = async () => {
       weightKg: 520,
       passportScanUrl: 'https://example.com/scans/passport1.pdf',
       medicalHistoryNotes: 'Fully vaccinated (Equine Influenza, Coggins negative)',
+      currentStopId: 'VN-HCM',
       ownerId: customer._id
     });
 
@@ -90,6 +91,7 @@ const seedData = async () => {
       weightKg: 480,
       passportScanUrl: 'https://example.com/scans/passport2.pdf',
       medicalHistoryNotes: 'No chronic diseases, fit for long distance transport',
+      currentStopId: 'VN-HCM',
       ownerId: customer._id
     });
 

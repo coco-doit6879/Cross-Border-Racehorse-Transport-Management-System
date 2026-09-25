@@ -30,6 +30,7 @@ export default function HorseList() {
     { title: 'Mã vi chip', dataIndex: 'microchipId' },
     { title: 'Số hộ chiếu', dataIndex: 'feiPassportNo' },
     { title: 'Giống ngựa', dataIndex: 'breed' },
+    { title: 'Địa điểm hiện tại', dataIndex: 'currentStopId', render: (value) => value || <Tag color="red">Chưa khai báo</Tag> },
     { title: 'Tuổi / Cân nặng', render: (_, h) => `${h.age} • ${h.weight || '—'} kg` },
     { title: 'Kiểm duyệt sức khỏe', dataIndex: 'reviewStatus', render: (value) => <Tag color={reviewColors[value]}>{reviewLabels[value]}</Tag> },
     { title: 'Thao tác', render: (_, h) => <Button onClick={() => navigate(`/horses/${h.id}`)}>{reviewer ? 'Xem & kiểm duyệt' : 'Hồ sơ & giấy tờ'}</Button> }

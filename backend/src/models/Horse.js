@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { STOPS } = require('../config/transportCatalog');
 
 const horseSchema = new mongoose.Schema({
   microchipId: {
@@ -48,6 +49,12 @@ const horseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'Owner ID is required'],
+    index: true
+  },
+  currentStopId: {
+    type: String,
+    required: [true, 'Current fixed transport stop is required'],
+    enum: STOPS.map((stop) => stop.id),
     index: true
   },
   passportScanUrl: {

@@ -1,16 +1,19 @@
 const FIELDS = ['name', 'microchipId', 'feiPassportNumber', 'breed', 'dateOfBirth',
   'gender', 'weightKg', 'color', 'identifyingMarks', 'photos', 'passportScanUrl',
-  'vaccinationRecordUrl', 'lastVaccinationDate', 'medicalHistoryNotes'];
+  'vaccinationRecordUrl', 'lastVaccinationDate', 'medicalHistoryNotes', 'currentStopId'];
+
+const { STOPS } = require('../config/transportCatalog');
 
 const pickProfile = (body) => Object.fromEntries(FIELDS.filter((key) => body[key] !== undefined)
   .map((key) => [key, typeof body[key] === 'string' ? body[key].trim() : body[key]]));
 
 function validateProfile(profile) {
-  for (const key of ['name', 'microchipId', 'feiPassportNumber', 'breed', 'gender', 'color', 'passportScanUrl', 'vaccinationRecordUrl']) {
+  for (const key of ['name', 'microchipId', 'feiPassportNumber', 'breed', 'gender', 'color', 'passportScanUrl', 'vaccinationRecordUrl', 'currentStopId']) {
     if (typeof profile[key] !== 'string' || !profile[key].trim()) return `Thiếu thông tin bắt buộc: ${key}`;
   }
   if (!/^[A-Za-z0-9]{10,18}$/.test(profile.microchipId)) return 'Mã chip phải có 10–18 ký tự chữ hoặc số.';
   if (!['STALLION', 'MARE', 'GELDING'].includes(profile.gender)) return 'Giới tính không hợp lệ.';
+  if (!STOPS.some((stop) => stop.id === profile.currentStopId)) return 'Địa điểm hiện tại của ngựa không thuộc danh sách điểm vận chuyển cố định.';
   if (!Number.isFinite(Number(profile.weightKg)) || Number(profile.weightKg) <= 0) return 'Cân nặng phải lớn hơn 0.';
   for (const key of ['dateOfBirth', 'lastVaccinationDate']) {
     const date = new Date(profile[key]);

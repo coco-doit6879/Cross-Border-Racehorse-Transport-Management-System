@@ -80,7 +80,7 @@ async function runPhase4Verification() {
     const unauthCustomerToken = jwt.sign({ id: unauthorizedCustomer._id }, jwtSecret, { expiresIn: '1h' });
 
     const horse = await Horse.create({
-      microchipId: '985141000999888', feiPassportNumber: 'FEI-RT-01', name: 'RT Horse', breed: 'Arabian', dateOfBirth: '2020-01-01', gender: 'STALLION', weightKg: 450, ownerId: customerUser._id, passportScanUrl: 'https://example.com/p.pdf'
+      microchipId: '985141000999888', feiPassportNumber: 'FEI-RT-01', name: 'RT Horse', breed: 'Arabian', dateOfBirth: '2020-01-01', gender: 'STALLION', weightKg: 450, currentStopId: 'VN-HCM', ownerId: customerUser._id, passportScanUrl: 'https://example.com/p.pdf'
     });
 
     const order = await Order.create({

@@ -1,6 +1,6 @@
 # Horse identity and health review
 
-Owners submit identity information, a full-body photo, a separate face photo, a passport file, a vaccination/quarantine record and the most recent equine-influenza vaccination date. JPEG, PNG and PDF files are limited to 5 MB each; identity photos must be images. Files are stored separately from Horse documents in MongoDB, and downloads require authentication and access authorization.
+Owners submit identity information, the horse's current fixed transport stop, a full-body photo, a separate face photo, a passport file, a vaccination/quarantine record and the most recent equine-influenza vaccination date. JPEG, PNG and PDF files are limited to 5 MB each; identity photos must be images. Files are stored separately from Horse documents in MongoDB, and downloads require authentication and access authorization.
 
 `TRANSPORT_SPECIALIST` (Chuyên viên Thủ tục & Kiểm dịch) receives `horse:review_health`. Owners edit and resubmit their own profiles; specialists review profiles without modifying the owner's evidence. A user cannot review their own horse.
 
@@ -17,7 +17,7 @@ All paths below are relative to `/api` or `/api/v1`.
 
 - `POST /horses/files`: authenticated raw JPEG/PNG/PDF body with matching `Content-Type` and URI-encoded `X-File-Name`; returns `{data: {url, name, size}}`.
 - `GET /horses/files/:fileId`: authorized binary file retrieval.
-- `POST /horses`: `name`, `microchipId` (10–18 alphanumeric characters, matching the existing backend rule), `feiPassportNumber`, `breed`, `dateOfBirth`, `gender`, `weightKg`, `color`, `photos` (body then face), `passportScanUrl`, `vaccinationRecordUrl`, `lastVaccinationDate`; optional `identifyingMarks`, `medicalHistoryNotes`. File references must come from the upload endpoint.
+- `POST /horses`: `name`, `microchipId` (10–18 alphanumeric characters, matching the existing backend rule), `feiPassportNumber`, `breed`, `dateOfBirth`, `gender`, `weightKg`, `color`, `currentStopId`, `photos` (body then face), `passportScanUrl`, `vaccinationRecordUrl`, `lastVaccinationDate`; optional `identifyingMarks`, `medicalHistoryNotes`. File references must come from the upload endpoint.
 - `PUT /horses/:id`: editable profile fields only; ownership and review metadata cannot be assigned through this endpoint.
 - `GET /horses`, `GET /horses/:id`: owner-scoped reads or privileged specialist/manager reads.
 - `POST /horses/:id/review`: `{decision: "APPROVED" | "REJECTED", notes, profileVersion}` where `profileVersion` is the `__v` returned with the profile. Returns HTTP 409 for stale/already-reviewed profiles.

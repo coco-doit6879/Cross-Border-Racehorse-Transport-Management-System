@@ -90,6 +90,7 @@ async function runFullSystemValidation() {
       dateOfBirth: new Date('2020-05-15'),
       gender: 'STALLION',
       weightKg: 510,
+      currentStopId: 'VN-HCM',
       ownerId: customer._id,
       passportScanUrl: 'https://cbrt.com/passports/fei_99.pdf'
     });

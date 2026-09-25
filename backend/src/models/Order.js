@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 
+const selectedAddOnSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  name: { type: String, required: true },
+  description: String,
+  pricingMode: { type: String, enum: ['PER_HORSE', 'PER_ORDER'], required: true },
+  unitPriceVnd: { type: Number, required: true, min: 0 },
+  quantity: { type: Number, required: true, min: 1 },
+  amountVnd: { type: Number, required: true, min: 0 }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   bookingCode: {
     type: String,
@@ -67,6 +77,27 @@ const orderSchema = new mongoose.Schema({
   estimatedDistanceKm: {
     type: Number
   },
+  pricing: {
+    currency: { type: String, default: 'VND' },
+    routeBaseUnitPriceVnd: { type: Number, min: 0 },
+    horseCount: { type: Number, min: 1 },
+    baseAmountVnd: { type: Number, min: 0 },
+    addOns: [selectedAddOnSchema],
+    addOnsAmountVnd: { type: Number, min: 0, default: 0 },
+    totalAmountVnd: { type: Number, min: 0 }
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['UNPAID', 'PAID', 'REFUNDED'],
+    default: 'UNPAID',
+    index: true
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['BANK_TRANSFER', 'CARD', 'E_WALLET']
+  },
+  paymentReference: String,
+  paidAt: Date,
   status: {
     type: String,
     enum: [

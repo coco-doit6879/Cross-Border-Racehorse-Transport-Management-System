@@ -14,7 +14,8 @@ The catalog opens departures in the next 28 local calendar days, with a 24-hour 
 
 - `GET /api/transport-schedules`: authenticated catalog, stops, rules, generated departures and revision.
 - `PUT /api/transport-schedules`: `{revision, rules}`; requires `schedule:manage`, assigned to Logistics Manager and Fleet Coordinator. This persists a singleton configuration in MongoDB. Concurrent edits return HTTP 409.
-- `POST /api/orders`: `{horseIds, departureId, scheduleRevision, specialRequirements?}`. The departure ID must belong to the current open catalog. Submitted `origin`, `destination`, `requestedDepartureDate`, `departureDate`, or `departureTime` are rejected. Existing ownership and horse health checks still apply.
+- `POST /api/orders`: `{horseIds, departureId, scheduleRevision, specialRequirements?}`. The departure ID must belong to the current open catalog. Submitted `origin`, `destination`, `requestedDepartureDate`, `departureDate`, or `departureTime` are rejected. Every selected horse must have `currentStopId` equal to the departure's `originStopId`; horses at another country or hub are rejected server-side. Existing ownership and horse health checks still apply.
+- When a trip is completed through route status, online POD, or offline POD sync, every horse in that order is moved to the order's `destinationStopId`.
 - The server snapshots the canonical departure and stops into the order; later schedule edits affect new bookings only, not existing orders or dispatched trips. No capacity pooling or vehicle assignment is implied by a recurring schedule.
 
 The management page is `/manager/schedules`; customers book from `/orders/create`. Existing orders continue to display without migration. A missing schedule configuration uses the test defaults until the first management save, without writing on GET or reseeding other collections.
