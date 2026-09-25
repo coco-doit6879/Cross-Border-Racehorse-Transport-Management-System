@@ -30,6 +30,7 @@ router.use('/analytics', analyticsRoutes);
 router.use('/audit-logs', auditLogRoutes);
 router.use('/geocoding', geocodingRoutes);
 router.use('/transport-schedules', require('./transportScheduleRoutes'));
+router.use('/vehicles', require('./vehicleRoutes'));
 
 module.exports = router;
 

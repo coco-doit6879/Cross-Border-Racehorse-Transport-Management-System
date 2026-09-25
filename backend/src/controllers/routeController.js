@@ -1,7 +1,40 @@
 const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
+const User = require('../models/User');
+const Vehicle = require('../models/Vehicle');
 const { logAudit } = require('../utils/auditLogger');
 const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
+
+const idOf = (value) => String(value?._id || value || '');
+const isAssignedStaff = (route, user) => idOf(route.driverId) === idOf(user._id) || idOf(route.escortId) === idOf(user._id);
+const canViewRoute = (route, user) => {
+  const permissions = user.effectivePermissions || [];
+  return isAssignedStaff(route, user) || idOf(route.orderId?.customerId) === idOf(user._id) || permissions.some((permission) => ['route:dispatch', 'booking:approve', 'analytics:view'].includes(permission));
+};
+const canOperateRoute = (route, user) => isAssignedStaff(route, user) || (user.effectivePermissions || []).includes('route:dispatch');
+
+const ACTIVE_ROUTE_STATUSES = ['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'];
+const validateAssignment = async ({ order, vehicleId, driverId, escortId, excludeRouteId }) => {
+  const [vehicle, driver, escort] = await Promise.all([Vehicle.findById(vehicleId), User.findById(driverId), User.findById(escortId)]);
+  if (!vehicle || vehicle.status !== 'ACTIVE') return { error: 'Phương tiện không tồn tại hoặc không hoạt động.' };
+  if (new Date(vehicle.registrationExpiresAt) < new Date() || new Date(vehicle.inspectionExpiresAt) < new Date()) return { error: 'Giấy đăng ký hoặc đăng kiểm của xe đã hết hạn.' };
+  if (!driver || driver.role !== 'DRIVER' || !driver.isActive) return { error: 'Tài xế không tồn tại hoặc không hoạt động.' };
+  if (!escort || escort.role !== 'ESCORT' || !escort.isActive) return { error: 'Phụ xe không tồn tại hoặc không hoạt động.' };
+  if (String(driver._id) === String(escort._id)) return { error: 'Tài xế và phụ xe phải là hai người khác nhau.' };
+  if ((order.horseIds || []).length > vehicle.capacityHorses) return { error: `Xe chỉ chở tối đa ${vehicle.capacityHorses} ngựa.` };
+  const start = new Date(order.requestedDepartureDate).getTime();
+  const end = start + 36 * 60 * 60 * 1000;
+  const conflicts = await TransportRoute.find({
+    ...(excludeRouteId ? { _id: { $ne: excludeRouteId } } : {}), status: { $in: ACTIVE_ROUTE_STATUSES },
+    $or: [{ vehicleId: vehicle._id }, { driverId: driver._id }, { escortId: escort._id }]
+  }).populate('orderId', 'requestedDepartureDate bookingCode');
+  const conflict = conflicts.find((route) => {
+    const otherStart = new Date(route.orderId?.requestedDepartureDate || route.createdAt).getTime();
+    return start < otherStart + 36 * 60 * 60 * 1000 && end > otherStart;
+  });
+  if (conflict) return { error: `Xe hoặc nhân sự bị trùng lịch với đơn ${conflict.orderId?.bookingCode || conflict._id}.` };
+  return { vehicle, driver, escort };
+};
 
 // Allowed Trip State Machine Transitions Map
 const ALLOWED_TRIP_TRANSITIONS = {
@@ -18,8 +51,20 @@ const ALLOWED_TRIP_TRANSITIONS = {
 // @access  Private
 exports.getRoutes = async (req, res, next) => {
   try {
-    const routes = await TransportRoute.find()
+    const query = {};
+    const permissions = req.user.effectivePermissions || [];
+    if (req.user.role === 'DRIVER') query.driverId = req.user._id;
+    else if (req.user.role === 'ESCORT') query.escortId = req.user._id;
+    else if (req.user.role === 'CUSTOMER') {
+      const ownedOrders = await Order.find({ customerId: req.user._id }).select('_id');
+      query.orderId = { $in: ownedOrders.map((order) => order._id) };
+    } else if (!permissions.some((permission) => ['route:dispatch', 'booking:approve', 'analytics:view'].includes(permission))) {
+      query._id = null;
+    }
+
+    const routes = await TransportRoute.find(query)
       .populate('orderId')
+      .populate('vehicleId')
       .populate('driverId', 'fullName phone email username')
       .populate('escortId', 'fullName phone email username');
 
@@ -40,6 +85,7 @@ exports.getRouteById = async (req, res, next) => {
   try {
     const route = await TransportRoute.findById(req.params.id)
       .populate('orderId')
+      .populate('vehicleId')
       .populate('driverId', 'fullName phone email username')
       .populate('escortId', 'fullName phone email username');
 
@@ -48,6 +94,9 @@ exports.getRouteById = async (req, res, next) => {
         success: false,
         message: 'Transport route not found'
       });
+    }
+    if (!canViewRoute(route, req.user)) {
+      return res.status(403).json({ success: false, message: 'Bạn không được phân công vào chuyến vận chuyển này.' });
     }
     res.json({
       success: true,
@@ -63,12 +112,12 @@ exports.getRouteById = async (req, res, next) => {
 // @access  Private (route:dispatch)
 exports.dispatchRoute = async (req, res, next) => {
   try {
-    const { orderId, vehiclePlateNumber, driverId, escortId, waypoints } = req.body;
+    const { orderId, vehicleId, driverId, escortId, waypoints, assignmentNote } = req.body;
 
-    if (!orderId || !vehiclePlateNumber || !driverId || !escortId) {
+    if (!orderId || !vehicleId || !driverId || !escortId) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide orderId, vehiclePlateNumber, driverId, and escortId'
+        message: 'Vui lòng chọn đơn, phương tiện, tài xế và phụ xe.'
       });
     }
 
@@ -96,6 +145,9 @@ exports.dispatchRoute = async (req, res, next) => {
       });
     }
 
+    const assignment = await validateAssignment({ order, vehicleId, driverId, escortId });
+    if (assignment.error) return res.status(409).json({ success: false, message: assignment.error });
+
     // Default waypoints from order origin & destination if not provided
     const defaultWaypoints = waypoints && waypoints.length > 0 ? waypoints : [
       {
@@ -119,9 +171,12 @@ exports.dispatchRoute = async (req, res, next) => {
     // Initial currentLocation MUST be null (prevents Null Island [0,0])
     const route = await TransportRoute.create({
       orderId,
-      vehiclePlateNumber,
+      vehicleId: assignment.vehicle._id,
+      vehiclePlateNumber: assignment.vehicle.plateNumber,
       driverId,
       escortId,
+      assignmentNote,
+      assignmentHistory: [{ changedBy: req.user._id, reason: 'Phân công ban đầu', vehicleId, driverId, escortId }],
       waypoints: defaultWaypoints,
       currentLocation: null,
       status: 'SCHEDULED'
@@ -146,6 +201,31 @@ exports.dispatchRoute = async (req, res, next) => {
   }
 };
 
+// @desc Update vehicle/driver/escort assignment for an existing scheduled route
+exports.updateAssignment = async (req, res, next) => {
+  try {
+    const { vehicleId, driverId, escortId, reason, assignmentNote } = req.body;
+    if (!vehicleId || !driverId || !escortId) return res.status(400).json({ success: false, message: 'Vui lòng chọn đủ xe, tài xế và phụ xe.' });
+    const route = await TransportRoute.findById(req.params.id).populate('orderId');
+    if (!route) return res.status(404).json({ success: false, message: 'Không tìm thấy chuyến vận chuyển.' });
+    if (route.status !== 'SCHEDULED') return res.status(409).json({ success: false, message: 'Chỉ được đổi phân công khi chuyến chưa khởi hành.' });
+    const changed = String(route.vehicleId || '') !== String(vehicleId) || String(route.driverId) !== String(driverId) || String(route.escortId) !== String(escortId);
+    if (changed && !String(reason || '').trim()) return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do thay đổi phân công.' });
+    const assignment = await validateAssignment({ order: route.orderId, vehicleId, driverId, escortId, excludeRouteId: route._id });
+    if (assignment.error) return res.status(409).json({ success: false, message: assignment.error });
+    route.assignmentHistory.push({ changedBy: req.user._id, reason: String(reason || '').trim(), previousVehicleId: route.vehicleId, previousDriverId: route.driverId, previousEscortId: route.escortId, vehicleId, driverId, escortId });
+    route.vehicleId = vehicleId;
+    route.vehiclePlateNumber = assignment.vehicle.plateNumber;
+    route.driverId = driverId;
+    route.escortId = escortId;
+    route.assignmentNote = String(assignmentNote || '').trim();
+    await route.save();
+    await logAudit({ actorId: req.user._id, action: 'ROUTE_ASSIGNMENT_UPDATE', resource: 'TransportRoute', resourceId: String(route._id), result: 'SUCCESS', metadata: { reason }, ipAddress: req.ip, userAgent: req.get('User-Agent') });
+    const populated = await TransportRoute.findById(route._id).populate('orderId').populate('vehicleId').populate('driverId', 'fullName phone email username').populate('escortId', 'fullName phone email username').populate('assignmentHistory.changedBy', 'fullName');
+    res.json({ success: true, data: populated });
+  } catch (error) { next(error); }
+};
+
 // @desc    Update trip status lifecycle (Start, Deliver, Complete, Cancel)
 // @route   PATCH /api/v1/routes/:id/status
 // @access  Private (trip:start / trip:operate)
@@ -159,6 +239,10 @@ exports.updateTripStatus = async (req, res, next) => {
         success: false,
         message: 'Transport route not found'
       });
+    }
+
+    if (!canOperateRoute(route, req.user)) {
+      return res.status(403).json({ success: false, message: 'Bạn không được phân công vào chuyến vận chuyển này.' });
     }
 
     const currentStatus = route.status;
@@ -253,6 +337,10 @@ exports.waypointCheckin = async (req, res, next) => {
         success: false,
         message: 'Transport route not found'
       });
+    }
+
+    if (!canOperateRoute(route, req.user)) {
+      return res.status(403).json({ success: false, message: 'Bạn không được phân công vào chuyến vận chuyển này.' });
     }
 
     let waypoint;

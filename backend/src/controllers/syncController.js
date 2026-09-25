@@ -5,6 +5,7 @@ const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
 const { logAudit } = require('../utils/auditLogger');
 const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
+const canOperateRoute = (route, user) => String(route?.driverId || '') === String(user._id) || String(route?.escortId || '') === String(user._id) || (user.effectivePermissions || []).includes('route:dispatch');
 
 // Event Permission Requirements Map
 const EVENT_REQUIRED_PERMISSIONS = {
@@ -78,6 +79,10 @@ exports.syncOfflineEvents = async (req, res, next) => {
               syncResults.push({ event_id: eventId, status: 'FAILURE', error: 'Transport route not found' });
               break;
             }
+            if (!canOperateRoute(route, req.user)) {
+              syncResults.push({ event_id: eventId, status: 'DENIED', error: 'User is not assigned to this trip' });
+              break;
+            }
             let waypoint = waypointId ? route.waypoints.id(waypointId) : route.waypoints.find(w => w.sequence === Number(sequence));
             if (waypoint) {
               waypoint.status = status || 'ARRIVED';
@@ -118,6 +123,15 @@ exports.syncOfflineEvents = async (req, res, next) => {
               syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: true });
               break;
             }
+            const route = await TransportRoute.findById(payload.tripId);
+            if (!route) {
+              syncResults.push({ event_id: eventId, status: 'FAILURE', error: 'Transport route not found' });
+              break;
+            }
+            if (!canOperateRoute(route, req.user)) {
+              syncResults.push({ event_id: eventId, status: 'DENIED', error: 'User is not assigned to this trip' });
+              break;
+            }
             const coords = payload.coordinates || (payload.location && payload.location.coordinates);
             await Incident.create({
               eventId,
@@ -127,11 +141,8 @@ exports.syncOfflineEvents = async (req, res, next) => {
               description: payload.description,
               status: 'OPEN'
             });
-            const route = await TransportRoute.findById(payload.tripId);
-            if (route) {
-              route.status = 'INCIDENT_HANDLING';
-              await route.save();
-            }
+            route.status = 'INCIDENT_HANDLING';
+            await route.save();
             syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: false });
             break;
           }

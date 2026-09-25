@@ -121,6 +121,13 @@ module.exports = (io, socket) => {
         return;
       }
 
+      const isAssigned = String(route.driverId || '') === String(user._id) || String(route.escortId || '') === String(user._id);
+      const canDispatch = permissions.includes('route:dispatch');
+      if (!isAssigned && !canDispatch) {
+        if (typeof callback === 'function') callback({ success: false, message: 'Forbidden: You are not assigned to this trip' });
+        return;
+      }
+
       // Check if trip is in an active transport state
       if (!['IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'].includes(route.status)) {
         if (typeof callback === 'function') callback({ success: false, message: `Cannot update GPS for trip in status '${route.status}'` });

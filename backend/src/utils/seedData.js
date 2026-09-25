@@ -4,6 +4,7 @@ require('dotenv').config({ path: __dirname + '/../../.env' });
 const User = require('../models/User');
 const Horse = require('../models/Horse');
 const Order = require('../models/Order');
+const Vehicle = require('../models/Vehicle');
 
 const seedData = async () => {
   try {
@@ -15,6 +16,7 @@ const seedData = async () => {
     await User.deleteMany({});
     await Horse.deleteMany({});
     await Order.deleteMany({});
+    await Vehicle.deleteMany({});
 
     console.log('Cleared existing data.');
 
@@ -55,6 +57,15 @@ const seedData = async () => {
       phone: '+1 555-0195'
     });
 
+    await User.create({
+      username: 'escort',
+      fullName: 'Emma Escort',
+      email: 'escort@cbrt.com',
+      password: 'password123',
+      role: 'ESCORT',
+      phone: '+1 555-0197'
+    });
+
     const customer = await User.create({
       username: 'customer',
       fullName: 'Edward Owner (Royal Stables)',
@@ -65,6 +76,11 @@ const seedData = async () => {
     });
 
     console.log('Created Users: Manager, Specialist, Coordinator, Driver, Customer.');
+
+    await Vehicle.insertMany([
+      { plateNumber: '51C-987.65', name: 'Isuzu Horsebox 2 chỗ', capacityHorses: 2, countryCode: 'VN', registrationExpiresAt: new Date('2028-12-31'), inspectionExpiresAt: new Date('2027-12-31'), status: 'ACTIVE' },
+      { plateNumber: '29H-246.80', name: 'Mercedes Atego Horsebox', capacityHorses: 4, countryCode: 'VN', registrationExpiresAt: new Date('2029-06-30'), inspectionExpiresAt: new Date('2027-06-30'), status: 'ACTIVE' }
+    ]);
 
     // Seed Horses
     const horse1 = await Horse.create({

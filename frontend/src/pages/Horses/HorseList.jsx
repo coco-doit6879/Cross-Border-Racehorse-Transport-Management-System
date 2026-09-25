@@ -11,7 +11,7 @@ export default function HorseList() {
   const user = useAuthStore((state) => state.user);
   const reviewer = canReviewHorse(user);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('ALL');
+  const [status, setStatus] = useState(reviewer ? 'PENDING_REVIEW' : 'ALL');
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   useEffect(() => { fetchHorses().catch(() => {}); }, [fetchHorses]);

@@ -3,6 +3,8 @@ const router = express.Router();
 const complianceController = require('../controllers/complianceController');
 const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
+router.get('/', protect, checkPermission('compliance:review'), complianceController.getComplianceDocuments);
+
 /**
  * @swagger
  * tags:

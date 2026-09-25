@@ -162,7 +162,7 @@ const Login = () => {
         </div>
       </section>
 
-      <p className="page-caption">CBRT - 2026 / Shared / Dữ liệu minh họa</p>
+      <p className="page-caption">CBRT - 2026 / Hệ thống điều hành vận chuyển</p>
     </main>
   );
 };

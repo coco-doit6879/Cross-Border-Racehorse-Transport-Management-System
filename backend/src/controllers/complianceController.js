@@ -10,6 +10,20 @@ const REQUIRED_DOC_TYPES = [
   'IMPORT_CUSTOMS_PERMIT'
 ];
 
+exports.getComplianceDocuments = async (req, res, next) => {
+  try {
+    const query = {};
+    if (req.query.status) query.status = req.query.status;
+    if (req.query.orderId) query.orderId = req.query.orderId;
+    const documents = await ComplianceDoc.find(query)
+      .populate({ path: 'orderId', select: 'bookingCode origin destination status requestedDepartureDate customerId', populate: { path: 'customerId', select: 'fullName email phone' } })
+      .populate('horseId', 'name microchipId feiPassportNumber')
+      .populate('verifiedBy', 'fullName')
+      .sort({ updatedAt: -1 });
+    res.json({ success: true, count: documents.length, data: documents });
+  } catch (error) { next(error); }
+};
+
 // @desc    Get compliance checklist & document status for an order
 // @route   GET /api/v1/compliance/checklist/:orderId
 // @access  Private (compliance:review / compliance:upload)

@@ -87,6 +87,18 @@ const currentLocationSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+const assignmentHistorySchema = new mongoose.Schema({
+  changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  changedAt: { type: Date, default: Date.now },
+  reason: { type: String, trim: true },
+  previousVehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  previousDriverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  previousEscortId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  escortId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+}, { _id: true });
+
 const transportRouteSchema = new mongoose.Schema({
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -99,6 +111,11 @@ const transportRouteSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Vehicle plate number is required'],
     trim: true
+  },
+  vehicleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Vehicle',
+    index: true
   },
   driverId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -118,6 +135,8 @@ const transportRouteSchema = new mongoose.Schema({
     default: null
   },
   routeDeviations: [routeDeviationSchema],
+  assignmentNote: { type: String, trim: true },
+  assignmentHistory: [assignmentHistorySchema],
   status: {
     type: String,
     enum: ['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING', 'COMPLETED', 'CANCELLED'],

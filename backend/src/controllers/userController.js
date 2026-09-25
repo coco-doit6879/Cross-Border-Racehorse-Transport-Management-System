@@ -1,5 +1,12 @@
 const User = require('../models/User');
 
+exports.getOperationalStaff = async (req, res, next) => {
+  try {
+    const users = await User.find({ role: { $in: ['DRIVER', 'ESCORT'] } }).select('username fullName email phone role isActive').sort({ role: 1, fullName: 1 });
+    res.json({ success: true, count: users.length, data: users });
+  } catch (error) { next(error); }
+};
+
 // @desc    Get all users (Filtered by role or search term)
 // @route   GET /api/users
 // @access  Private (LOGISTICS_MANAGER)

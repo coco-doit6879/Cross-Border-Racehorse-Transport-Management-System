@@ -5,9 +5,12 @@ let socket;
 export const getSocket = () => {
   if (!socket) {
     socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
-      autoConnect: false
+      autoConnect: false,
+      auth: { token: localStorage.getItem('cbrt_token') }
     });
   }
+
+  socket.auth = { token: localStorage.getItem('cbrt_token') };
 
   return socket;
 };

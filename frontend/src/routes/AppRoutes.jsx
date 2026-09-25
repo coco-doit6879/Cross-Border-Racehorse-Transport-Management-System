@@ -16,6 +16,11 @@ import PersonnelPage from '../pages/Manager/PersonnelPage';
 import TripsPage from '../pages/Manager/TripsPage';
 import TripDetailPage from '../pages/Manager/TripDetailPage';
 import TransportSchedulesPage from '../pages/Manager/TransportSchedulesPage';
+import OperationsDashboard from '../pages/Operations/OperationsDashboard';
+import ComplianceQueue from '../pages/Operations/ComplianceQueue';
+import VehiclePage from '../pages/Operations/VehiclePage';
+import FleetStaffPage from '../pages/Operations/FleetStaffPage';
+import FleetTripsPage from '../pages/Operations/FleetTripsPage';
 import ProtectedRoute from './ProtectedRoute';
 import { useAuthStore } from '../store/useAuthStore';
 import { USER_ROLES } from '../utils/constants';
@@ -27,13 +32,20 @@ const ProtectedLayout = () => <MainLayout><Outlet /></MainLayout>;
 const ManagerDataBoundary = () => <ManagerDataProvider><Outlet /></ManagerDataProvider>;
 const ManagerDemoLayout = () => <ManagerDataProvider><MainLayout><Outlet /></MainLayout></ManagerDataProvider>;
 
+const ManagerIndex = () => {
+  const role = useAuthStore((state) => state.user?.role);
+  return [USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(role) ? <OperationsDashboard /> : <ManagerDashboard />;
+};
+
 const managerRoutes = (
   <>
-    <Route index element={<ManagerDashboard />} />
-    <Route path="drivers" element={<PersonnelPage role="driver" />} />
-    <Route path="escorts" element={<PersonnelPage role="escort" />} />
-    <Route path="trips" element={<TripsPage />} />
-    <Route path="trips/:id" element={<TripDetailPage />} />
+    <Route index element={<ManagerIndex />} />
+    <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.LOGISTICS_MANAGER]} />}>
+      <Route path="drivers" element={<PersonnelPage role="driver" />} />
+      <Route path="escorts" element={<PersonnelPage role="escort" />} />
+      <Route path="trips" element={<TripsPage />} />
+      <Route path="trips/:id" element={<TripDetailPage />} />
+    </Route>
   </>
 );
 
@@ -78,7 +90,16 @@ const AppRoutes = () => (
           <Route path="/horses" element={<HorseList />} />
           <Route path="/horses/:id" element={<PassportDetail />} />
           <Route path="/routes/tracking" element={<RouteMap />} />
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.TRANSPORT_SPECIALIST]} />}>
+            <Route path="/specialist/horses" element={<HorseList />} />
+            <Route path="/specialist/compliance" element={<ComplianceQueue />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR]} />}>
+            <Route path="/fleet/trips" element={<FleetTripsPage />} />
+            <Route path="/fleet/vehicles" element={<VehiclePage />} />
+            <Route path="/fleet/staff" element={<FleetStaffPage />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR]} />}>
             <Route path="/manager/schedules" element={<TransportSchedulesPage />} />
           </Route>
 

@@ -3,6 +3,8 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
+router.get('/operational', protect, checkPermission('route:dispatch'), userController.getOperationalStaff);
+
 /**
  * @swagger
  * tags:

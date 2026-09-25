@@ -67,6 +67,10 @@ exports.triggerSOS = async (req, res, next) => {
         message: 'Transport route not found'
       });
     }
+    const isAssigned = String(route.driverId || '') === String(req.user._id) || String(route.escortId || '') === String(req.user._id);
+    if (!isAssigned) {
+      return res.status(403).json({ success: false, message: 'Bạn không được phân công vào chuyến vận chuyển này.' });
+    }
 
     const incident = await Incident.create({
       eventId,

@@ -50,6 +50,7 @@ router.route('/')
  *         description: Route dispatched in SCHEDULED status
  */
 router.post('/dispatch', protect, checkPermission('route:dispatch'), routeController.dispatchRoute);
+router.patch('/:id/assignment', protect, checkPermission('route:dispatch'), routeController.updateAssignment);
 
 /**
  * @swagger
