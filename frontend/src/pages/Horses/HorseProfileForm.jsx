@@ -28,8 +28,8 @@ export function ProfileFile({ value, onChange, imageOnly = false, disabled = fal
     finally { setOpening(false); }
   };
   return <Space direction="vertical" style={{ width: '100%' }}>
-    {value && <Button onClick={open} loading={opening}>Xem tệp đã tải lên</Button>}
-    {preview && (imageOnly ? <img src={preview} alt="Ảnh nhận dạng ngựa" style={{ maxWidth: '100%', maxHeight: 260 }} /> : <a href={preview} target="_blank" rel="noreferrer">Mở tài liệu trong tab mới</a>)}
+    {value && <Button onClick={open} loading={opening}>{imageOnly ? 'Xem ảnh đã tải lên' : 'Xem tệp đã tải lên'}</Button>}
+    {preview && (imageOnly ? <img src={preview} alt="Ảnh nhận dạng ngựa đã tải lên" style={{ display: 'block', width: '100%', maxHeight: 320, objectFit: 'contain', border: '1px solid #d9d9d9', borderRadius: 8, background: '#fafafa' }} /> : <a href={preview} target="_blank" rel="noreferrer">Mở tài liệu trong tab mới</a>)}
     {!disabled && <Upload.Dragger accept={imageOnly ? '.jpg,.jpeg,.png' : '.pdf,.jpg,.jpeg,.png'} disabled={uploading} showUploadList={false} beforeUpload={async (file) => {
       if (!(imageOnly ? ['image/jpeg', 'image/png'] : ['image/jpeg', 'image/png', 'application/pdf']).includes(file.type) || file.size > 5 * 1024 * 1024 || !file.size) {
         message.error('Chọn tệp đúng định dạng, tối đa 5 MB.'); return Upload.LIST_IGNORE;
@@ -38,7 +38,7 @@ export function ProfileFile({ value, onChange, imageOnly = false, disabled = fal
       try {
         const response = await horseApi.uploadFile(file);
         onChange?.(response.data.data.url);
-        setPreview(null);
+        setPreview(URL.createObjectURL(file));
         message.success(`Đã tải lên ${file.name}`);
       } catch (error) { message.error(error.response?.data?.message || 'Không thể tải tệp.'); }
       finally { setUploading(false); onBusy?.(-1); }
