@@ -23,7 +23,7 @@ const { protect, checkPermission } = require('../middlewares/authMiddleware');
  *         description: List of incidents retrieved successfully
  */
 router.route('/')
-  .get(protect, incidentController.getIncidents);
+  .get(protect, checkPermission('sos:manage'), incidentController.getIncidents);
 
 /**
  * @swagger

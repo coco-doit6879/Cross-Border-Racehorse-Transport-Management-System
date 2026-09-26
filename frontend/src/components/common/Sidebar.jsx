@@ -38,10 +38,12 @@ const Sidebar = () => {
     { to: '/fleet/trips', label: 'Phân công chuyến', icon: Route },
     { to: '/fleet/vehicles', label: 'Đội xe', icon: Truck },
     { to: '/fleet/staff', label: 'Nhân sự vận hành', icon: UsersRound },
-    { to: '/routes/tracking', label: 'Bản đồ GPS', icon: Map },
-    { to: '/incidents/sos', label: 'Cảnh báo SOS', icon: AlertTriangle }
+    { to: '/routes/tracking', label: 'Bản đồ GPS', icon: Map }
   ];
-  const managerItems = user?.role === USER_ROLES.TRANSPORT_SPECIALIST ? specialistItems : [USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role) ? fleetItems : logisticsItems;
+  const roleManagerItems = user?.role === USER_ROLES.TRANSPORT_SPECIALIST ? specialistItems : [USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role) ? fleetItems : logisticsItems;
+  const managerItems = hasPermission(user, PERMISSIONS.SOS_MANAGE)
+    ? [...roleManagerItems, { to: '/incidents/sos', label: 'Cảnh báo SOS', icon: AlertTriangle }]
+    : roleManagerItems;
 
   return (
     <aside className="app-sidebar">

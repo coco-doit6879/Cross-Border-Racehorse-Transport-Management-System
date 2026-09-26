@@ -4,6 +4,7 @@ import { Dropdown } from 'antd';
 import { User, ChevronDown, LogOut, ShieldAlert } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants';
+import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 import { isManagerDemoEnabled } from '../../config/managerDemo';
 
 const Header = () => {
@@ -61,7 +62,9 @@ const Header = () => {
     { label: 'Tổng quan', path: '/' },
     { label: 'Vận chuyển', path: '/orders' },
     { label: 'Ngựa đua', path: '/horses' },
-    { label: 'Cảnh báo SOS', path: '/incidents/sos' }
+    ...(hasPermission(user, PERMISSIONS.SOS_MANAGE)
+      ? [{ label: 'Cảnh báo SOS', path: '/incidents/sos' }]
+      : [])
   ];
 
   const userMenuItems = [
