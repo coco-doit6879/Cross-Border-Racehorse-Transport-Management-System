@@ -32,8 +32,8 @@ const Register = () => {
 
     try {
       const { confirmPassword, ...userData } = form;
-      await authApi.register({ ...userData, role: 'customer' });
-      navigate('/login');
+      await authApi.register(userData);
+      navigate('/login', { replace: true, state: { registrationSuccess: true } });
     } catch (requestError) {
       setError(requestError.response?.data?.message || requestError.message || 'Không thể tạo tài khoản lúc này.');
     } finally {

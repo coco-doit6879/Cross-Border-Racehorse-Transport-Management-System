@@ -111,6 +111,10 @@ const Login = () => {
           <h2>Chào mừng trở lại</h2>
           <p className="login-intro">Đăng nhập để tiếp tục công việc.</p>
 
+          {location.state?.registrationSuccess && (
+            <p className="form-success" role="status">Tạo tài khoản khách hàng thành công. Bạn có thể đăng nhập ngay.</p>
+          )}
+
           <form className="login-form" onSubmit={handleSubmit}>
             <label htmlFor="email">Email *</label>
             <input
@@ -156,8 +160,8 @@ const Login = () => {
           </form>
 
           <p className="login-note">
-            Tài khoản được cấp bởi đơn vị quản lý.<br />
-            Liên hệ quản trị viên nếu chưa có tài khoản.
+            Chưa có tài khoản khách hàng? <Link to="/register">Đăng ký tại đây</Link><br />
+            Tài khoản nhân sự được cấp bởi đơn vị quản lý.
           </p>
         </div>
       </section>

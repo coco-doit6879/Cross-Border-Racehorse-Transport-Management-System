@@ -1017,6 +1017,16 @@ a {
   font-size: 12px;
 }
 
+.form-success {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  color: #067647;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
 .login-note {
   margin: 26px 0 0;
   color: var(--muted-text);

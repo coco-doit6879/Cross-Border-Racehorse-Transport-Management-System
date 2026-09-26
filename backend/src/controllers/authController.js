@@ -49,17 +49,24 @@ const getEffectivePermissions = (user) => {
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { username, fullName, email, password, role, phone } = req.body;
+    const { fullName, email, password, phone } = req.body;
 
-    if (!username || !email || !password || !fullName || !phone) {
+    if (![email, password, fullName, phone].every(value => typeof value === 'string' && value.trim())) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: username, email, password, fullName, phone'
+        message: 'Vui lòng nhập đầy đủ họ tên, email, số điện thoại và mật khẩu.'
       });
     }
 
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu phải có ít nhất 8 ký tự.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const username = normalizedEmail;
+
     const existingUser = await User.findOne({
-      $or: [{ email: email.toLowerCase() }, { username: username.toLowerCase() }]
+      $or: [{ email: normalizedEmail }, { username }]
     });
 
     if (existingUser) {
@@ -70,12 +77,12 @@ exports.register = async (req, res, next) => {
     }
 
     const user = await User.create({
-      username: username.toLowerCase(),
-      fullName,
-      email: email.toLowerCase(),
+      username,
+      fullName: fullName.trim(),
+      email: normalizedEmail,
       password,
-      role: role || 'CUSTOMER',
-      phone,
+      role: 'CUSTOMER',
+      phone: phone.trim(),
       isActive: true
     });
 
