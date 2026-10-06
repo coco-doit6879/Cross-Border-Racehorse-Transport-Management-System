@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Checkbox, Col, Descriptions, Input, Row, Space, Spin, Tag, message } from 'antd';
 import { useHorseStore } from '../../store/useHorseStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import HorseProfileForm, { ProfileFile, canReviewHorse, reviewColors, reviewLabels } from './HorseProfileForm';
+import HorseProfileForm, { HorsePhotoGallery, canReviewHorse, reviewColors, reviewLabels } from './HorseProfileForm';
 
 export default function PassportDetail() {
   const { id } = useParams();
@@ -60,7 +60,8 @@ export default function PassportDetail() {
         ].map(([label, children]) => ({ key: label, label, children: children || 'Chưa khai báo' }))} />
       </Card>
       <Row gutter={[20, 20]}>
-        {[['Ảnh toàn thân', horse.photos?.[0], true], ['Ảnh khuôn mặt', horse.photos?.[1], true], ['Hộ chiếu ngựa', horse.passportScanUrl, false], ['Sổ tiêm chủng / Chứng nhận kiểm dịch', horse.vaccinationRecordUrl, false]].map(([title, value, imageOnly]) => <Col xs={24} md={12} key={title}><Card title={title}><ProfileFile value={value} imageOnly={imageOnly} disabled /></Card></Col>)}
+        <Col span={24}><Card title={`Bộ ảnh ngựa (${horse.photos?.length || 0} ảnh)`}><HorsePhotoGallery value={horse.photos} disabled /></Card></Col>
+        {[['Hộ chiếu ngựa', horse.passportScanUrl], ['Sổ tiêm chủng / Chứng nhận kiểm dịch', horse.vaccinationRecordUrl]].map(([title, value]) => <Col span={24} key={title}><Card title={`${title} (${Array.isArray(value) ? value.length : value ? 1 : 0} tệp)`}><HorsePhotoGallery value={value} allowPdf disabled /></Card></Col>)}
       </Row>
     </>}
     {reviewer && horse.reviewStatus === 'PENDING_REVIEW' && <Card title="Kết luận kiểm duyệt sức khỏe">

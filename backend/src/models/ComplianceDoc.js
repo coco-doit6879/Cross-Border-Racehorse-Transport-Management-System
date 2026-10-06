@@ -42,7 +42,11 @@ const complianceDocSchema = new mongoose.Schema({
   },
   rejectionReason: {
     type: String
-  }
+  },
+  requestReason: String,
+  requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  requestedAt: Date,
+  history: [{ action: String, actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, notes: String, fileUrl: String, at: { type: Date, default: Date.now } }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('ComplianceDoc', complianceDocSchema);

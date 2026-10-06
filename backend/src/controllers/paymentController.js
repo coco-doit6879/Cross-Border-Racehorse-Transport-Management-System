@@ -116,12 +116,20 @@ exports.vnpayIpn = async (req, res) => {
 };
 
 exports.vnpayReturn = async (req, res) => {
-  let verified = false;
-  try { verified = vnpayService.verify(req.query); } catch (_) { verified = false; }
+  // VNPAY cannot deliver its server-to-server IPN to a localhost backend.
+  // Applying the same signed, amount-checked payload on the browser return
+  // keeps local demos usable. In deployed environments the IPN normally wins;
+  // applyIpn is idempotent, so a later/duplicate return cannot charge twice.
+  let callbackResult = { code: '99' };
+  try { callbackResult = await applyIpn(req.query); } catch (_) { callbackResult = { code: '99' }; }
+  const accepted = callbackResult.code === '00' || callbackResult.code === '02';
+  const successfulPayment = accepted
+    && req.query.vnp_ResponseCode === '00'
+    && req.query.vnp_TransactionStatus === '00';
   const params = new URLSearchParams({
     txnRef: req.query.vnp_TxnRef || '',
-    result: verified && req.query.vnp_ResponseCode === '00' ? 'processing' : 'failed',
-    responseCode: verified ? (req.query.vnp_ResponseCode || '') : '97'
+    result: successfulPayment ? 'processing' : 'failed',
+    responseCode: accepted ? (req.query.vnp_ResponseCode || '') : callbackResult.code
   });
   res.redirect(`${frontendUrl()}/payments/vnpay/result?${params.toString()}`);
 };

@@ -2,13 +2,13 @@ import { create } from 'zustand';
 import { authApi } from '../services/authApi';
 import { disconnectSocket } from '../socket/socketClient';
 import { getApiErrorMessage } from '../utils/apiResponse';
+import { getAccessToken, removeAccessToken, setAccessToken } from '../utils/authSession';
 
-const TOKEN_KEY = 'cbrt_token';
-const storedToken = localStorage.getItem(TOKEN_KEY);
+const storedToken = getAccessToken();
 let bootstrapRequest = null;
 
 const removeStoredSession = () => {
-  localStorage.removeItem(TOKEN_KEY);
+  removeAccessToken();
   disconnectSocket();
 };
 
@@ -20,7 +20,7 @@ export const useAuthStore = create((set, get) => ({
   profileError: '',
 
   setSession: ({ token, user }) => {
-    localStorage.setItem(TOKEN_KEY, token);
+    setAccessToken(token);
     set({
       token,
       user,
@@ -31,7 +31,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   setToken: (token) => {
-    localStorage.setItem(TOKEN_KEY, token);
+    setAccessToken(token);
     set({ token, isAuthenticated: true, sessionStatus: 'authenticated' });
   },
 

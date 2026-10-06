@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const complianceController = require('../controllers/complianceController');
+const requests = require('../controllers/complianceRequestController');
 const { protect, checkPermission } = require('../middlewares/authMiddleware');
 
 router.get('/', protect, checkPermission('compliance:review'), complianceController.getComplianceDocuments);
@@ -30,7 +31,8 @@ router.get('/', protect, checkPermission('compliance:review'), complianceControl
  *       200:
  *         description: Compliance checklist & clearance status
  */
-router.get('/checklist/:orderId', protect, checkPermission('compliance:upload'), complianceController.getComplianceChecklist);
+router.get('/checklist/:orderId', protect, requests.checklist);
+router.post('/requests', protect, checkPermission('compliance:review'), requests.request);
 
 /**
  * @swagger
@@ -57,7 +59,7 @@ router.get('/checklist/:orderId', protect, checkPermission('compliance:upload'),
  *       200:
  *         description: Compliance document uploaded to PENDING_REVIEW status
  */
-router.post('/upload', protect, checkPermission('compliance:upload'), complianceController.uploadComplianceDoc);
+router.post('/upload', protect, checkPermission('compliance:upload'), requests.upload);
 
 /**
  * @swagger
@@ -87,6 +89,6 @@ router.post('/upload', protect, checkPermission('compliance:upload'), compliance
  *       200:
  *         description: Document status updated
  */
-router.patch('/:id/verify', protect, checkPermission('compliance:review'), complianceController.reviewComplianceDoc);
+router.patch('/:id/verify', protect, checkPermission('compliance:review'), requests.review);
 
 module.exports = router;

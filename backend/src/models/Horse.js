@@ -57,10 +57,7 @@ const horseSchema = new mongoose.Schema({
     enum: STOPS.map((stop) => stop.id),
     index: true
   },
-  passportScanUrl: {
-    type: String,
-    required: [true, 'Passport scan URL is required']
-  },
+  passportScanUrl: [{ type: String }],
   photos: [{
     type: String
   }],
@@ -69,7 +66,7 @@ const horseSchema = new mongoose.Schema({
   },
   color: { type: String, trim: true },
   identifyingMarks: { type: String, trim: true },
-  vaccinationRecordUrl: String,
+  vaccinationRecordUrl: [{ type: String }],
   lastVaccinationDate: Date,
   reviewStatus: { type: String, enum: ['PENDING_REVIEW', 'APPROVED', 'REJECTED'], default: 'PENDING_REVIEW', index: true },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -16,7 +16,7 @@ const owner = '111111111111111111111111';
 const reviewer = '222222222222222222222222';
 const horseId = '333333333333333333333333';
 const refs = [1, 2, 3, 4].map((n) => `/horses/files/${String(n).padStart(24, '0')}`);
-const profile = () => ({ name: 'Test Horse', microchipId: '104123456789012', feiPassportNumber: 'TEST-FEI', breed: 'Thoroughbred', dateOfBirth: '2020-01-01', gender: 'GELDING', weightKg: 520, color: 'Bay', currentStopId: 'VN-HCM', photos: refs.slice(0, 2), passportScanUrl: refs[2], vaccinationRecordUrl: refs[3], lastVaccinationDate: new Date().toISOString().slice(0, 10) });
+const profile = () => ({ name: 'Test Horse', microchipId: '104123456789012', feiPassportNumber: 'TEST-FEI', breed: 'Thoroughbred', dateOfBirth: '2020-01-01', gender: 'GELDING', weightKg: 520, color: 'Bay', currentStopId: 'VN-HCM', photos: refs.slice(0, 2), passportScanUrl: [refs[2]], vaccinationRecordUrl: [refs[3]], lastVaccinationDate: new Date().toISOString().slice(0, 10) });
 let horse;
 const request = (body = {}, id = owner, permissions = ['horse:create_own']) => ({ body, params: { id: horseId }, user: { _id: id, effectivePermissions: permissions }, get: () => 'test', ip: '127.0.0.1' });
 async function call(fn, req) {
@@ -33,9 +33,12 @@ beforeEach((t) => {
 });
 afterEach(() => {});
 
-test('reject missing evidence, invalid weight/date, and duplicate identity photo', () => {
+test('accepts a multi-image gallery and rejects invalid evidence', () => {
   assert.equal(validateProfile(profile()), null);
-  for (const change of [{ color: '' }, { currentStopId: '' }, { currentStopId: 'TH-CUSTOM' }, { photos: [] }, { photos: [refs[0], refs[0]] }, { weightKg: -1 }, { dateOfBirth: '2100-01-01' }, { lastVaccinationDate: 'invalid' }, { lastVaccinationDate: '1900-01-01' }]) assert.ok(validateProfile({ ...profile(), ...change }));
+  assert.equal(validateProfile({ ...profile(), photos: refs }), null);
+  assert.equal(validateProfile({ ...profile(), passportScanUrl: refs.slice(0, 2), vaccinationRecordUrl: refs.slice(2, 4) }), null);
+  const tooManyPhotos = Array(11).fill(0).map((_, index) => `/horses/files/${String(index + 10).padStart(24, '0')}`);
+  for (const change of [{ color: '' }, { currentStopId: '' }, { currentStopId: 'TH-CUSTOM' }, { photos: [] }, { photos: [refs[0]] }, { photos: tooManyPhotos }, { photos: [refs[0], refs[0]] }, { passportScanUrl: [] }, { vaccinationRecordUrl: [] }, { passportScanUrl: [refs[2], refs[2]] }, { weightKg: -1 }, { dateOfBirth: '2100-01-01' }, { lastVaccinationDate: 'invalid' }, { lastVaccinationDate: '1900-01-01' }]) assert.ok(validateProfile({ ...profile(), ...change }));
 });
 test('creation ignores forged approval, reviewer, ownership and history', async (t) => {
   let saved;
@@ -47,6 +50,18 @@ test('creation rejects arbitrary URLs and files owned by another user', async (t
   assert.equal((await call(controller.createHorse, request({ ...profile(), passportScanUrl: 'https://example.com/fake.pdf' }))).statusCode, 400);
   t.mock.method(HorseFile, 'findById', async () => ({ ownerId: reviewer, mimeType: 'image/png' }));
   assert.equal((await call(controller.createHorse, request(profile()))).statusCode, 400);
+});
+test('health specialist can inspect files uploaded by a customer', async (t) => {
+  t.mock.method(HorseFile, 'findById', async () => ({ ownerId: owner, name: 'customer-passport.webp', mimeType: 'image/webp', size: 123456 }));
+  const specialistRequest = request({}, reviewer, ['horse:review_health']);
+  specialistRequest.params.fileId = '000000000000000000000001';
+  const specialistResponse = await call(controller.getFileMetadata, specialistRequest);
+  assert.equal(specialistResponse.statusCode, 200);
+  assert.deepEqual(specialistResponse.body.data, { name: 'customer-passport.webp', mimeType: 'image/webp', size: 123456 });
+
+  const otherCustomerRequest = request({}, '999999999999999999999999', ['horse:create_own']);
+  otherCustomerRequest.params.fileId = '000000000000000000000001';
+  assert.equal((await call(controller.getFileMetadata, otherCustomerRequest)).statusCode, 403);
 });
 test('only health reviewer role permission grants health decisions', async () => {
   assert.ok(ROLE_PERMISSIONS.TRANSPORT_SPECIALIST.includes('horse:review_health'));
@@ -102,7 +117,7 @@ test('booking blocks pending, rejected and legacy horses without approval', asyn
     assert.equal(res.statusCode, 400); assert.match(res.body.message, /duyệt sức khỏe/);
   }
 });
-test('upload endpoint authenticates, stores binary, validates MIME signatures and 5 MB limit', async (t) => {
+test('upload endpoint authenticates, supports WebP, and enforces compressed image size', async (t) => {
   t.mock.method(User, 'findById', () => ({ select: async () => ({ _id: owner, isActive: true, role: 'CUSTOMER', permissions: [] }) }));
   let saved;
   t.mock.method(HorseFile, 'create', async (data) => { saved = data; return { ...data, _id: '000000000000000000000001' }; });
@@ -115,6 +130,11 @@ test('upload endpoint authenticates, stores binary, validates MIME signatures an
   assert.equal((await fetch(url, { method: 'POST', headers, body: '%PDF-1.4 test' })).status, 201);
   assert.equal(saved.name, 'Hộ chiếu.pdf'); assert.equal(saved.data.toString(), '%PDF-1.4 test');
   assert.equal((await fetch(url, { method: 'POST', headers, body: '<html>fake</html>' })).status, 400);
+  const webp = Buffer.from('RIFF1234WEBPtest');
+  assert.equal((await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'image/webp', 'X-File-Name': 'horse.webp' }, body: webp })).status, 201);
+  assert.equal(saved.mimeType, 'image/webp');
+  const largeJpeg = Buffer.alloc(500 * 1024); largeJpeg[0] = 255; largeJpeg[1] = 216; largeJpeg[2] = 255;
+  assert.equal((await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'image/jpeg' }, body: largeJpeg })).status, 400);
   assert.equal((await fetch(url, { method: 'POST', headers, body: Buffer.alloc(5 * 1024 * 1024 + 1) })).status, 413);
 });
 

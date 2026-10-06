@@ -11,13 +11,18 @@ const fail = (res, status, message) => res.status(status).json({ success: false,
 const audit = (req, horse, action) => logAudit({ actorId: req.user._id, action, resource: 'Horse', resourceId: String(horse._id), result: 'SUCCESS', ipAddress: req.ip, userAgent: req.get('User-Agent') });
 
 async function validateFiles(profile, allowedOwners) {
-  const refs = [...profile.photos, profile.passportScanUrl, profile.vaccinationRecordUrl];
-  for (let i = 0; i < refs.length; i++) {
-    const match = typeof refs[i] === 'string' && refs[i].match(/^\/horses\/files\/([a-f0-9]{24})$/i);
+  const list = (value) => Array.isArray(value) ? value : [value];
+  const refs = [
+    ...profile.photos.map((url) => ({ url, imageOnly: true })),
+    ...list(profile.passportScanUrl).map((url) => ({ url, imageOnly: false })),
+    ...list(profile.vaccinationRecordUrl).map((url) => ({ url, imageOnly: false }))
+  ];
+  for (const ref of refs) {
+    const match = typeof ref.url === 'string' && ref.url.match(/^\/horses\/files\/([a-f0-9]{24})$/i);
     if (!match) return 'Vui lòng tải lên đầy đủ ảnh và giấy tờ thật.';
     const file = await HorseFile.findById(match[1]);
     if (!file || !allowedOwners.includes(String(file.ownerId))) return 'Tệp không tồn tại hoặc không thuộc hồ sơ của bạn.';
-    if (i < 2 && !file.mimeType.startsWith('image/')) return 'Ảnh nhận dạng phải là JPG hoặc PNG.';
+    if (ref.imageOnly && !file.mimeType.startsWith('image/')) return 'Ảnh nhận dạng phải là JPG, PNG hoặc WebP.';
   }
   return null;
 }
@@ -114,9 +119,11 @@ exports.uploadFile = async (req, res, next) => {
     const signatures = {
       'image/png': (b) => b.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
       'image/jpeg': (b) => b[0] === 255 && b[1] === 216 && b[2] === 255,
+      'image/webp': (b) => b.subarray(0, 4).toString() === 'RIFF' && b.subarray(8, 12).toString() === 'WEBP',
       'application/pdf': (b) => b.subarray(0, 5).toString() === '%PDF-'
     };
-    if (!Buffer.isBuffer(data) || !data.length || data.length > 5 * 1024 * 1024 || !signatures[mimeType]?.(data)) return fail(res, 400, 'Chỉ nhận JPG, PNG hoặc PDF hợp lệ, tối đa 5 MB mỗi tệp.');
+    const maxSize = mimeType?.startsWith('image/') ? 500 * 1024 : 5 * 1024 * 1024;
+    if (!Buffer.isBuffer(data) || !data.length || data.length >= maxSize || !signatures[mimeType]?.(data)) return fail(res, 400, 'Chỉ nhận ảnh JPG/PNG/WebP dưới 500 KB hoặc PDF tối đa 5 MB.');
     let name;
     try { name = decodeURIComponent(req.get('X-File-Name') || 'document'); } catch { return fail(res, 400, 'Tên tệp không hợp lệ.'); }
     const file = await HorseFile.create({ ownerId: req.user._id, name: name.slice(0, 200), mimeType, data, size: data.length });
@@ -131,5 +138,14 @@ exports.getFile = async (req, res, next) => {
     if (String(file.ownerId) !== String(req.user._id) && !canManage(req.user) && !canReview(req.user)) return fail(res, 403, 'Bạn không có quyền xem tệp này.');
     res.set({ 'Content-Type': file.mimeType, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, no-store' });
     res.send(file.data);
+  } catch (error) { next(error); }
+};
+
+exports.getFileMetadata = async (req, res, next) => {
+  try {
+    const file = await HorseFile.findById(req.params.fileId);
+    if (!file) return fail(res, 404, 'Không tìm thấy tệp.');
+    if (String(file.ownerId) !== String(req.user._id) && !canManage(req.user) && !canReview(req.user)) return fail(res, 403, 'Bạn không có quyền xem tệp này.');
+    res.json({ success: true, data: { name: file.name, mimeType: file.mimeType, size: file.size } });
   } catch (error) { next(error); }
 };

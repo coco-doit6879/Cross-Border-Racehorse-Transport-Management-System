@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAccessToken, removeAccessToken } from '../utils/authSession';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -8,7 +9,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('cbrt_token');
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,7 +26,7 @@ apiClient.interceptors.response.use(
     // an authenticated request therefore ends the local session. A 403 never
     // changes authentication state.
     if (status === 401 && !requestUrl.endsWith('/auth/login')) {
-      localStorage.removeItem('cbrt_token');
+      removeAccessToken();
       window.dispatchEvent(new Event('cbrt:session-expired'));
     }
 

@@ -1,5 +1,6 @@
 const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
+const ComplianceDoc = require('../models/ComplianceDoc');
 const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const { logAudit } = require('../utils/auditLogger');
@@ -145,6 +146,7 @@ exports.dispatchRoute = async (req, res, next) => {
       });
     }
 
+    if (await ComplianceDoc.exists({ orderId: order._id, status: { $ne: 'APPROVED' } })) return res.status(409).json({ success: false, message: 'Đơn còn giấy tờ cần bổ sung hoặc chờ thẩm định.' });
     const existingRoute = await TransportRoute.findOne({ orderId });
     if (existingRoute) {
       return res.status(400).json({
@@ -306,6 +308,7 @@ exports.updateTripStatus = async (req, res, next) => {
       }
     }
 
+    if (status === 'IN_TRANSIT' && await ComplianceDoc.exists({ orderId: route.orderId, status: { $ne: 'APPROVED' } })) return res.status(409).json({ success: false, message: 'Chưa thể vận chuyển: giấy tờ bổ sung chưa được duyệt đầy đủ.' });
     route.status = status;
     await route.save();
 

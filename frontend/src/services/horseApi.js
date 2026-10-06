@@ -9,5 +9,6 @@ export const horseApi = {
   uploadFile: (file) => apiClient.post('/horses/files', file, {
     headers: { 'Content-Type': file.type, 'X-File-Name': encodeURIComponent(file.name) }
   }),
+  getFileMetadata: (url) => apiClient.get(`${url}/metadata`),
   getFile: (url) => apiClient.get(url, { responseType: 'blob' })
 };

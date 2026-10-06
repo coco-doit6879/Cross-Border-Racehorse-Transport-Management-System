@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { getAccessToken } from '../utils/authSession';
 
 let socket;
 
@@ -6,11 +7,11 @@ export const getSocket = () => {
   if (!socket) {
     socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
       autoConnect: false,
-      auth: { token: localStorage.getItem('cbrt_token') }
+      auth: { token: getAccessToken() }
     });
   }
 
-  socket.auth = { token: localStorage.getItem('cbrt_token') };
+  socket.auth = { token: getAccessToken() };
 
   return socket;
 };

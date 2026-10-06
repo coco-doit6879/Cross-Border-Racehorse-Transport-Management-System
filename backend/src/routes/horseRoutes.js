@@ -78,7 +78,8 @@ const allow = (...permissions) => (req, res, next) => {
 };
 const read = allow('horse:create_own', 'horse:manage_all', 'horse:review_health');
 const edit = allow('horse:create_own', 'horse:manage_all');
-router.post('/files', edit, express.raw({ type: ['image/jpeg', 'image/png', 'application/pdf'], limit: '5mb' }), controller.uploadFile);
+router.post('/files', edit, express.raw({ type: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], limit: '5mb' }), controller.uploadFile);
+router.get('/files/:fileId/metadata', read, controller.getFileMetadata);
 router.get('/files/:fileId', read, controller.getFile);
 router.get('/', read, controller.getHorses);
 router.post('/', edit, controller.createHorse);

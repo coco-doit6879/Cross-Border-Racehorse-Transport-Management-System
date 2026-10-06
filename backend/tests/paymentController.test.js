@@ -82,3 +82,22 @@ test('duplicate VNPAY IPN is idempotent and does not update the order twice', as
   assert.equal(result.code, '02');
   assert.equal(updated, false);
 });
+
+test('VNPAY browser return applies a signed payment when localhost cannot receive IPN', async (t) => {
+  const transaction = pendingTransaction();
+  let orderUpdate;
+  let redirectUrl;
+  t.mock.method(PaymentTransaction, 'findOne', async () => transaction);
+  t.mock.method(Order, 'updateOne', async (query, update) => { orderUpdate = { query, update }; });
+
+  await controller.vnpayReturn(
+    { query: signedQuery() },
+    { redirect: (url) => { redirectUrl = url; } }
+  );
+
+  assert.equal(transaction.status, 'PAID');
+  assert.equal(orderUpdate.update.$set.paymentStatus, 'PAID');
+  assert.match(redirectUrl, /\/payments\/vnpay\/result\?/);
+  assert.match(redirectUrl, /txnRef=1790000000000123456/);
+  assert.match(redirectUrl, /result=processing/);
+});
