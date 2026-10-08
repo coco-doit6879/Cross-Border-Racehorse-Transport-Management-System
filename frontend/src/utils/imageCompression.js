@@ -22,10 +22,17 @@ const loadImage = (file) => new Promise((resolve, reject) => {
   image.src = url;
 });
 
-export async function compressHorseImage(file) {
+let compressionQueue = Promise.resolve();
+export function compressHorseImage(file) {
+  const result = compressionQueue.then(() => compressImage(file));
+  compressionQueue = result.catch(() => {});
+  return result;
+}
+async function compressImage(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Chỉ nhận ảnh JPG, PNG hoặc WebP.');
   if (!file.size || file.size > MAX_SOURCE_IMAGE_BYTES) throw new Error('Ảnh gốc phải nhỏ hơn 25 MB.');
   const image = await loadImage(file);
+  if (image.naturalWidth * image.naturalHeight > 40000000) throw new Error('Ảnh vượt 40 megapixel. Vui lòng chọn ảnh có kích thước nhỏ hơn.');
   const scale = Math.min(1, 2000 / Math.max(image.naturalWidth, image.naturalHeight));
   let width = Math.max(1, Math.round(image.naturalWidth * scale));
   let height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -34,7 +41,7 @@ export async function compressHorseImage(file) {
   if (!context) throw new Error('Trình duyệt không hỗ trợ nén ảnh.');
 
   const qualities = [0.86, 0.76, 0.66, 0.56, 0.46, 0.36, 0.26, 0.16, 0.08];
-  while (width >= 240 && height >= 240) {
+  while (width >= 1 && height >= 1) {
     canvas.width = width;
     canvas.height = height;
     context.fillStyle = '#ffffff';
@@ -48,8 +55,9 @@ export async function compressHorseImage(file) {
         return new File([blob], `${baseName}.webp`, { type: 'image/webp', lastModified: Date.now() });
       }
     }
-    width = Math.round(width * 0.8);
-    height = Math.round(height * 0.8);
+    if (width <= 240 || height <= 240) break;
+    width = Math.max(1, Math.floor(width * 0.8));
+    height = Math.max(1, Math.floor(height * 0.8));
   }
 
   throw new Error('Không thể nén ảnh xuống dưới 500 KB. Vui lòng chọn ảnh khác.');

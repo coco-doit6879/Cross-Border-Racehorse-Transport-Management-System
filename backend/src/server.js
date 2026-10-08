@@ -3,6 +3,7 @@ const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
 require('dotenv').config();
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET === 'cbrt_super_secret_jwt_key_2026')) throw new Error('Production requires a strong JWT_SECRET of at least 32 characters.');
 
 const connectDB = require('./config/db');
 const setupSwagger = require('./config/swagger');
@@ -23,16 +24,22 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
   }
 });
+app.set('io', io);
 
 // Socket.io JWT Authentication Middleware
 io.use(socketAuthMiddleware);
 
 // Connect MongoDB
 connectDB();
+require('./services/operationsWatchdog').start();
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+const requestLimits = require('./middlewares/requestLimits');
+app.use(['/api/auth/login', '/api/v1/auth/login', '/api/auth/register', '/api/v1/auth/register'], requestLimits(20, 60000));
+app.use(['/api/horses/files', '/api/v1/horses/files'], (req, res, next) => req.method === 'POST' ? uploadLimit(req, res, next) : next());
+const uploadLimit = requestLimits(60, 60000);
 
 // Setup Swagger API Documentation UI at /api-docs
 setupSwagger(app);

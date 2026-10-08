@@ -21,6 +21,7 @@ test('MongoDB: fleet coordinator publishes schedule, customer books a fixed trip
   const coordinator = await User.create({ username: 'schedulecoordinator', email: 'coordinator@test.invalid', fullName: 'Test Coordinator', phone: '0900000001', password: 'test-password', role: 'FLEET_COORDINATOR' });
   const manager = await User.create({ username: 'schedulemanager', email: 'manager@test.invalid', fullName: 'Test Manager', phone: '0900000003', password: 'test-password', role: 'LOGISTICS_MANAGER' });
   const customer = await User.create({ username: 'schedulecustomer', email: 'customer@test.invalid', fullName: 'Test Customer', phone: '0900000002', password: 'test-password', role: 'CUSTOMER' });
+  await Promise.all([Order.init(), require('../src/models/TransportRoute').init()]);
   const horse = await Horse.create({ ownerId: customer._id, currentStopId: 'SG-SIN', microchipId: '104123456789099', feiPassportNumber: 'TEST-FEI', name: 'Test Horse', breed: 'Thoroughbred', dateOfBirth: '2020-01-01', gender: 'GELDING', weightKg: 520, passportScanUrl: '/test-fixture.pdf', reviewStatus: 'APPROVED' });
   const app = express(); app.use(express.json());
   app.use('/schedules', require('../src/routes/transportScheduleRoutes'));

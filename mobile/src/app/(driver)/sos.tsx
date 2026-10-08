@@ -10,7 +10,7 @@ import { colors } from '@/theme';
 
 export default function SosScreen() {
   const { tripId, code } = useLocalSearchParams<{ tripId: string; code?: string }>();
-  const { apiFetch } = useSession();
+  const { apiFetch, user } = useSession();
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -18,16 +18,22 @@ export default function SosScreen() {
     if (description.trim().length < 5) { Alert.alert('Thiếu thông tin', 'Hãy mô tả ngắn tình trạng đang xảy ra.'); return; }
     setSubmitting(true);
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) throw new Error('Cần quyền vị trí để gửi SOS.');
-      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const event = { event_id: newEventId('sos'), event_type: 'SOS_TRIGGER' as const, payload: { tripId, coordinates: [location.coords.longitude, location.coords.latitude], description: description.trim(), recordedAt: new Date().toISOString() } };
+      let coordinates: number[] | undefined;
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.granted) {
+          const location = await Promise.race([Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('GPS timeout')), 8000))]);
+          coordinates = [location.coords.longitude, location.coords.latitude];
+        }
+      } catch { /* Missing GPS must not prevent an emergency report. */ }
+      const event = { event_id: newEventId('sos'), event_type: 'SOS_TRIGGER' as const, payload: { tripId, coordinates, description: description.trim(), recordedAt: new Date().toISOString() } };
       try {
         await apiFetch('/incidents/sos', { method: 'POST', body: JSON.stringify({ eventId: event.event_id, ...event.payload }) });
-        Alert.alert('Đã gửi SOS', 'Trung tâm điều phối đã nhận cảnh báo và vị trí của bạn.', [{ text: 'Đóng', onPress: () => router.back() }]);
-      } catch {
-        await enqueueOfflineEvent(event);
-        Alert.alert('Đã lưu cảnh báo', 'Hiện không có kết nối. Ứng dụng sẽ gửi SOS ngay khi kết nối lại.', [{ text: 'Đóng', onPress: () => router.back() }]);
+        Alert.alert('Máy chủ đã lưu SOS', 'Chưa có xác nhận nhân viên đã tiếp nhận. Hãy gọi trực tiếp điều phối nếu khẩn cấp.', [{ text: 'Đóng', onPress: () => router.back() }]);
+      } catch (reason) {
+        if (reason && typeof reason === 'object' && 'status' in reason) throw reason;
+        await enqueueOfflineEvent(event, user?.id || '');
+        Alert.alert('SOS CHƯA ĐƯỢC GỬI', 'Đã lưu trên thiết bị. Gọi trực tiếp điều phối ngay; quay về danh sách chuyến và kéo làm mới khi có mạng để gửi lại.', [{ text: 'Đóng', onPress: () => router.back() }]);
       }
     } catch (reason) { Alert.alert('Không thể gửi SOS', reason instanceof Error ? reason.message : 'Vui lòng thử lại.'); }
     finally { setSubmitting(false); }

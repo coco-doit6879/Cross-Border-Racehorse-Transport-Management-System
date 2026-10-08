@@ -471,7 +471,9 @@ exports.changePassword = async (req, res, next) => {
     }
 
     user.password = newPassword;
+    user.tokensInvalidBefore = new Date();
     await user.save();
+    await RefreshTokenSession.updateMany({ userId: user._id, isRevoked: false }, { $set: { isRevoked: true } });
 
     await logAudit({
       actorId: user._id,

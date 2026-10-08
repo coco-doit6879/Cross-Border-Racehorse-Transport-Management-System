@@ -15,10 +15,12 @@ export default function VehiclePage() {
   };
   return <Space direction="vertical" size={20} style={{ width: '100%' }}>
     <Card title="Đội xe vận chuyển ngựa" extra={<Button type="primary" onClick={() => show(null)}>Thêm phương tiện</Button>}><Alert type="info" showIcon message="Biển số chỉ xuất hiện trên đơn và dashboard sau khi phương tiện được phân công cho chuyến." /></Card>
+    <Space wrap><Tag>Tổng: {vehicles.length} xe</Tag><Tag color="green">Chưa phân công: {vehicles.filter(v => v.status === 'ACTIVE' && !v.activeAssignment).length}</Tag><Tag color="blue">Đang vận chuyển: {vehicles.filter(v => v.assignments?.some(r => ['IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'].includes(r.status))).length}</Tag><Tag color="orange">Bảo dưỡng: {vehicles.filter(v => v.status === 'MAINTENANCE').length}</Tag></Space>
     <Table loading={loading} rowKey="_id" dataSource={vehicles} columns={[
       { title: 'Biển số', dataIndex: 'plateNumber', render: (value) => <strong>{value}</strong> }, { title: 'Tên xe', dataIndex: 'name' }, { title: 'Sức chứa', dataIndex: 'capacityHorses', render: (value) => `${value} ngựa` }, { title: 'Quốc gia', dataIndex: 'countryCode' },
       { title: 'Đăng kiểm', dataIndex: 'inspectionExpiresAt', render: (value) => <span style={{ color: new Date(value) < new Date() ? '#cf1322' : undefined }}>{new Date(value).toLocaleDateString('vi-VN')}</span> },
       { title: 'Trạng thái', render: (_, item) => item.activeAssignment ? <Tag color="blue">Đang có chuyến</Tag> : <Tag color={item.status === 'ACTIVE' ? 'green' : 'orange'}>{statusLabels[item.status]}</Tag> },
+      { title: 'Ngựa trên xe / dự kiến', render: (_, item) => (item.assignments || []).map(r => <div key={r._id}>{r.orderId?.bookingCode}: {r.orderId?.horseIds?.map(h => { const movement = r.horseMovements?.find(m => String(m.horseId) === String(h._id)); return `${h.name} (${movement?.unloadedAt ? 'đã giao' : movement?.loadedAt ? 'trên xe' : 'dự kiến'})`; }).join(', ')}</div>) },
       { title: '', render: (_, item) => <Button onClick={() => show(item)}>Chỉnh sửa</Button> }
     ]} />
     <Modal open={open} title={editing ? 'Cập nhật phương tiện' : 'Thêm phương tiện'} onCancel={() => setOpen(false)} onOk={() => form.submit()} okText="Lưu"><Form form={form} layout="vertical" onFinish={save}>

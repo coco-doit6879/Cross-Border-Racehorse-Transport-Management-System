@@ -7,6 +7,7 @@ const call = async (fn, req) => { const res = { code: 200, status(v) { this.code
 const user = { _id: 'owner', role: 'CUSTOMER' };
 const specialist = { _id: 'staff', role: 'TRANSPORT_SPECIALIST', effectivePermissions: ['compliance:review'] };
 test('customer cannot read another owner checklist', async t => {
+  t.mock.method(require('../src/models/TransportRoute'), 'findOne', async () => null);
   t.mock.method(Order, 'findById', async () => ({ customerId: 'other' }));
   assert.equal((await call(c.checklist, { params: { orderId: 'o' }, user })).code, 403);
 });
@@ -31,7 +32,7 @@ test('review requires a reason for resubmission', async () => {
 });
 test('customer resubmission enters review and preserves an audit entry', async t => {
   const File = require('../src/models/HorseFile');
-  t.mock.method(Doc, 'findById', async () => ({ _id: 'd', orderId: 'o' }));
+  t.mock.method(Doc, 'findById', async () => ({ _id: 'd', orderId: 'o', category: 'HORSE' }));
   t.mock.method(Order, 'findById', async () => ({ customerId: 'owner', status: 'DOCS_PROCESSING', requestedDepartureDate: '2030-01-01' }));
   t.mock.method(File, 'findById', async () => ({ ownerId: 'owner' }));
   let update;

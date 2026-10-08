@@ -3,6 +3,12 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { protect, checkPermission } = require('../middlewares/authMiddleware');
 const paymentController = require('../controllers/paymentController');
+const workflow = require('../controllers/operationsWorkflowController');
+router.get('/assistance/customers', protect, workflow.customers);
+router.get('/:id/operations', protect, workflow.get);
+router.patch('/:id/operations', protect, workflow.update);
+router.post('/:id/recovery', protect, (req, res, next) => req.body.action === 'RESCUE_TRANSFER' ? require('../middlewares/reservationReady')(req, res, next) : next(), require('../controllers/recoveryController').execute);
+router.post('/', protect, require('../middlewares/reservationReady'));
 
 /**
  * @swagger
@@ -58,7 +64,7 @@ const paymentController = require('../controllers/paymentController');
  */
 router.route('/')
   .get(protect, orderController.getOrders)
-  .post(protect, checkPermission('booking:create'), orderController.createOrder);
+  .post(protect, (req, res, next) => req.user.effectivePermissions?.some(p => ['booking:create', 'booking:approve'].includes(p)) ? next() : res.status(403).json({ success: false, message: 'Không có quyền tạo đơn.' }), orderController.createOrder);
 
 /**
  * @swagger

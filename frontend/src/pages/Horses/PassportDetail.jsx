@@ -50,6 +50,7 @@ export default function PassportDetail() {
   return <Space direction="vertical" size={20} style={{ width: '100%' }}>
     <Card title={horse.name} extra={<Button onClick={() => navigate('/horses')}>Quay lại danh sách</Button>}>
       <Tag color={reviewColors[horse.reviewStatus]}>{reviewLabels[horse.reviewStatus]}</Tag>
+      {horse.transportAssignment && <Alert style={{ marginTop: 12 }} type="info" message={`${({ ASSIGNED: 'Dự kiến lên xe', ON_BOARD: 'Đang trên xe', DELIVERED: 'Đã giao từ xe' })[horse.transportAssignment.state]} ${horse.transportAssignment.vehiclePlateNumber} · ${horse.transportAssignment.bookingCode}`} action={<Button onClick={() => navigate(`/orders/${horse.transportAssignment.orderId}`)}>Xem vận đơn</Button>} />}
       {horse.reviewNotes && <Alert style={{ marginTop: 16 }} type={horse.reviewStatus === 'REJECTED' ? 'error' : 'success'} message={horse.reviewNotes} description={`Người duyệt: ${horse.reviewedBy?.fullName || horse.reviewedBy || '—'} • ${horse.reviewedAt ? new Date(horse.reviewedAt).toLocaleString('vi-VN') : ''}`} />}
       {owned && <Button style={{ marginTop: 16 }} disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa / Bổ sung hồ sơ'}</Button>}
     </Card>

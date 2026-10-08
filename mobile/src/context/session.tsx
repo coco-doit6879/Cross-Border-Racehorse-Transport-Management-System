@@ -76,7 +76,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     let response = await run(accessToken);
     if (response.status === 401 && !options.skipRefresh) response = await run(await refreshAccessToken());
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.message || `Yêu cầu thất bại (${response.status}).`);
+    if (!response.ok) throw Object.assign(new Error(body.message || `Yêu cầu thất bại (${response.status}).`), { status: response.status });
     return body as T;
   }, [accessToken, refreshAccessToken]);
 

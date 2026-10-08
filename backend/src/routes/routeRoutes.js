@@ -49,8 +49,8 @@ router.route('/')
  *       201:
  *         description: Route dispatched in SCHEDULED status
  */
-router.post('/dispatch', protect, checkPermission('route:dispatch'), routeController.dispatchRoute);
-router.patch('/:id/assignment', protect, checkPermission('route:dispatch'), routeController.updateAssignment);
+router.post('/dispatch', protect, checkPermission('route:dispatch'), require('../middlewares/reservationReady'), routeController.dispatchRoute);
+router.patch('/:id/assignment', protect, checkPermission('route:dispatch'), require('../middlewares/reservationReady'), routeController.updateAssignment);
 
 /**
  * @swagger

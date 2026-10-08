@@ -41,6 +41,8 @@ const paymentTransactionSchema = new mongoose.Schema({
   cardType: String,
   payDate: String,
   failureMessage: String,
+  appliedAt: Date,
+  reconciliationRequired: { type: Boolean, default: false, index: true },
   callbackPayload: mongoose.Schema.Types.Mixed,
   expiresAt: { type: Date, required: true }
 }, { timestamps: true });

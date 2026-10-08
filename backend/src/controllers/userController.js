@@ -64,6 +64,7 @@ exports.getUserById = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   try {
     const { fullName, email, password, role, phone } = req.body;
+    if (typeof password !== 'string' || password.length < 8) return res.status(400).json({ message: 'Cần mật khẩu ít nhất 8 ký tự.' });
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -72,8 +73,9 @@ exports.createUser = async (req, res, next) => {
 
     const user = await User.create({
       fullName,
+      username: String(email || '').trim().toLowerCase(),
       email,
-      password: password || '123456',
+      password,
       role: role || 'CUSTOMER',
       phone
     });
@@ -140,7 +142,10 @@ exports.deleteUser = async (req, res, next) => {
       return res.status(400).json({ message: 'You cannot delete your own account' });
     }
 
-    await user.deleteOne();
+    const Route = require('../models/TransportRoute');
+    if (await Route.exists({ $or: [{ driverId: user._id }, { escortId: user._id }], status: { $nin: ['COMPLETED', 'CANCELLED'] } })) return res.status(409).json({ message: 'Nhân sự còn chuyến đang thực hiện; cần bàn giao trước.' });
+    user.isActive = false;
+    await user.save();
 
     res.json({
       success: true,

@@ -281,7 +281,7 @@ const OrderList = () => {
           </p>
         </div>
 
-        {!isManager && (
+        {(['CUSTOMER', 'LOGISTICS_MANAGER', 'TRANSPORT_SPECIALIST', 'FLEET_COORDINATOR'].includes(user?.role)) && (
           <Button
             type="primary"
             icon={<Plus size={16} />}

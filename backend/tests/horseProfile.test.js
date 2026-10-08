@@ -25,6 +25,7 @@ async function call(fn, req) {
   return res;
 }
 beforeEach((t) => {
+  t.mock.method(require('../src/models/Order'), 'exists', async () => null);
   horse = { ...profile(), _id: horseId, ownerId: owner, reviewStatus: 'PENDING_REVIEW', __v: 0, toObject() { return { ...this }; } };
   t.mock.method(Horse, 'findById', async () => horse);
   t.mock.method(transportScheduleService, 'resolveDeparture', async () => ({ departureId: 'fixed-test', scheduleRevision: 0, originStopId: 'VN-HCM', destinationStopId: 'VN-HAN', origin: { address: 'A', countryCode: 'VN', coordinates: [105, 21] }, destination: { address: 'B', countryCode: 'VN', coordinates: [106, 20] }, requestedDepartureDate: '2027-01-01T01:00:00Z', basePriceVnd: 18000000 }));

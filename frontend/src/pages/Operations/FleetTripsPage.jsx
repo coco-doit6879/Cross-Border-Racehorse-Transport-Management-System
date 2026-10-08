@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Input, Modal, Select, Space, Table, Tag, mes
 import { orderApi } from '../../services/orderApi';
 import { routeApi } from '../../services/routeApi';
 import { operationsApi } from '../../services/operationsApi';
+import { Link } from 'react-router-dom';
 
 const allowed = ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'];
 const statusLabels = { PENDING_APPROVAL: 'Chờ duyệt', APPROVED: 'Đã duyệt đơn', DOCS_PROCESSING: 'Đang xử lý giấy tờ', CLEARED_FOR_TRANSPORT: 'Đủ điều kiện', SCHEDULED: 'Đã phân công', IN_TRANSIT: 'Đang chạy', INCIDENT_HANDLING: 'Có sự cố', DELIVERING: 'Đang bàn giao', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy' };
@@ -17,7 +18,7 @@ export default function FleetTripsPage() {
   const save = async (values) => { try { if (selected.route) await routeApi.updateAssignment(selected.route._id, values); else await routeApi.dispatch({ orderId: selected._id, ...values }); message.success(selected.route ? 'Đã cập nhật phân công.' : 'Đã tạo chuyến và phân công.'); setSelected(null); form.resetFields(); load(); } catch (err) { message.error(err.response?.data?.message || 'Không thể lưu phân công.'); } };
   const drivers = staff.filter((item) => item.role === 'DRIVER' && item.isActive); const escorts = staff.filter((item) => item.role === 'ESCORT' && item.isActive);
   return <Space direction="vertical" size={20} style={{ width: '100%' }}><Card title="Phân công chuyến vận chuyển"><Alert type="info" showIcon message="Chỉ đơn đã thanh toán đủ mới được phân công xe, tài xế và phụ xe. Biển số không xuất hiện trước thời điểm này." /></Card><Table loading={loading} rowKey="_id" dataSource={rows} columns={[
-    { title: 'Đơn', render: (_, row) => <><strong>{row.bookingCode}</strong><div>{new Date(row.requestedDepartureDate).toLocaleString('vi-VN')}</div></> }, { title: 'Hành trình', render: (_, row) => `${row.origin?.address} → ${row.destination?.address}` }, { title: 'Ngựa', render: (_, row) => row.horseIds?.length || 0 },
+    { title: 'Đơn / Vận đơn', render: (_, row) => <><Link to={`/orders/${row._id}`}>{row.bookingCode}</Link><div>{row.route?.acceptedAt ? 'Tài xế đã tiếp nhận' : row.route ? 'Chờ tài xế nhận' : 'Chưa tạo vận đơn'}</div><div>{new Date(row.requestedDepartureDate).toLocaleString('vi-VN')}</div></> }, { title: 'Hành trình', render: (_, row) => `${row.origin?.address} → ${row.destination?.address}` }, { title: 'Ngựa', render: (_, row) => row.horseIds?.map(h => h.name).join(', ') || '—' },
     { title: 'Xe', render: (_, row) => row.route?.vehiclePlateNumber || <Tag>Chưa phân công</Tag> }, { title: 'Tài xế', render: (_, row) => row.route?.driverId?.fullName || <Tag>Chưa phân công</Tag> },
     { title: 'Thanh toán', render: (_, row) => <Tag color={row.paymentStatus === 'PAID' ? 'green' : 'orange'}>{row.paymentStatus === 'PAID' ? 'Đã thanh toán đủ' : 'Chưa thanh toán đủ'}</Tag> },
     { title: 'Trạng thái', render: (_, row) => <Tag color={row.route ? 'blue' : row.status === 'CLEARED_FOR_TRANSPORT' ? 'green' : 'orange'}>{statusLabels[row.route?.status || row.status]}</Tag> },

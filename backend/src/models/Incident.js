@@ -18,7 +18,7 @@ const incidentSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Reported By User ID is required']
   },
-  location: {
+  location: { type: new mongoose.Schema({
     type: {
       type: String,
       enum: ['Point'],
@@ -28,7 +28,8 @@ const incidentSchema = new mongoose.Schema({
       type: [Number],
       required: [true, 'Incident GeoJSON coordinates [lng, lat] are required']
     }
-  },
+  }, { _id: false }), default: undefined },
+  locationUnavailable: { type: Boolean, default: false },
   description: {
     type: String,
     required: [true, 'Incident description is required'],

@@ -136,6 +136,22 @@ const transportRouteSchema = new mongoose.Schema({
   },
   routeDeviations: [routeDeviationSchema],
   assignmentNote: { type: String, trim: true },
+  preIncidentStatus: { type: String, enum: ['SCHEDULED', 'IN_TRANSIT', 'DELIVERING'] },
+  stationarySince: Date,
+  stationaryCoordinates: [Number],
+  plannedPath: { type: [[Number]], default: undefined },
+  rescuePending: { type: Boolean, default: false },
+  previousVehicleDistanceKm: { type: Number, default: 0, min: 0 },
+  rescueHistory: [{ at: { type: Date, default: Date.now }, by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, reason: String, evidence: String, previousVehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' }, previousDriverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' }, driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, horseIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Horse' }], acceptedAt: Date }],
+  acceptedAt: Date,
+  acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  odometerStart: { type: Number, min: 0 },
+  odometerEnd: { type: Number, min: 0 },
+  distanceVerifiedAt: Date,
+  distanceVerifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  operationsVersion: { type: Number, default: 0 },
+  horseMovements: [{ horseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Horse' }, loadedAt: Date, unloadedAt: Date, recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } }],
+  clearances: [{ horseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Horse' }, countryCode: String, checkpoint: String, status: { type: String, enum: ['PENDING', 'CLEARED', 'HELD'] }, referenceNumber: String, notes: String, updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, updatedAt: Date }],
   assignmentHistory: [assignmentHistorySchema],
   status: {
     type: String,
@@ -148,4 +164,5 @@ const transportRouteSchema = new mongoose.Schema({
 // 2dsphere index on currentLocation.coordinates
 transportRouteSchema.index({ 'currentLocation.coordinates': '2dsphere' });
 
+require('../services/reservationState')(transportRouteSchema, ['COMPLETED', 'CANCELLED'], ['vehicleId', 'driverId', 'escortId']);
 module.exports = mongoose.model('TransportRoute', transportRouteSchema);

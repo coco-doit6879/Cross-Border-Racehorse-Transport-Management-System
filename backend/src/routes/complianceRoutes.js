@@ -32,6 +32,7 @@ router.get('/', protect, checkPermission('compliance:review'), complianceControl
  *         description: Compliance checklist & clearance status
  */
 router.get('/checklist/:orderId', protect, requests.checklist);
+router.get('/:id/file', protect, requests.file);
 router.post('/requests', protect, checkPermission('compliance:review'), requests.request);
 
 /**

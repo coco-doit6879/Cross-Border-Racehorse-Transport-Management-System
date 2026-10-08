@@ -1,4 +1,4 @@
-const { test } = require('node:test');
+const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const Order = require('../src/models/Order');
 const PaymentTransaction = require('../src/models/PaymentTransaction');
@@ -7,6 +7,7 @@ const vnpayService = require('../src/services/vnpayService');
 
 process.env.VNPAY_TMN_CODE = 'TESTCODE';
 process.env.VNPAY_HASH_SECRET = 'payment-controller-test-secret';
+beforeEach(t => t.mock.method(Order, 'findById', async () => ({ status: 'APPROVED', paymentReference: '14999999', depositReference: '14999999' })));
 
 const signedQuery = (overrides = {}) => {
   const query = {
@@ -74,7 +75,7 @@ test('VNPAY IPN rejects an amount that differs from the locked order snapshot', 
 });
 
 test('duplicate VNPAY IPN is idempotent and does not update the order twice', async (t) => {
-  const transaction = { ...pendingTransaction(), status: 'PAID' };
+  const transaction = { ...pendingTransaction(), status: 'PAID', appliedAt: new Date() };
   let updated = false;
   t.mock.method(PaymentTransaction, 'findOne', async () => transaction);
   t.mock.method(Order, 'updateOne', async () => { updated = true; });

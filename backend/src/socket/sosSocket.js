@@ -51,6 +51,14 @@ module.exports = (io, socket) => {
         if (typeof callback === 'function') callback({ success: false, message: 'Transport route not found' });
         return;
       }
+      if (![String(route.driverId), String(route.escortId)].includes(String(user._id))) {
+        if (typeof callback === 'function') callback({ success: false, message: 'Bạn không được phân công chuyến này.' });
+        return;
+      }
+      if (!['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'].includes(route.status)) {
+        if (typeof callback === 'function') callback({ success: false, message: 'Chuyến đã kết thúc.' });
+        return;
+      }
 
       // Idempotency check: Reuse existing incident if eventId exists
       let incident = null;
@@ -61,6 +69,7 @@ module.exports = (io, socket) => {
       }
 
       if (incident) {
+        if (String(incident.tripId) !== String(route._id) || String(incident.reportedBy) !== String(user._id)) throw new Error('Event ID không thuộc sự cố của bạn.');
         isDuplicate = true;
       } else {
         const sosEventId = eventId || `sos-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -78,12 +87,8 @@ module.exports = (io, socket) => {
         });
 
         // Update TransportRoute status to INCIDENT_HANDLING
+        if (route.status !== 'INCIDENT_HANDLING') route.preIncidentStatus = route.status;
         route.status = 'INCIDENT_HANDLING';
-        route.currentLocation = {
-          type: 'Point',
-          coordinates: [lng, lat],
-          updatedAt: new Date()
-        };
         await route.save();
       }
 

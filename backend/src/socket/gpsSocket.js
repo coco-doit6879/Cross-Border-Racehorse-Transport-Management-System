@@ -135,6 +135,12 @@ module.exports = (io, socket) => {
       }
 
       const updateTimestamp = timestamp ? new Date(timestamp) : new Date();
+      const age = Date.now() - updateTimestamp.getTime();
+      if (!Number.isFinite(age) || age < -30000 || age > 120000 || (route.currentLocation?.updatedAt && updateTimestamp <= new Date(route.currentLocation.updatedAt))) {
+        if (typeof callback === 'function') callback({ success: false, message: 'GPS cũ hoặc thời gian không hợp lệ.' });
+        return;
+      }
+      await processRouteDeviation({ route, latitude, longitude, timestamp: updateTimestamp, io, actor: user });
 
       // Update route currentLocation as GeoJSON [longitude, latitude]
       route.currentLocation = {
@@ -146,15 +152,6 @@ module.exports = (io, socket) => {
       };
 
       // Run server-side Route Deviation & Abnormal Stop detection service
-      await processRouteDeviation({
-        route,
-        latitude,
-        longitude,
-        timestamp: updateTimestamp,
-        io,
-        actor: user
-      });
-
       await route.save();
 
       // Broadcast location change to room trip_<tripId>

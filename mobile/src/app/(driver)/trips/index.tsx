@@ -18,14 +18,14 @@ export default function TripsScreen() {
   const [error, setError] = useState('');
 
   const syncQueue = useCallback(async () => {
-    const events = await listOfflineEvents(); setPending(events.length);
+    const events = (await listOfflineEvents(user?.id || '')).slice(0, 100); setPending(events.length);
     if (!events.length) return;
     try {
       const body = await apiFetch<{ results: { event_id: string; status: string }[] }>('/sync/events', { method: 'POST', body: JSON.stringify({ events }) });
       const done = body.results.filter((item) => item.status === 'SUCCESS').map((item) => item.event_id);
       await removeOfflineEvents(done); setPending(events.length - done.length);
     } catch { /* giữ lại để đồng bộ ở lần sau */ }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   const load = useCallback(async () => {
     try {

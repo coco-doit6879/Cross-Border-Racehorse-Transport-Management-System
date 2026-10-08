@@ -78,7 +78,9 @@ async function processRouteDeviation({ route, latitude, longitude, timestamp, io
   // ----------------------------------------------------
   // 1. ROUTE DEVIATION DETECTION (> 2 KM)
   // ----------------------------------------------------
-  const minDistanceKm = calculateMinDistanceToRouteKm(latitude, longitude, route.waypoints);
+  // Waypoints alone do not describe the road. Only evaluate deviation against
+  // a configured road polyline; never label distance from a stop as deviation.
+  const minDistanceKm = distanceToPathKm(latitude, longitude, route.plannedPath);
 
   if (minDistanceKm > ROUTE_DEVIATION_THRESHOLD_KM) {
     const existingDeviations = route.routeDeviations || [];
@@ -124,13 +126,21 @@ async function processRouteDeviation({ route, latitude, longitude, timestamp, io
   // 2. ABNORMAL STOP DETECTION (> 30 MINUTES)
   // ----------------------------------------------------
   if (route.currentLocation && route.currentLocation.coordinates && route.currentLocation.updatedAt) {
-    const prevLng = route.currentLocation.coordinates[0];
-    const prevLat = route.currentLocation.coordinates[1];
-    const prevTime = new Date(route.currentLocation.updatedAt);
+    const anchor = route.stationaryCoordinates?.length === 2 ? route.stationaryCoordinates : route.currentLocation.coordinates;
+    const prevLng = anchor[0];
+    const prevLat = anchor[1];
+    const prevTime = new Date(route.stationarySince || route.currentLocation.updatedAt);
 
     const distFromPrevKm = calculateHaversineDistanceKm(latitude, longitude, prevLat, prevLng);
     const durationMs = currentTs.getTime() - prevTime.getTime();
     const durationMinutes = durationMs / (1000 * 60);
+    if (distFromPrevKm >= 0.05) {
+      route.stationarySince = currentTs;
+      route.stationaryCoordinates = [longitude, latitude];
+    } else {
+      route.stationarySince = prevTime;
+      route.stationaryCoordinates = anchor;
+    }
 
     // Vehicle is stationary if movement < 0.05 km (50 meters)
     if (distFromPrevKm < 0.05 && durationMinutes >= ABNORMAL_STOP_THRESHOLD_MINUTES) {
@@ -195,7 +205,22 @@ async function processRouteDeviation({ route, latitude, longitude, timestamp, io
   };
 }
 
+function distanceToPathKm(lat, lng, path) {
+  if (!Array.isArray(path) || path.length < 2) return 0;
+  const xScale = 111.195 * Math.cos(lat * Math.PI / 180);
+  let minimum = Infinity;
+  for (let index = 1; index < path.length; index++) {
+    const a = path[index - 1], b = path[index];
+    const ax = (a[0] - lng) * xScale, ay = (a[1] - lat) * 111.195;
+    const bx = (b[0] - lng) * xScale, by = (b[1] - lat) * 111.195;
+    const dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
+    minimum = Math.min(minimum, Math.hypot(ax + t * dx, ay + t * dy));
+  }
+  return minimum;
+}
 module.exports = {
+  distanceToPathKm,
   ROUTE_DEVIATION_THRESHOLD_KM,
   ABNORMAL_STOP_THRESHOLD_MINUTES,
   calculateHaversineDistanceKm,

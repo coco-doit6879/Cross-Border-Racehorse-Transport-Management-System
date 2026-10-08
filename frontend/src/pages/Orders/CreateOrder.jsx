@@ -5,13 +5,21 @@ import { ArrowLeft, CalendarDays, CreditCard, MapPin } from 'lucide-react';
 import { useHorseStore } from '../../store/useHorseStore';
 import { useOrderStore } from '../../store/useOrderStore';
 import { transportScheduleApi } from '../../services/transportScheduleApi';
+import { useAuthStore } from '../../store/useAuthStore';
+import { hasPermission } from '../../utils/permissions';
+import api from '../../services/apiClient';
 
 const dateLabel = (date) => new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
 const formatVnd = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 
 export default function CreateOrder() {
   const navigate = useNavigate();
-  const { horses, fetchHorses } = useHorseStore();
+  const { horses: ownedHorses, fetchHorses } = useHorseStore();
+  const user = useAuthStore(s => s.user);
+  const assisting = hasPermission(user, 'booking:approve');
+  const [assistance, setAssistance] = useState({ customers: [], horses: [] });
+  const [customerId, setCustomerId] = useState();
+  const horses = assisting ? assistance.horses.filter(h => String(h.ownerId) === customerId).map(h => ({ ...h, id: h._id })) : ownedHorses;
   const { orders, fetchOrders, createOrder } = useOrderStore();
   const [catalog, setCatalog] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,12 +37,13 @@ export default function CreateOrder() {
   const load = useCallback(async () => {
     setLoading(true); setError(''); setDepartureId(undefined);
     try {
-      const [response] = await Promise.all([transportScheduleApi.getCatalog(), fetchHorses(), fetchOrders()]);
+      const [response, support] = await Promise.all([transportScheduleApi.getCatalog(), assisting ? api.get('/orders/assistance/customers') : fetchHorses(), fetchOrders()]);
+      if (assisting) setAssistance(support.data.data);
       setCatalog(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải lịch vận chuyển. Vui lòng thử lại.');
     } finally { setLoading(false); }
-  }, [fetchHorses, fetchOrders]);
+  }, [fetchHorses, fetchOrders, assisting]);
   useEffect(() => { load(); }, [load]);
 
   const stops = catalog?.stops || [];
@@ -70,8 +79,8 @@ export default function CreateOrder() {
     if (!ready) return;
     setSubmitting(true);
     try {
-      const order = await createOrder({ horseIds, departureId, scheduleRevision: catalog.revision, addOnIds, specialRequirements: notes });
-      message.success(`Đã tạo đơn ${order.bookingCode || ''}. Vui lòng đặt cọc để gửi duyệt.`);
+      const order = await createOrder({ horseIds, departureId, scheduleRevision: catalog.revision, addOnIds, specialRequirements: notes, ...(assisting ? { customerId } : {}) });
+      message.success(assisting ? 'Đã tạo đơn hỗ trợ. Khách hàng cần kiểm tra và xác nhận thông tin.' : `Đã tạo đơn ${order.bookingCode || ''}. Vui lòng đặt cọc để gửi duyệt.`);
       navigate(`/orders/${order.id || order._id}`);
     } catch (err) {
       message.error(err.response?.data?.message || 'Không thể tạo đơn vận chuyển.');
@@ -92,6 +101,7 @@ export default function CreateOrder() {
       </div></Space>
     </Card>
     {error && <Alert type="error" showIcon message={error} action={<Button onClick={load}>Thử lại</Button>} />}
+    {assisting && <Card title="Nhập hỗ trợ khách hàng"><p>Chọn khách đã có tài khoản. Khách sẽ xem lại tuyến, ngựa, giá và ghi chú trước khi đơn được tiếp nhận.</p><Select showSearch optionFilterProp="label" style={{ width: '100%' }} placeholder="Chọn khách hàng" value={customerId} onChange={value => { setCustomerId(value); setHorseIds([]); }} options={assistance.customers.map(c => ({ value: c._id, label: `${c.fullName} · ${c.email} · ${c.phone}` }))} /></Card>}
     <Spin spinning={loading}>
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>

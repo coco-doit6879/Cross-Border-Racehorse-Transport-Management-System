@@ -20,6 +20,7 @@ const Sidebar = () => {
   ].filter((item) => item.visible);
 
   const logisticsItems = [
+    { to: '/orders', label: 'Đơn hàng & quyết toán', icon: PackageSearch },
     { to: '/manager', label: 'Tổng quan', icon: Gauge },
     { to: '/manager/drivers', label: 'Tài xế', icon: UserRound },
     { to: '/manager/escorts', label: 'Phụ xe', icon: UsersRound },
@@ -33,6 +34,7 @@ const Sidebar = () => {
     { to: '/orders', label: 'Đơn vận chuyển', icon: Route }
   ];
   const fleetItems = [
+    { to: '/orders', label: 'Đơn hàng & nhập hỗ trợ', icon: PackageSearch },
     { to: '/manager', label: 'Trung tâm điều phối', icon: Gauge },
     { to: '/manager/schedules', label: 'Lịch & giá cố định', icon: CalendarClock },
     { to: '/fleet/trips', label: 'Phân công chuyến', icon: Route },

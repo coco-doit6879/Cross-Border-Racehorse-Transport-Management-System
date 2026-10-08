@@ -44,6 +44,10 @@ const complianceDocSchema = new mongoose.Schema({
     type: String
   },
   requestReason: String,
+  category: { type: String, enum: ['LEGAL', 'HORSE'], default: 'LEGAL' },
+  stage: { type: String, enum: ['DEPARTURE', 'BORDER', 'DELIVERY'], default: 'DEPARTURE' },
+  checkpoint: { type: String, trim: true },
+  referenceNumber: { type: String, trim: true },
   requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   requestedAt: Date,
   history: [{ action: String, actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, notes: String, fileUrl: String, at: { type: Date, default: Date.now } }]

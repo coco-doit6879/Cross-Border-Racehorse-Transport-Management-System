@@ -72,9 +72,10 @@ async function applyIpn(query) {
   const transaction = await PaymentTransaction.findOne({ txnRef: query.vnp_TxnRef });
   if (!transaction) return { code: '01', message: 'Order not found' };
   if (Number(query.vnp_Amount) !== transaction.amountVnd * 100) return { code: '04', message: 'Invalid amount' };
-  if (transaction.status !== 'PENDING') return { code: '02', message: 'Order already confirmed' };
-
   const success = query.vnp_ResponseCode === '00' && query.vnp_TransactionStatus === '00';
+  if (transaction.appliedAt || transaction.status === 'REFUNDED') return { code: '02', message: 'Order already confirmed' };
+  if (transaction.status === 'PAID' && !success) return { code: '02', message: 'Order already confirmed' };
+  if (!success && transaction.status !== 'PENDING') return { code: '02', message: 'Order already confirmed' };
   transaction.status = success ? 'PAID' : query.vnp_ResponseCode === '24' ? 'CANCELLED' : query.vnp_ResponseCode === '11' ? 'EXPIRED' : 'FAILED';
   transaction.responseCode = query.vnp_ResponseCode;
   transaction.transactionNo = query.vnp_TransactionNo;
@@ -89,7 +90,7 @@ async function applyIpn(query) {
     const reference = query.vnp_TransactionNo || transaction.txnRef;
     if (transaction.purpose === 'DEPOSIT') {
       const order = await Order.findOneAndUpdate(
-        { _id: transaction.orderId, depositStatus: { $ne: 'PAID' } },
+        { _id: transaction.orderId, status: 'PENDING_APPROVAL', depositStatus: 'UNPAID' },
         { $set: { depositStatus: 'PAID', depositReference: reference, depositedAt: new Date(), paymentStatus: 'PARTIALLY_PAID', paymentMethod: 'VNPAY' } },
         { new: true }
       );
@@ -98,10 +99,16 @@ async function applyIpn(query) {
       }
     } else {
       await Order.updateOne(
-        { _id: transaction.orderId, paymentStatus: { $ne: 'PAID' } },
+        { _id: transaction.orderId, status: { $in: balancePayableStatuses }, paymentStatus: { $ne: 'PAID' } },
         { $set: { paymentStatus: 'PAID', paymentMethod: 'VNPAY', paymentReference: reference, paidAt: new Date() } }
       );
     }
+    const updatedOrder = await Order.findById(transaction.orderId);
+    if (!updatedOrder) throw new Error('Không tìm thấy đơn để đối soát giao dịch.');
+    const ownReference = transaction.purpose === 'DEPOSIT' ? updatedOrder.depositReference : updatedOrder.paymentReference;
+    transaction.reconciliationRequired = ['CANCELLED', 'REJECTED'].includes(updatedOrder.status) || String(ownReference) !== String(reference);
+    transaction.appliedAt = new Date();
+    await transaction.save();
   }
   return { code: '00', message: 'Confirm Success', transaction };
 }

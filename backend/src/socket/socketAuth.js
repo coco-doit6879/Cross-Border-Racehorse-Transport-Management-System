@@ -65,7 +65,7 @@ const socketAuthMiddleware = async (socket, next) => {
       return next(new Error('Authentication error: User account no longer exists'));
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || (user.tokensInvalidBefore && (!decoded.iat || decoded.iat * 1000 <= new Date(user.tokensInvalidBefore).getTime()))) {
       await logAudit({
         actorId: user._id,
         action: 'SOCKET_AUTH_FAILURE',
@@ -83,6 +83,17 @@ const socketAuthMiddleware = async (socket, next) => {
     user.effectivePermissions = Array.from(new Set([...defaultPermissions, ...customPermissions]));
 
     socket.user = user;
+    socket.use(async (_packet, done) => {
+      try {
+        jwt.verify(token, secret);
+        const current = await User.findById(userId).select('-password');
+        if (!current?.isActive) throw new Error('Tài khoản không còn hoạt động.');
+        if (current.tokensInvalidBefore && (!decoded.iat || decoded.iat * 1000 <= new Date(current.tokensInvalidBefore).getTime())) throw new Error('Phiên đã bị thu hồi sau khi đổi mật khẩu.');
+        current.effectivePermissions = Array.from(new Set([...(ROLE_PERMISSIONS[current.role] || []), ...(current.permissions || [])]));
+        socket.user = current;
+        done();
+      } catch (error) { done(error); socket.disconnect(true); }
+    });
     next();
   } catch (err) {
     return next(new Error(`Authentication error: ${err.message}`));

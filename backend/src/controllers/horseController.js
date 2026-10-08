@@ -1,5 +1,6 @@
 const Horse = require('../models/Horse');
 const HorseFile = require('../models/HorseFile');
+const TransportRoute = require('../models/TransportRoute');
 const { logAudit } = require('../utils/auditLogger');
 const { pickProfile, validateProfile } = require('../utils/horseProfile');
 
@@ -41,7 +42,10 @@ exports.getHorseById = async (req, res, next) => {
     const horse = await Horse.findById(req.params.id).populate('ownerId', 'fullName email').populate('reviewedBy', 'fullName');
     if (!horse) return fail(res, 404, 'Không tìm thấy hồ sơ ngựa.');
     if (!canRead(req.user, horse)) return fail(res, 403, 'Bạn không có quyền xem hồ sơ này.');
-    res.json({ success: true, data: horse });
+    const routes = await TransportRoute.find({ status: { $in: ['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'] } }).populate('orderId', 'horseIds bookingCode');
+    const route = routes.find(r => r.orderId?.horseIds?.some(h => String(h) === String(horse._id)));
+    const movement = route?.horseMovements?.find(m => String(m.horseId) === String(horse._id));
+    res.json({ success: true, data: { ...horse.toObject(), transportAssignment: route ? { orderId: route.orderId._id, bookingCode: route.orderId.bookingCode, vehiclePlateNumber: route.vehiclePlateNumber, state: movement?.unloadedAt ? 'DELIVERED' : movement?.loadedAt ? 'ON_BOARD' : 'ASSIGNED' } : null } });
   } catch (error) { next(error); }
 };
 
@@ -63,6 +67,8 @@ exports.updateHorse = async (req, res, next) => {
     const horse = await Horse.findById(req.params.id);
     if (!horse) return fail(res, 404, 'Không tìm thấy hồ sơ ngựa.');
     if (ownerId(horse) !== String(req.user._id)) return fail(res, 403, 'Chỉ chủ ngựa được sửa hồ sơ và gửi lại kiểm duyệt.');
+    const Order = require('../models/Order');
+    if (await Order.exists({ horseIds: horse._id, status: { $nin: ['COMPLETED', 'CANCELLED', 'REJECTED'] } })) return fail(res, 409, 'Ngựa đang có đơn vận chuyển; cần liên hệ chuyên viên để xử lý thay đổi hồ sơ.');
     const changes = pickProfile(req.body);
     const profile = { ...horse.toObject(), ...changes };
     const invalid = validateProfile(profile);
@@ -123,7 +129,7 @@ exports.uploadFile = async (req, res, next) => {
       'application/pdf': (b) => b.subarray(0, 5).toString() === '%PDF-'
     };
     const maxSize = mimeType?.startsWith('image/') ? 500 * 1024 : 5 * 1024 * 1024;
-    if (!Buffer.isBuffer(data) || !data.length || data.length >= maxSize || !signatures[mimeType]?.(data)) return fail(res, 400, 'Chỉ nhận ảnh JPG/PNG/WebP dưới 500 KB hoặc PDF tối đa 5 MB.');
+    if (!Buffer.isBuffer(data) || !data.length || (mimeType === 'application/pdf' ? data.length > maxSize : data.length >= maxSize) || !signatures[mimeType]?.(data)) return fail(res, 400, 'Chỉ nhận ảnh JPG/PNG/WebP dưới 500 KB hoặc PDF tối đa 5 MB.');
     let name;
     try { name = decodeURIComponent(req.get('X-File-Name') || 'document'); } catch { return fail(res, 400, 'Tên tệp không hợp lệ.'); }
     const file = await HorseFile.create({ ownerId: req.user._id, name: name.slice(0, 200), mimeType, data, size: data.length });

@@ -23,9 +23,9 @@ const validate = (data) => {
 exports.getVehicles = async (req, res, next) => {
   try {
     const vehicles = await Vehicle.find(req.query.status ? { status: req.query.status } : {}).sort({ plateNumber: 1 }).lean();
-    const activeRoutes = await TransportRoute.find({ status: { $in: ['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'] }, vehicleId: { $ne: null } }).select('vehicleId orderId status').lean();
+    const activeRoutes = await TransportRoute.find({ status: { $in: ['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'] }, vehicleId: { $ne: null } }).select('vehicleId orderId status horseMovements').populate({ path: 'orderId', select: 'horseIds bookingCode', populate: { path: 'horseIds', select: 'name' } }).lean();
     const routeByVehicle = new Map(activeRoutes.map((route) => [String(route.vehicleId), route]));
-    res.json({ success: true, count: vehicles.length, data: vehicles.map((vehicle) => ({ ...vehicle, activeAssignment: routeByVehicle.get(String(vehicle._id)) || null })) });
+    res.json({ success: true, count: vehicles.length, data: vehicles.map((vehicle) => ({ ...vehicle, activeAssignment: routeByVehicle.get(String(vehicle._id)) || null, assignments: activeRoutes.filter(r => String(r.vehicleId) === String(vehicle._id)) })) });
   } catch (error) { next(error); }
 };
 

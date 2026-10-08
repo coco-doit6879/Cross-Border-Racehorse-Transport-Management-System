@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StatusBadge } from '@/components/StatusBadge';
+import { TripOperations } from '@/components/TripOperations';
 import { useSession } from '@/context/session';
 import { useGpsTracking } from '@/hooks/useGpsTracking';
 import { enqueueOfflineEvent, newEventId } from '@/lib/offlineQueue';
@@ -13,13 +14,11 @@ import type { TransportRoute, Waypoint } from '@/types/domain';
 const nextStatus: Partial<Record<TransportRoute['status'], { status: TransportRoute['status']; label: string }>> = {
   SCHEDULED: { status: 'IN_TRANSIT', label: 'Bắt đầu chuyến' },
   IN_TRANSIT: { status: 'DELIVERING', label: 'Bắt đầu bàn giao' },
-  INCIDENT_HANDLING: { status: 'IN_TRANSIT', label: 'Tiếp tục hành trình' },
-  DELIVERING: { status: 'COMPLETED', label: 'Hoàn thành chuyến' },
 };
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { apiFetch, accessToken } = useSession();
+  const { apiFetch, accessToken, user } = useSession();
   const [route, setRoute] = useState<TransportRoute | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -43,7 +42,7 @@ export default function TripDetailScreen() {
     const target = nextStatus[route.status]!; setWorking(true); setNotice('');
     try {
       const body = await apiFetch<{ data: TransportRoute }>(`/routes/${route._id}/status`, { method: 'PATCH', body: JSON.stringify({ status: target.status }) });
-      setRoute(body.data); setNotice('Đã cập nhật trạng thái chuyến.');
+      await load(); setNotice('Đã cập nhật trạng thái chuyến.');
     } catch (reason) { Alert.alert('Không thể cập nhật', reason instanceof Error ? reason.message : 'Vui lòng thử lại.'); }
     finally { setWorking(false); }
   };
@@ -54,9 +53,13 @@ export default function TripDetailScreen() {
     setWorking(true);
     try {
       const body = await apiFetch<{ data: TransportRoute }>(`/routes/${route._id}/waypoint-checkin`, { method: 'PATCH', body: JSON.stringify(event.payload) });
-      setRoute(body.data); setNotice(`Đã check-in ${waypoint.name}.`);
-    } catch {
-      await enqueueOfflineEvent(event);
+      await load(); setNotice(`Đã check-in ${waypoint.name}.`);
+    } catch (reason) {
+      if (reason && typeof reason === 'object' && 'status' in reason) {
+        Alert.alert('Không thể check-in', reason instanceof Error ? reason.message : 'Máy chủ từ chối cập nhật.');
+        return;
+      }
+      await enqueueOfflineEvent(event, user?.id || '');
       setRoute({ ...route, waypoints: route.waypoints.map((item) => item._id === waypoint._id ? { ...item, status: 'ARRIVED', actualArrival: new Date().toISOString() } : item) });
       setNotice('Mất kết nối: đã lưu check-in, ứng dụng sẽ tự đồng bộ.');
     } finally { setWorking(false); }
@@ -85,6 +88,7 @@ export default function TripDetailScreen() {
         <View style={styles.gpsCard}><View><Text style={styles.gpsTitle}>● Theo dõi GPS</Text><Text style={styles.muted}>{active ? (gps.tracking ? 'Đang gửi vị trí mỗi 10 giây' : 'Đang kết nối vị trí…') : 'Tự bật khi bắt đầu chuyến'}</Text></View></View>
         {!!gps.error && <Text style={styles.error}>{gps.error}</Text>}
         {!!notice && <Text style={styles.notice}>{notice}</Text>}
+        <TripOperations key={`${route.status}-${route.waypoints.filter(w => w.status === 'ARRIVED').length}`} orderId={route.orderId._id} onChanged={load} />
 
         <Text style={styles.sectionHeading}>Các điểm trên hành trình</Text>
         {route.waypoints.sort((a, b) => a.sequence - b.sequence).map((waypoint) => (

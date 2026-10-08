@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 import LocationMap from '../../components/common/LocationMap';
 import ComplianceDocuments from '../../components/operations/ComplianceDocuments';
+import OrderOperations from '../../components/operations/OrderOperations';
 const formatVnd = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 
 const OrderDetail = () => {
@@ -175,7 +176,8 @@ const OrderDetail = () => {
           />
         </div>
       </div>
-      {['CUSTOMER', 'TRANSPORT_SPECIALIST'].includes(user?.role) && <ComplianceDocuments orderId={order.id || order._id} specialist={user?.role === 'TRANSPORT_SPECIALIST'} onChanged={() => fetchOrderById(id).catch(() => {})} />}
+      <OrderOperations orderId={order.id || order._id} onChanged={() => fetchOrderById(id).catch(() => {})} />
+      <ComplianceDocuments orderId={order.id || order._id} customer={user?.role === 'CUSTOMER'} specialist={user?.role === 'TRANSPORT_SPECIALIST'} onChanged={() => fetchOrderById(id).catch(() => {})} />
       <Card title={<Space><CreditCard size={18} /> Chi phí và thanh toán</Space>}>
         {order.pricing?.totalAmountVnd ? <div style={{ maxWidth: 680 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><span>Giá tuyến: {formatVnd(order.pricing.routeBaseUnitPriceVnd)} × {order.pricing.horseCount} ngựa</span><strong>{formatVnd(order.pricing.baseAmountVnd)}</strong></div>

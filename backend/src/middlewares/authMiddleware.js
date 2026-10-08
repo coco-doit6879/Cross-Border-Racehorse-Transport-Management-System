@@ -34,7 +34,7 @@ const protect = async (req, res, next) => {
       });
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || (user.tokensInvalidBefore && (!decoded.iat || decoded.iat * 1000 <= new Date(user.tokensInvalidBefore).getTime()))) {
       return res.status(401).json({
         success: false,
         message: 'Not authorized, user account has been deactivated'

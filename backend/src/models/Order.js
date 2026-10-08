@@ -129,7 +129,38 @@ const orderSchema = new mongoose.Schema({
   rejectionReason: {
     type: String
   },
-  cancellationReason: String
+  cancellationReason: String,
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  customerConfirmation: { type: String, enum: ['NOT_REQUIRED', 'PENDING', 'CHANGES_REQUESTED', 'CONFIRMED'], default: 'NOT_REQUIRED' },
+  confirmationNotes: String,
+  confirmedAt: Date,
+  operationsVersion: { type: Number, default: 0 },
+  operationsNotices: [{ message: String, actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: { type: Date, default: Date.now } }],
+  exceptionRequests: [{
+    kind: { type: String, enum: ['REFUND', 'COMPENSATION', 'DESTINATION_CHANGE'], required: true },
+    reason: { type: String, required: true },
+    evidence: { type: String, required: true },
+    amountVnd: Number,
+    proposedDestination: String,
+    status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED', 'EXECUTED'], default: 'PENDING' },
+    proposedStopId: String,
+    executionReference: String,
+    executedAt: Date,
+    executedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    originalDestination: mongoose.Schema.Types.Mixed,
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    requestedAt: { type: Date, default: Date.now },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reviewedAt: Date,
+    decisionReason: String
+  }],
+  settlement: {
+    closedAt: Date,
+    closedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    surcharges: [{ description: String, amountVnd: Number, status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' }, createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: { type: Date, default: Date.now } }],
+    receipts: [{ reference: String, amountVnd: Number, method: { type: String, enum: ['CASH', 'BANK_TRANSFER'] }, recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: { type: Date, default: Date.now } }]
+  }
 }, { timestamps: true });
 
+require('../services/reservationState')(orderSchema, ['COMPLETED', 'CANCELLED', 'REJECTED'], ['horseIds']);
 module.exports = mongoose.model('Order', orderSchema);

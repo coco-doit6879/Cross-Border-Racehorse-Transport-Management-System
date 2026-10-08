@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const { logAudit } = require('../utils/auditLogger');
 const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
+const { stageReady, clearanceReady, deliveryProblem } = require('../services/operationsWorkflow');
 
 const idOf = (value) => String(value?._id || value || '');
 const isAssignedStaff = (route, user) => idOf(route.driverId) === idOf(user._id) || idOf(route.escortId) === idOf(user._id);
@@ -29,13 +30,11 @@ const validateAssignment = async ({ order, vehicleId, driverId, escortId, exclud
     ...(excludeRouteId ? { _id: { $ne: excludeRouteId } } : {}), status: { $in: ACTIVE_ROUTE_STATUSES },
     $or: [{ vehicleId: vehicle._id }, { driverId: driver._id }, { escortId: escort._id }]
   }).populate('orderId', 'requestedDepartureDate bookingCode');
-  const conflict = conflicts.find((route) => {
-    const otherStart = new Date(route.orderId?.requestedDepartureDate || route.createdAt).getTime();
-    return start < otherStart + 36 * 60 * 60 * 1000 && end > otherStart;
-  });
+  const conflict = conflicts[0];
   if (conflict) return { error: `Xe hoặc nhân sự bị trùng lịch với đơn ${conflict.orderId?.bookingCode || conflict._id}.` };
   return { vehicle, driver, escort };
 };
+exports.validateAssignment = validateAssignment;
 
 // Allowed Trip State Machine Transitions Map
 const ALLOWED_TRIP_TRANSITIONS = {
@@ -146,7 +145,6 @@ exports.dispatchRoute = async (req, res, next) => {
       });
     }
 
-    if (await ComplianceDoc.exists({ orderId: order._id, status: { $ne: 'APPROVED' } })) return res.status(409).json({ success: false, message: 'Đơn còn giấy tờ cần bổ sung hoặc chờ thẩm định.' });
     const existingRoute = await TransportRoute.findOne({ orderId });
     if (existingRoute) {
       return res.status(400).json({
@@ -229,6 +227,12 @@ exports.updateAssignment = async (req, res, next) => {
     route.driverId = driverId;
     route.escortId = escortId;
     route.assignmentNote = String(assignmentNote || '').trim();
+    if (changed) {
+      if (route.horseMovements?.some(m => m.loadedAt)) return res.status(409).json({ success: false, message: 'Ngựa đã lên xe, không được đổi phân công.' });
+      route.acceptedAt = undefined; route.acceptedBy = undefined;
+      route.odometerStart = undefined;
+      route.operationsVersion = (route.operationsVersion || 0) + 1;
+    }
     await route.save();
     await logAudit({ actorId: req.user._id, action: 'ROUTE_ASSIGNMENT_UPDATE', resource: 'TransportRoute', resourceId: String(route._id), result: 'SUCCESS', metadata: { reason }, ipAddress: req.ip, userAgent: req.get('User-Agent') });
     const populated = await TransportRoute.findById(route._id).populate('orderId').populate('vehicleId').populate('driverId', 'fullName phone email username').populate('escortId', 'fullName phone email username').populate('assignmentHistory.changedBy', 'fullName');
@@ -242,6 +246,9 @@ exports.updateAssignment = async (req, res, next) => {
 exports.updateTripStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    if (status === 'INCIDENT_HANDLING') return res.status(409).json({ success: false, message: 'Hãy báo SOS để có hồ sơ sự cố và người tiếp nhận.' });
+    if (status === 'COMPLETED') return res.status(409).json({ success: false, message: 'Khách hàng cần ký xác nhận giao nhận để hoàn tất chuyến.' });
+    if (status === 'CANCELLED') return res.status(409).json({ success: false, message: 'Cần xử lý hủy đơn qua điều phối, không hủy trực tiếp chuyến đang giữ ngựa.' });
     let route = await TransportRoute.findById(req.params.id);
 
     if (!route) {
@@ -256,6 +263,7 @@ exports.updateTripStatus = async (req, res, next) => {
     }
 
     const currentStatus = route.status;
+    if (currentStatus === 'INCIDENT_HANDLING') return res.status(409).json({ success: false, message: 'Chỉ tiếp tục chuyến sau khi điều phối xử lý hết sự cố.' });
     const allowedNextStatuses = ALLOWED_TRIP_TRANSITIONS[currentStatus] || [];
 
     if (!allowedNextStatuses.includes(status)) {
@@ -299,6 +307,7 @@ exports.updateTripStatus = async (req, res, next) => {
         });
       }
       const order = await Order.findById(route.orderId);
+      if (!route.acceptedAt || String(route.acceptedBy) !== String(route.driverId) || route.odometerStart == null || !order?.horseIds.every(h => route.horseMovements?.some(m => String(m.horseId) === String(h) && m.loadedAt))) return res.status(409).json({ success: false, message: 'Tài xế cần nhận vận đơn, ghi km đầu và xác nhận từng ngựa lên xe.' });
       if (!order || order.paymentStatus !== 'PAID') {
         return res.status(409).json({
           success: false,
@@ -306,10 +315,21 @@ exports.updateTripStatus = async (req, res, next) => {
           message: 'Không thể bắt đầu vận chuyển khi đơn chưa được thanh toán đủ.'
         });
       }
+      const assignment = await validateAssignment({ order, vehicleId: route.vehicleId, driverId: route.driverId, escortId: route.escortId, excludeRouteId: route._id });
+      if (assignment.error) return res.status(409).json({ success: false, message: assignment.error });
+      const horses = await require('../models/Horse').find({ _id: { $in: order.horseIds } });
+      const cutoff = new Date(); cutoff.setUTCMonth(cutoff.getUTCMonth() - 6);
+      if (horses.length !== order.horseIds.length || horses.some(h => h.reviewStatus !== 'APPROVED' || !h.lastVaccinationDate || new Date(h.lastVaccinationDate) < cutoff || h.currentStopId !== order.originStopId)) return res.status(409).json({ success: false, message: 'Cần kiểm tra lại sức khỏe, tiêm phòng và vị trí từng ngựa trước khởi hành.' });
     }
 
-    if (status === 'IN_TRANSIT' && await ComplianceDoc.exists({ orderId: route.orderId, status: { $ne: 'APPROVED' } })) return res.status(409).json({ success: false, message: 'Chưa thể vận chuyển: giấy tờ bổ sung chưa được duyệt đầy đủ.' });
+    if (status === 'IN_TRANSIT' && !(await stageReady(route.orderId, 'DEPARTURE'))) return res.status(409).json({ success: false, message: 'Hồ sơ cần trước khởi hành chưa hoàn tất hoặc hết hạn.' });
+    if (status === 'COMPLETED') {
+      const problem = await deliveryProblem(route, await Order.findById(route.orderId));
+      if (problem) return res.status(409).json({ success: false, message: problem });
+    }
+    if (await require('../services/tripSafety').activeIncident(route._id)) return res.status(409).json({ success: false, message: 'Còn sự cố chưa giải quyết, không thể tiếp tục chuyến.' });
     route.status = status;
+    route.operationsVersion = (route.operationsVersion || 0) + 1;
     await route.save();
 
     // Sync corresponding Order status
@@ -378,6 +398,13 @@ exports.waypointCheckin = async (req, res, next) => {
       });
     }
 
+    if (!['IN_TRANSIT', 'DELIVERING'].includes(route.status)) return res.status(409).json({ success: false, message: 'Chuyến chưa chạy, đã kết thúc hoặc đang xử lý sự cố.' });
+    if (status && !['ARRIVED', 'SKIPPED'].includes(status)) return res.status(400).json({ success: false, message: 'Trạng thái điểm dừng không hợp lệ.' });
+    if (waypoint.status !== 'PENDING') return res.json({ success: true, isDuplicate: true, data: route });
+    if (waypoint.type === 'BORDER_CUSTOMS') {
+      const order = await Order.findById(route.orderId);
+      if (status === 'SKIPPED' || !clearanceReady(route, order, waypoint.name) || !(await stageReady(order._id, 'BORDER', waypoint.name))) return res.status(409).json({ success: false, message: 'Chuyên viên cần hoàn tất thông quan và hồ sơ cửa khẩu trước khi xác nhận qua cửa khẩu.' });
+    }
     waypoint.status = status || 'ARRIVED';
     waypoint.actualArrival = new Date();
     await route.save();

@@ -54,9 +54,9 @@ test('fleet cannot dispatch an unpaid order', async (t) => {
 });
 
 test('an assigned trip cannot start if payment is no longer complete', async (t) => {
-  const route = { _id: '222222222222222222222222', status: 'SCHEDULED', orderId: '444444444444444444444444', async save() {} };
+  const route = { _id: '222222222222222222222222', status: 'SCHEDULED', orderId: '444444444444444444444444', driverId: 'driver', acceptedBy: 'driver', acceptedAt: new Date(), odometerStart: 1, horseMovements: [], async save() {} };
   t.mock.method(TransportRoute, 'findById', async () => route);
-  t.mock.method(Order, 'findById', async () => ({ paymentStatus: 'PARTIALLY_PAID' }));
+  t.mock.method(Order, 'findById', async () => ({ paymentStatus: 'PARTIALLY_PAID', horseIds: [] }));
   const request = req({ status: 'IN_TRANSIT' });
   request.user.effectivePermissions = [...request.user.effectivePermissions, 'trip:start'];
   const response = await call(routeController.updateTripStatus, request);

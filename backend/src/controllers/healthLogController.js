@@ -1,6 +1,7 @@
 const HealthLog = require('../models/HealthLog');
 const TransportRoute = require('../models/TransportRoute');
 const { logAudit } = require('../utils/auditLogger');
+const { accessibleOrders, validateHealthAssignment } = require('../services/resourceAccess');
 
 // @desc    Get health logs (Filtered by tripId or horseId)
 // @route   GET /api/v1/health-logs
@@ -10,6 +11,11 @@ exports.getHealthLogs = async (req, res, next) => {
     let query = {};
     if (req.query.tripId) query.tripId = req.query.tripId;
     if (req.query.horseId) query.horseId = req.query.horseId;
+    const orderIds = await accessibleOrders(req.user);
+    if (orderIds !== null) {
+      const routes = await TransportRoute.find({ orderId: { $in: orderIds } }).select('_id');
+      query.$and = [{ tripId: { $in: routes.map(r => r._id) } }];
+    }
 
     const logs = await HealthLog.find(query)
       .populate('horseId', 'name microchipId feiPassportNumber')
@@ -40,8 +46,11 @@ exports.createHealthLog = async (req, res, next) => {
     }
 
     // 1. Idempotency Check: Verify if this eventId was already processed
+    await validateHealthAssignment(req.user, tripId, horseId);
     const existingLog = await HealthLog.findOne({ eventId });
     if (existingLog) {
+      if (String(existingLog.tripId) !== String(tripId) || String(existingLog.recordedBy) !== String(req.user._id)) return res.status(403).json({ success: false, message: 'Sự kiện không thuộc nhật ký của bạn.' });
+      await require('../services/healthEscalation')(existingLog, req);
       return res.status(200).json({
         success: true,
         isDuplicate: true,
@@ -73,6 +82,7 @@ exports.createHealthLog = async (req, res, next) => {
       recordedAt: recordedAt || new Date()
     });
 
+    await require('../services/healthEscalation')(log, req);
     await logAudit({
       actorId: req.user._id,
       action: 'HEALTH_LOG_CREATE',

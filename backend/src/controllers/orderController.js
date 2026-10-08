@@ -8,6 +8,9 @@ const orderDepositService = require('../services/orderDepositService');
 const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 const geocodingService = require('../services/geocodingService');
 const { logAudit } = require('../utils/auditLogger');
+const User = require('../models/User');
+const { staff, deliveryProblem } = require('../services/operationsWorkflow');
+const { accessibleOrders } = require('../services/resourceAccess');
 
 /**
  * Auto-generates unique TR-YYYY-XXXX booking code
@@ -89,6 +92,8 @@ exports.getOrders = async (req, res, next) => {
     if (req.query.status) {
       query.status = req.query.status;
     }
+    const permittedIds = await accessibleOrders(req.user);
+    if (permittedIds !== null) query._id = { $in: permittedIds };
 
     const orders = await Order.find(query)
       .populate('customerId', 'fullName email phone username')
@@ -122,8 +127,8 @@ exports.getOrderById = async (req, res, next) => {
       });
     }
 
-    const permissions = req.user.effectivePermissions || [];
-    if (req.user.role === 'CUSTOMER' && order.customerId._id.toString() !== req.user._id.toString() && !permissions.includes('booking:approve')) {
+    const permittedIds = await accessibleOrders(req.user);
+    if (permittedIds !== null && !permittedIds.some(id => String(id) === String(order._id))) {
       await logAudit({
         actorId: req.user._id,
         action: 'ORDER_READ',
@@ -158,6 +163,9 @@ exports.getOrderById = async (req, res, next) => {
 exports.createOrder = async (req, res, next) => {
   try {
     const { horseIds, departureId, scheduleRevision, specialRequirements, addOnIds = [] } = req.body;
+    const assisting = staff(req.user) && req.body.customerId;
+    const customerId = assisting ? req.body.customerId : req.user._id;
+    if (assisting && !(await User.exists({ _id: customerId, role: 'CUSTOMER', isActive: true }))) return res.status(400).json({ success: false, message: 'Khách hàng không tồn tại hoặc đã ngừng hoạt động.' });
 
     if (!horseIds || !Array.isArray(horseIds) || horseIds.length === 0) {
       return res.status(400).json({
@@ -181,7 +189,7 @@ exports.createOrder = async (req, res, next) => {
     // Validate Horse Ownership: Ensure all selected horses belong to the Customer creating the booking
     const ownedHorses = await Horse.find({
       _id: { $in: horseIds },
-      ownerId: req.user._id
+      ownerId: customerId
     });
 
     if (ownedHorses.length !== horseIds.length) {
@@ -226,7 +234,7 @@ exports.createOrder = async (req, res, next) => {
     }
 
     const activeUnpaidDeposit = await Order.findOne({
-      customerId: req.user._id,
+      customerId,
       depositRequired: true,
       depositStatus: 'UNPAID',
       status: 'PENDING_APPROVAL',
@@ -251,7 +259,9 @@ exports.createOrder = async (req, res, next) => {
     const order = await Order.create({
       ...departure,
       bookingCode,
-      customerId: req.user._id, // Enforce authenticated customer identity from JWT
+      customerId,
+      createdBy: req.user._id,
+      customerConfirmation: assisting ? 'PENDING' : 'NOT_REQUIRED',
       horseIds,
       origin: {
         address: origin.address.trim(),
@@ -302,6 +312,7 @@ exports.createOrder = async (req, res, next) => {
 exports.updateOrderStatus = async (req, res, next) => {
   try {
     const { status, rejectionReason } = req.body;
+    if (['IN_TRANSIT', 'DELIVERING', 'COMPLETED', 'CANCELLED'].includes(status)) return res.status(409).json({ success: false, message: 'Sử dụng luồng vận chuyển, giao nhận hoặc hủy đơn chuyên biệt.' });
 
     if (!status) {
       return res.status(400).json({
@@ -323,7 +334,7 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
     if (!order && mongoose.Types.ObjectId.isValid(req.params.id)) {
-      const Route = require('../models/Route');
+      const Route = require('../models/TransportRoute');
       const route = await Route.findById(req.params.id);
       if (route && route.orderId) {
         order = await Order.findById(route.orderId);
@@ -338,6 +349,12 @@ exports.updateOrderStatus = async (req, res, next) => {
     }
 
     const currentStatus = order.status;
+    if (status === 'APPROVED' && ['PENDING', 'CHANGES_REQUESTED'].includes(order.customerConfirmation)) return res.status(409).json({ success: false, message: 'Khách hàng cần xác nhận thông tin do nhân viên nhập hỗ trợ.' });
+    if (status === 'COMPLETED') {
+      const route = await TransportRoute.findOne({ orderId: order._id });
+      const problem = !route ? 'Chưa có vận đơn.' : await deliveryProblem(route, order);
+      if (problem) return res.status(409).json({ success: false, message: problem });
+    }
     const allowedNextStatuses = ALLOWED_ORDER_TRANSITIONS[currentStatus] || [];
 
     // Enforce State Machine Validation
@@ -438,6 +455,8 @@ exports.cancelOrder = async (req, res, next) => {
     }
 
     const previousStatus = order.status;
+    if (['COMPLETED', 'CANCELLED', 'REJECTED', 'IN_TRANSIT', 'DELIVERING'].includes(previousStatus) || order.settlement?.closedAt) return res.status(409).json({ success: false, message: 'Không thể hủy đơn đã kết thúc hoặc đang giữ ngựa trên đường; cần xử lý sự cố.' });
+    if (await TransportRoute.exists({ orderId: order._id })) return res.status(409).json({ success: false, message: 'Đơn đã có vận đơn; điều phối cần giải quyết phân công trước khi hủy.' });
     order.status = 'CANCELLED';
     order.cancellationReason = req.body.reason || 'Khách hàng hủy đơn';
     if (order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
