@@ -407,7 +407,29 @@ exports.waypointCheckin = async (req, res, next) => {
     }
     waypoint.status = status || 'ARRIVED';
     waypoint.actualArrival = new Date();
+    if (waypoint.location?.coordinates && waypoint.status === 'ARRIVED') {
+      route.currentLocation = {
+        type: 'Point',
+        coordinates: waypoint.location.coordinates,
+        speedKmh: 0,
+        headingDegree: 0,
+        updatedAt: waypoint.actualArrival
+      };
+    }
     await route.save();
+
+    const io = req.app?.get?.('io');
+    if (io && waypoint.location?.coordinates && waypoint.status === 'ARRIVED') {
+      const roomName = `trip_${route._id.toString()}`;
+      io.to(roomName).emit('route:location_changed', {
+        tripId: route._id.toString(),
+        latitude: waypoint.location.coordinates[1],
+        longitude: waypoint.location.coordinates[0],
+        speedKmh: 0,
+        headingDegree: 0,
+        timestamp: waypoint.actualArrival.toISOString()
+      });
+    }
 
     await logAudit({
       actorId: req.user._id,
