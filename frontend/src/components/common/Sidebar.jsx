@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CalendarClock, Gauge, Home, Map, PackageCheck, PackageSearch, Route, Truck, UserRound, UsersRound } from 'lucide-react';
+import { AlertTriangle, CalendarClock, DollarSign, Gauge, Home, Map, PackageCheck, PackageSearch, Route, Truck, UserRound, UsersRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES } from '../../utils/constants';
@@ -22,6 +22,7 @@ const Sidebar = () => {
   const logisticsItems = [
     { to: '/orders', label: 'Đơn hàng & quyết toán', icon: PackageSearch },
     { to: '/manager', label: 'Tổng quan', icon: Gauge },
+    { to: '/manager/revenue', label: 'Doanh thu & Tài chính', icon: DollarSign },
     { to: '/manager/drivers', label: 'Tài xế', icon: UserRound },
     { to: '/manager/escorts', label: 'Phụ xe', icon: UsersRound },
     { to: '/manager/trips', label: 'Chuyến vận chuyển', icon: Route }
@@ -36,6 +37,7 @@ const Sidebar = () => {
   const fleetItems = [
     { to: '/orders', label: 'Đơn hàng & nhập hỗ trợ', icon: PackageSearch },
     { to: '/manager', label: 'Trung tâm điều phối', icon: Gauge },
+    { to: '/manager/revenue', label: 'Doanh thu & Tài chính', icon: DollarSign },
     { to: '/manager/schedules', label: 'Lịch & giá cố định', icon: CalendarClock },
     { to: '/fleet/trips', label: 'Phân công chuyến', icon: Route },
     { to: '/fleet/vehicles', label: 'Đội xe', icon: Truck },

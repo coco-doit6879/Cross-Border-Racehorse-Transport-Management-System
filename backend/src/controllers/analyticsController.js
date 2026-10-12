@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const TransportRoute = require('../models/TransportRoute');
 const Incident = require('../models/Incident');
+const PaymentTransaction = require('../models/PaymentTransaction');
 const { calculateHaversineDistanceKm } = require('../services/routeDeviationService');
 const { logAudit } = require('../utils/auditLogger');
 
@@ -166,6 +167,173 @@ exports.getB2BBillingReconciliation = async (req, res, next) => {
         grandTotalEmergencyCosts: grandTotalEmergencyCosts
       },
       data: reconciliationItems
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getRevenueAnalytics = async (req, res, next) => {
+  try {
+    const { startDate, endDate, status, purpose } = req.query;
+
+    // Filter transactions
+    const txFilter = {};
+    if (status) txFilter.status = status;
+    if (purpose) txFilter.purpose = purpose;
+    if (startDate || endDate) {
+      txFilter.createdAt = {};
+      if (startDate) txFilter.createdAt.$gte = new Date(startDate);
+      if (endDate) txFilter.createdAt.$lte = new Date(endDate);
+    }
+
+    const transactions = await PaymentTransaction.find(txFilter)
+      .populate('orderId', 'bookingCode origin destination status paymentStatus depositStatus pricing')
+      .populate('customerId', 'fullName email phone')
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    // Aggregate paid transactions
+    const allPaidTx = await PaymentTransaction.find({ status: 'PAID' });
+    const totalCollectedVnpay = allPaidTx.reduce((sum, tx) => sum + (Number(tx.amountVnd) || 0), 0);
+    const depositCollected = allPaidTx
+      .filter((tx) => tx.purpose === 'DEPOSIT')
+      .reduce((sum, tx) => sum + (Number(tx.amountVnd) || 0), 0);
+    const balanceCollected = allPaidTx
+      .filter((tx) => tx.purpose === 'BALANCE')
+      .reduce((sum, tx) => sum + (Number(tx.amountVnd) || 0), 0);
+
+    // Aggregate orders financial data
+    const orders = await Order.find(
+      {},
+      'pricing depositAmountVnd depositStatus paymentStatus settlement exceptionRequests status bookingCode customerId createdAt'
+    ).populate('customerId', 'fullName email phone');
+
+    let totalContractValue = 0;
+    let totalSurcharges = 0;
+    let totalReceiptsCashBank = 0;
+    let totalRefunded = 0;
+    let totalCompensated = 0;
+
+    const orderFinancialList = orders.map((order) => {
+      const contractVal = Number(order.pricing?.totalAmountVnd || 0);
+      totalContractValue += contractVal;
+
+      const orderSurcharges = (order.settlement?.surcharges || [])
+        .filter((s) => s.status === 'APPROVED')
+        .reduce((sum, s) => sum + (Number(s.amountVnd) || 0), 0);
+      totalSurcharges += orderSurcharges;
+
+      const orderReceipts = (order.settlement?.receipts || []).reduce(
+        (sum, r) => sum + (Number(r.amountVnd) || 0),
+        0
+      );
+      totalReceiptsCashBank += orderReceipts;
+
+      const executedExceptions = (order.exceptionRequests || []).filter((e) => e.status === 'EXECUTED');
+      const orderRefunds = executedExceptions
+        .filter((e) => e.kind === 'REFUND')
+        .reduce((sum, e) => sum + (Number(e.amountVnd) || 0), 0);
+      const orderCompensations = executedExceptions
+        .filter((e) => e.kind === 'COMPENSATION')
+        .reduce((sum, e) => sum + (Number(e.amountVnd) || 0), 0);
+
+      totalRefunded += orderRefunds;
+      totalCompensated += orderCompensations;
+
+      // Calculate paid so far for this order from paid transactions
+      const orderPaidTxs = allPaidTx.filter(
+        (tx) => tx.orderId && tx.orderId.toString() === order._id.toString()
+      );
+      const paidVnpay = orderPaidTxs.reduce((sum, tx) => sum + (Number(tx.amountVnd) || 0), 0);
+      const netPaidForOrder = paidVnpay + orderReceipts;
+      const outstandingForOrder = Math.max(0, contractVal + orderSurcharges - netPaidForOrder);
+
+      return {
+        orderId: order._id,
+        bookingCode: order.bookingCode,
+        customerName: order.customerId?.fullName || 'Khách vãng lai',
+        customerPhone: order.customerId?.phone || 'N/A',
+        contractValue: contractVal,
+        surcharges: orderSurcharges,
+        refunds: orderRefunds + orderCompensations,
+        paidVnpay,
+        paidReceipts: orderReceipts,
+        totalPaid: netPaidForOrder,
+        outstanding: outstandingForOrder,
+        orderStatus: order.status,
+        depositStatus: order.depositStatus,
+        paymentStatus: order.paymentStatus,
+        createdAt: order.createdAt
+      };
+    });
+
+    const totalGrossRevenue = totalCollectedVnpay + totalReceiptsCashBank;
+    const netRevenue = totalGrossRevenue - totalRefunded - totalCompensated;
+    const totalOutstanding = Math.max(0, totalContractValue + totalSurcharges - totalGrossRevenue);
+
+    // Monthly trend (group by YYYY-MM)
+    const monthlyMap = new Map();
+    allPaidTx.forEach((tx) => {
+      let dateObj = tx.createdAt ? new Date(tx.createdAt) : null;
+      if (!dateObj || isNaN(dateObj.getTime())) {
+        if (typeof tx.payDate === 'string' && tx.payDate.length >= 8) {
+          const y = tx.payDate.substring(0, 4);
+          const m = tx.payDate.substring(4, 6);
+          const d = tx.payDate.substring(6, 8);
+          dateObj = new Date(`${y}-${m}-${d}`);
+        } else {
+          dateObj = new Date();
+        }
+      }
+      const monthKey = !isNaN(dateObj.getTime())
+        ? dateObj.toISOString().slice(0, 7)
+        : new Date().toISOString().slice(0, 7);
+
+      const cur = monthlyMap.get(monthKey) || { month: monthKey, deposit: 0, balance: 0, total: 0 };
+      if (tx.purpose === 'DEPOSIT') cur.deposit += Number(tx.amountVnd || 0);
+      else cur.balance += Number(tx.amountVnd || 0);
+      cur.total += Number(tx.amountVnd || 0);
+      monthlyMap.set(monthKey, cur);
+    });
+    const monthlyTrend = Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+
+    // Bank breakdown
+    const bankMap = new Map();
+    allPaidTx.forEach((tx) => {
+      const bank = tx.bankCode || 'VNPAY-QR';
+      const cur = bankMap.get(bank) || { bank, amount: 0, count: 0 };
+      cur.amount += Number(tx.amountVnd || 0);
+      cur.count += 1;
+      bankMap.set(bank, cur);
+    });
+    const bankBreakdown = Array.from(bankMap.values()).sort((a, b) => b.amount - a.amount);
+
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          totalGrossRevenue,
+          netRevenue,
+          totalCollectedVnpay,
+          depositCollected,
+          balanceCollected,
+          totalReceiptsCashBank,
+          totalSurcharges,
+          totalRefunded,
+          totalCompensated,
+          totalOutstanding,
+          totalContractValue,
+          paidTransactionsCount: allPaidTx.length,
+          totalOrdersCount: orders.length,
+          paidOrdersCount: orders.filter((o) => o.paymentStatus === 'PAID').length,
+          depositedOrdersCount: orders.filter((o) => o.depositStatus === 'PAID').length
+        },
+        monthlyTrend,
+        bankBreakdown,
+        transactions,
+        orderFinancials: orderFinancialList.slice(0, 50)
+      }
     });
   } catch (error) {
     next(error);
