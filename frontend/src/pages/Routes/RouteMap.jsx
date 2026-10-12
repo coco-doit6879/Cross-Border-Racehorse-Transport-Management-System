@@ -122,7 +122,7 @@ export default function RouteMap() {
       <Card
         title={
           <Space>
-            <CompassOutlined style={{ color: '#2563EB', fontSize: 20 }} />
+            <CompassOutlined style={{ color: '#0F3E2E', fontSize: 20 }} />
             <span>Theo dõi Lộ trình & Mốc hành trình Real-time</span>
           </Space>
         }
@@ -182,7 +182,7 @@ export default function RouteMap() {
                   return (
                     <React.Fragment key={route._id}>
                       {linePoints.length > 1 && (
-                        <Polyline positions={linePoints} pathOptions={{ color: '#2563EB', weight: 4, opacity: 0.8 }} />
+                        <Polyline positions={linePoints} pathOptions={{ color: '#0F3E2E', weight: 4, opacity: 0.8 }} />
                       )}
 
                       {/* Origin Marker */}
@@ -350,7 +350,7 @@ export default function RouteMap() {
                                 type="primary"
                                 size="small"
                                 loading={checkingIn}
-                                style={{ marginTop: 6, fontSize: 12, backgroundColor: '#2563EB' }}
+                                style={{ marginTop: 6, fontSize: 12, backgroundColor: '#0F3E2E' }}
                                 onClick={() => handleQuickCheckin(activeRoute._id, w)}
                               >
                                 🎯 Demo Check-in mốc này

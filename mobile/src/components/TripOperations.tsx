@@ -24,6 +24,7 @@ export function TripOperations({ orderId, onChanged }: { orderId: string; onChan
       setData(workflow.data); setDocs(documents.data); setError('');
     } catch (e) { setError(e instanceof Error ? e.message : 'Không thể tải hồ sơ chuyến.'); }
   }, [apiFetch, orderId]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
   const act = async (action: string, values: Record<string, unknown> = {}) => {
     setBusy(true);
