@@ -41,9 +41,23 @@ const formatVnd = (value) => {
   return Number(value || 0).toLocaleString('vi-VN') + ' ₫';
 };
 
+const formatLocation = (loc) => {
+  if (!loc) return '—';
+  if (typeof loc === 'string') return loc;
+  return loc.address || loc.countryCode || '—';
+};
+
 const formatDateTime = (val) => {
   if (!val) return '—';
   try {
+    if (typeof val === 'string' && val.length === 14 && /^\d{14}$/.test(val)) {
+      const y = val.substring(0, 4);
+      const m = val.substring(4, 6);
+      const d = val.substring(6, 8);
+      const hh = val.substring(8, 10);
+      const mm = val.substring(10, 12);
+      return `${hh}:${mm} ${d}/${m}/${y}`;
+    }
     const d = new Date(val);
     if (isNaN(d.getTime())) return String(val);
     return new Intl.DateTimeFormat('vi-VN', {
@@ -141,7 +155,7 @@ export default function RevenueDashboard() {
           <div>
             <Tag color="cyan">{order.bookingCode || 'Đơn hàng'}</Tag>
             <div style={{ fontSize: 12, color: '#666' }}>
-              {order.origin} → {order.destination}
+              {formatLocation(order.origin)} → {formatLocation(order.destination)}
             </div>
           </div>
         );
