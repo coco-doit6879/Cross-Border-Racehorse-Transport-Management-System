@@ -64,7 +64,7 @@ export default function TripsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background }, header: { padding: 20, backgroundColor: colors.navy, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { color: '#94A3B8', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }, name: { color: '#fff', fontSize: 21, fontWeight: '800', marginTop: 2 }, logout: { color: '#FDBA74', fontWeight: '700' },
+  eyebrow: { color: '#A3D4C0', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }, name: { color: '#fff', fontSize: 21, fontWeight: '800', marginTop: 2 }, logout: { color: '#A3D4C0', fontWeight: '700' },
   titleRow: { paddingHorizontal: 20, paddingTop: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, title: { fontSize: 24, fontWeight: '800', color: colors.text },
   pending: { color: colors.warning, fontSize: 12, fontWeight: '700' }, error: { color: colors.danger, margin: 20 }, list: { padding: 20, gap: 14, paddingBottom: 40 },
   card: { backgroundColor: '#fff', padding: 18, borderRadius: 16, borderWidth: 1, borderColor: colors.border }, cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
