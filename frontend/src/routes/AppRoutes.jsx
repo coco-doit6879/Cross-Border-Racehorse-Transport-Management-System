@@ -17,6 +17,7 @@ import PersonnelPage from '../pages/Manager/PersonnelPage';
 import TripsPage from '../pages/Manager/TripsPage';
 import TripDetailPage from '../pages/Manager/TripDetailPage';
 import TransportSchedulesPage from '../pages/Manager/TransportSchedulesPage';
+import RevenueDashboard from '../pages/Manager/RevenueDashboard';
 import OperationsDashboard from '../pages/Operations/OperationsDashboard';
 import ComplianceQueue from '../pages/Operations/ComplianceQueue';
 import VehiclePage from '../pages/Operations/VehiclePage';
@@ -46,6 +47,7 @@ const managerRoutes = (
       <Route path="escorts" element={<PersonnelPage role="escort" />} />
       <Route path="trips" element={<TripsPage />} />
       <Route path="trips/:id" element={<TripDetailPage />} />
+      <Route path="revenue" element={<RevenueDashboard />} />
     </Route>
   </>
 );
@@ -107,6 +109,10 @@ const AppRoutes = () => (
 
           <Route element={<ProtectedRoute requiredPermission={PERMISSIONS.SOS_MANAGE} />}>
             <Route path="/incidents/sos" element={<SOSAlerts />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={OPERATIONAL_ROLES} />}>
+            <Route path="/revenue" element={<RevenueDashboard />} />
           </Route>
 
           {!isManagerDemoEnabled ? (

@@ -51,4 +51,42 @@ router.get('/kpi', protect, checkPermission('analytics:view'), analyticsControll
  */
 router.get('/b2b-reconciliation', protect, checkPermission('analytics:view'), analyticsController.getB2BBillingReconciliation);
 
+/**
+ * @swagger
+ * /analytics/revenue:
+ *   get:
+ *     summary: Get comprehensive financial and revenue analytics dashboard data
+ *     tags: [Analytics & B2B Reconciliation]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string }
+ *       - in: query
+ *         name: purpose
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Revenue summary, transactions, monthly trend, and order financials
+ */
+router.get(
+  '/revenue',
+  protect,
+  (req, res, next) => {
+    const perms = req.user.effectivePermissions || [];
+    if (perms.includes('analytics:view') || req.user.role === 'LOGISTICS_MANAGER' || req.user.role === 'FLEET_COORDINATOR') {
+      return next();
+    }
+    return res.status(403).json({ success: false, message: 'Forbidden: Insufficient permissions for revenue analytics' });
+  },
+  analyticsController.getRevenueAnalytics
+);
+
 module.exports = router;

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarClock, CarFront, Plus, RotateCcw, UserCheck, UserRoundCog, UsersRound } from 'lucide-react';
+import { CalendarClock, CarFront, DollarSign, Plus, RotateCcw, UserCheck, UserRoundCog, UsersRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AssignmentModal from '../../components/manager/AssignmentModal';
 import ManagerPageState from '../../components/manager/ManagerPageState';
@@ -40,7 +40,7 @@ const DashboardContent = () => {
           <div className="content-card__heading"><div><span className="eyebrow">Cần xử lý</span><h2>Chuyến cần phân công</h2></div><Link className="table-link" to="/manager/trips">Xem danh sách</Link></div>
           {needsAssignment.length ? <div className="dashboard-trip-list">{needsAssignment.slice(0, 5).map((trip) => <div className="dashboard-trip" key={trip.id}><div><strong>{trip.code}</strong><p>{trip.origin} → {trip.destination}</p><small>{formatDateTime(trip.startAt)}</small></div><div className="dashboard-trip__actions"><Link to={`/manager/trips/${trip.id}`}>Chi tiết</Link>{isTripEditable(trip) ? <button type="button" onClick={() => setSelectedTrip(trip)}>Phân công</button> : null}</div></div>)}</div> : <p className="muted-text">Tất cả chuyến sắp tới đã đủ nhân sự.</p>}
         </article>
-        <article className="content-card quick-actions-card"><div><span className="eyebrow">Lối tắt</span><h2>Quản lý nhân sự</h2></div><Link className="quick-action" to="/manager/drivers?create=1"><span><Plus size={17} /></span><div><strong>Thêm tài xế</strong><small>Tạo hồ sơ tài xế mới</small></div></Link><Link className="quick-action" to="/manager/escorts?create=1"><span><Plus size={17} /></span><div><strong>Thêm phụ xe</strong><small>Tạo hồ sơ phụ xe mới</small></div></Link><div className="quick-action-summary"><UsersRound size={18} /><span>{data.drivers.length} tài xế · {data.escorts.length} phụ xe</span></div></article>
+        <article className="content-card quick-actions-card"><div><span className="eyebrow">Lối tắt</span><h2>Quản lý & Tài chính</h2></div><Link className="quick-action" to="/manager/revenue"><span><DollarSign size={17} /></span><div><strong>Doanh thu & tài chính</strong><small>Xem sao kê VNPAY & quyết toán</small></div></Link><Link className="quick-action" to="/manager/drivers?create=1"><span><Plus size={17} /></span><div><strong>Thêm tài xế</strong><small>Tạo hồ sơ tài xế mới</small></div></Link><Link className="quick-action" to="/manager/escorts?create=1"><span><Plus size={17} /></span><div><strong>Thêm phụ xe</strong><small>Tạo hồ sơ phụ xe mới</small></div></Link><div className="quick-action-summary"><UsersRound size={18} /><span>{data.drivers.length} tài xế · {data.escorts.length} phụ xe</span></div></article>
       </div>
 
       <article className="content-card">
