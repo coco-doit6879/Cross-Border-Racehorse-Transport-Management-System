@@ -1,103 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Divider, Modal, Space, Tag, Steps, message } from 'antd';
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { Alert, Button, Card, Divider, Modal, Skeleton, Tag, message } from 'antd';
 import { useOrderStore } from '../../store/useOrderStore';
 import { useAuthStore } from '../../store/useAuthStore';
-
 import LocationMap from '../../components/common/LocationMap';
 import ComplianceDocuments from '../../components/operations/ComplianceDocuments';
 import OrderOperations from '../../components/operations/OrderOperations';
+import { Workspace, StatusPill } from '../../components/operations/OperationsUI';
+import './order-detail.css';
 
-const formatVnd = (value) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
-
-const STATUS_CONFIG = {
-  PENDING_APPROVAL: { label: 'Chờ phê duyệt', color: '#92400E', bg: '#FEF3C7', border: '#FDE68A' },
-  APPROVED: { label: 'Đã phê duyệt', color: '#1E40AF', bg: '#DBEAFE', border: '#BFDBFE' },
-  DOCS_PROCESSING: { label: 'Xử lý hồ sơ kiểm dịch', color: '#1E40AF', bg: '#DBEAFE', border: '#BFDBFE' },
-  CLEARED_FOR_TRANSPORT: { label: 'Đủ điều kiện xuất phát', color: '#15803D', bg: '#DCFCE7', border: '#BBF7D0' },
-  IN_TRANSIT: { label: 'Đang vận chuyển trên đường', color: '#0369A1', bg: '#E0F2FE', border: '#BAE6FD' },
-  DELIVERING: { label: 'Đang bàn giao tại đích', color: '#166534', bg: '#DCFCE7', border: '#86EFAC' },
-  COMPLETED: { label: 'Đã hoàn thành', color: '#166534', bg: '#DCFCE7', border: '#86EFAC' },
-  CANCELLED: { label: 'Đã hủy', color: '#991B1B', bg: '#FEE2E2', border: '#FECACA' },
-  REJECTED: { label: 'Từ chối', color: '#991B1B', bg: '#FEE2E2', border: '#FECACA' }
-};
-
+const formatVnd = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
+const locationText = value => typeof value === 'string' ? value : value?.address || 'Chưa cập nhật';
+const progressLabels = ['Đặt cọc', 'Phê duyệt', 'Hồ sơ', 'Vận chuyển', 'Bàn giao'];
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { orders, fetchOrderById, createVnpayPayment, loading, error } = useOrderStore();
-  const { user } = useAuthStore();
+  const user = useAuthStore(state => state.user);
   const [paymentOpen, setPaymentOpen] = useState(false);
-
-  const order = orders.find((o) => String(o.id || o._id) === String(id) || o.orderCode === id);
-
-  useEffect(() => {
-    if (!order && id) fetchOrderById(id).catch(() => {});
-  }, [fetchOrderById, id, order]);
-
-  if (!order) {
-    return (
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: 20 }}>
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: 24 }}>
-          {loading ? 'Đang tải chi tiết đơn vận chuyển...' : error || 'Không tìm thấy đơn vận chuyển.'}
-        </div>
-      </div>
-    );
-  }
-
-  const progressSteps = [
-    {
-      title: 'Đặt cọc',
-      description: order.depositRequired
-        ? order.depositStatus === 'PAID'
-          ? 'Đã nhận tiền cọc'
-          : 'Đang chờ đặt cọc'
-        : 'Không áp dụng'
-    },
-    {
-      title: 'Phê duyệt đơn',
-      description:
-        order.status === 'PENDING_APPROVAL'
-          ? order.depositStatus === 'PAID' || !order.depositRequired
-            ? 'Đang chờ phê duyệt'
-            : 'Mở sau khi đặt cọc'
-          : 'Đã xử lý'
-    },
-    {
-      title: 'Hồ sơ kiểm dịch',
-      description: ['APPROVED', 'DOCS_PROCESSING'].includes(order.status)
-        ? 'Đang xử lý'
-        : order.status === 'PENDING_APPROVAL'
-        ? 'Chưa bắt đầu'
-        : 'Đã xử lý'
-    },
-    {
-      title: 'Vận chuyển',
-      description: ['IN_TRANSIT', 'DELIVERING'].includes(order.status)
-        ? 'Đang thực hiện'
-        : order.status === 'COMPLETED'
-        ? 'Đã hoàn tất'
-        : 'Chưa bắt đầu'
-    },
-    {
-      title: 'Bàn giao',
-      description: order.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa bắt đầu'
-    }
-  ];
-
-  const progressIndex =
-    order.status === 'COMPLETED'
-      ? 5
-      : ['IN_TRANSIT', 'DELIVERING'].includes(order.status)
-      ? 3
-      : ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status)
-      ? 2
-      : order.depositStatus === 'PAID' || !order.depositRequired
-      ? 1
-      : 0;
-
+  const [tab, setTab] = useState('overview');
+  const [visited, setVisited] = useState(['overview']);
+  const [mapOpen, setMapOpen] = useState(false);
+  const order = orders.find(o => String(o.id || o._id) === String(id) || o.orderCode === id);
+  useEffect(() => { if (id) fetchOrderById(id).catch(() => {}); }, [fetchOrderById, id]);
+  useEffect(() => { setTab('overview'); setVisited(['overview']); setMapOpen(false); }, [id]);
+  const changeTab = value => { setTab(value); setVisited(current => current.includes(value) ? current : [...current, value]); };
+  if (!order) return <Workspace eyebrow="Đơn vận chuyển" title="Chi tiết đơn hàng">{error ? <Alert type="error" message={error} action={<Button onClick={() => fetchOrderById(id).catch(() => {})}>Thử lại</Button>} /> : <Skeleton active />}</Workspace>;
   const needsDeposit = order.depositRequired && order.depositStatus !== 'PAID';
   const canPayBalance = ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status);
   const canPay =
@@ -119,235 +47,35 @@ const OrderDetail = () => {
     }
   };
 
-  const statusMeta = STATUS_CONFIG[order?.status] || {
-    label: order?.status,
-    color: '#334155',
-    bg: '#F1F5F9',
-    border: '#CBD5E1'
-  };
 
-  return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, padding: '8px 4px 32px' }}>
-      {/* Top Header Card */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12,
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          borderRadius: 10,
-          padding: '16px 20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Button
-            icon={<ArrowLeft size={16} />}
-            onClick={() => navigate('/orders')}
-            style={{ borderRadius: 6 }}
-          />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0F172A' }}>
-                Đơn vận chuyển {order?.orderCode}
-              </h1>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: statusMeta.color,
-                  backgroundColor: statusMeta.bg,
-                  border: `1px solid ${statusMeta.border}`,
-                  padding: '2px 8px',
-                  borderRadius: 4
-                }}
-              >
-                {statusMeta.label}
-              </span>
-            </div>
-            <div style={{ fontSize: 13, color: '#64748B', marginTop: 3 }}>
-              {order?.routeLabel} · Khách hàng: {order?.customerName}
-            </div>
-          </div>
-        </div>
-
-        {canPay && (
-          <Button
-            type="primary"
-            icon={<CreditCard size={15} />}
-            onClick={() => setPaymentOpen(true)}
-            style={{
-              background: '#0F3E2E',
-              borderColor: '#0F3E2E',
-              borderRadius: 6,
-              fontWeight: 600,
-              height: 38
-            }}
-          >
-            {needsDeposit ? 'Đặt cọc 20% qua VNPAY' : 'Thanh toán phần còn lại'}
-          </Button>
-        )}
-      </div>
-
-      {/* Main Info Grid: Responsive (Auto-fit into 1 col on mobile, 2 cols on desktop) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 18
-        }}
-      >
-        {/* Left Column: Shipment Journey & Vehicle */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 10,
-            padding: 20,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>
-            Thông tin chặng vận chuyển
-          </div>
-
-          {/* Route origin to destination visual */}
-          <div
-            style={{
-              background: '#F8FAFC',
-              border: '1px solid #E2E8F0',
-              borderRadius: 8,
-              padding: 14,
-              marginBottom: 16
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 11, color: '#64748B', display: 'block', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
-                  Điểm đón (Origin)
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', display: 'block', marginTop: 2 }}>
-                  {order?.origin}
-                </span>
-              </div>
-              <div style={{ padding: '0 8px', color: '#94A3B8', fontSize: 18, fontWeight: 700 }}>
-                →
-              </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                <span style={{ fontSize: 11, color: '#64748B', display: 'block', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
-                  Điểm giao (Destination)
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', display: 'block', marginTop: 2 }}>
-                  {order?.destination}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Meta rows */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, fontSize: 13, marginBottom: 16 }}>
-            <div>
-              <span style={{ color: '#64748B', display: 'block', fontSize: 12 }}>Ngày khởi hành:</span>
-              <strong style={{ color: '#0F172A' }}>
-                {order?.departureDate} {order?.departureTime && `(${order.departureTime})`}
-              </strong>
-              {order?.departureId && (
-                <div style={{ color: '#64748B', fontSize: 11 }}>Giờ tại điểm đón ({order.departureTimezone})</div>
-              )}
-            </div>
-            <div>
-              <span style={{ color: '#64748B', display: 'block', fontSize: 12 }}>Biển số xe chuyên dụng:</span>
-              <strong style={{ color: '#0F172A' }}>{order?.vehiclePlate || 'Chưa phân công'}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748B', display: 'block', fontSize: 12 }}>Tài xế phụ trách:</span>
-              <strong style={{ color: '#0F172A' }}>{order?.driverName || 'Chưa phân công'}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748B', display: 'block', fontSize: 12 }}>Ngựa vận chuyển:</span>
-              <strong style={{ color: '#0F172A' }}>
-                {Array.isArray(order?.horses) ? order.horses.join(', ') : order?.horses}
-              </strong>
-            </div>
-          </div>
-
-          {order?.specialRequirements && (
-            <div style={{ marginBottom: 16 }}>
-              <span style={{ color: '#64748B', fontSize: 12, display: 'block', marginBottom: 4 }}>
-                Yêu cầu chăm sóc đặc biệt:
-              </span>
-              <div
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#F8FAFC',
-                  borderRadius: 6,
-                  border: '1px solid #E2E8F0',
-                  fontSize: 13,
-                  color: '#334155'
-                }}
-              >
-                {order.specialRequirements}
-              </div>
-            </div>
-          )}
-
-          {/* Embedded Route Map */}
-          {order?.originLocation && order?.destinationLocation && (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>
-                Bản đồ lộ trình
-              </div>
-              <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-                <LocationMap
-                  originLocation={order.originLocation}
-                  destinationLocation={order.destinationLocation}
-                  height="220px"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Milestones & Progress */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 10,
-            padding: 20,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>
-            Tiến độ hành trình
-          </div>
-          <div style={{ paddingLeft: 4 }}>
-            <Steps
-              direction="vertical"
-              current={progressIndex}
-              items={progressSteps}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Operational Modules: POD, Odometer stats, Clearances */}
-      <OrderOperations
-        orderId={order.id || order._id}
-        onChanged={() => fetchOrderById(id).catch(() => {})}
-      />
-
-      {/* Compliance Documents */}
-      <ComplianceDocuments
-        orderId={order.id || order._id}
-        customer={user?.role === 'CUSTOMER'}
-        specialist={user?.role === 'TRANSPORT_SPECIALIST'}
-        onChanged={() => fetchOrderById(id).catch(() => {})}
-      />
-
+  const step = order.status === 'COMPLETED' ? 5 : order.status === 'DELIVERING' ? 4 : order.status === 'IN_TRANSIT' || order.status === 'CLEARED_FOR_TRANSPORT' ? 3 : ['APPROVED', 'DOCS_PROCESSING'].includes(order.status) ? 2 : order.depositStatus === 'PAID' || !order.depositRequired ? 1 : 0;
+  const terminal = ['CANCELLED', 'REJECTED'].includes(order.status);
+  const attention = terminal ? 'Đơn đã dừng xử lý.' : order.status === 'COMPLETED' ? 'Bàn giao đã hoàn tất. Xem thanh toán hoặc liên hệ hỗ trợ khi cần.' : order.status === 'DELIVERING' ? 'Đang ở giai đoạn bàn giao tại điểm đến.' : canPay ? 'Hoàn tất thanh toán để đơn được xử lý ở bước tiếp theo.' : order.status === 'DOCS_PROCESSING' ? 'Hồ sơ đang được xử lý. Mở mục Hồ sơ để kiểm tra yêu cầu bổ sung.' : 'Theo dõi trạng thái đơn; chi tiết vận hành nằm trong mục Hành trình.';
+  const care = order.specialRequirements?.trim();
+  const hasCare = care && !['không', 'không có', 'none', 'no'].includes(care.toLowerCase().replace(/[.!]$/, ''));
+  const refresh = () => fetchOrderById(id).catch(() => {});
+  return <div className="order-detail-shell"><Workspace eyebrow="Đơn vận chuyển" title={order.orderCode} description={order.customerName ? `Chủ hàng: ${order.customerName}` : undefined} actions={<Button onClick={() => navigate('/orders')}>Về danh sách</Button>}>
+    {error && <Alert type="error" message={error} action={<Button onClick={refresh}>Thử tải lại</Button>} />}
+    <section className="order-summary">
+      <div className="order-summary-top"><StatusPill value={order.status} /><span className="order-payment-state"><StatusPill value={order.paymentStatus} /></span></div>
+      <div className="order-route"><div><span>Điểm đón</span><strong>{locationText(order.origin)}</strong></div><div><span>Điểm giao</span><strong>{locationText(order.destination)}</strong></div></div>
+      <dl className="order-summary-facts"><div><dt>Khởi hành</dt><dd>{order.departureDate} · {order.departureTime}</dd></div><div><dt>Ngựa vận chuyển</dt><dd>{order.horses?.join(', ') || 'Chưa cập nhật'}</dd></div><div><dt>Tài xế / xe</dt><dd>{order.driverName || 'Chưa phân công'}<small>{order.vehiclePlate || 'Chưa phân xe'}</small></dd></div></dl>
+      {!terminal && <ol className="order-progress" aria-label="Tiến độ đơn hàng">{progressLabels.map((label, index) => <li key={label} className={index < step ? 'is-done' : index === step ? 'is-current' : ''} aria-current={index === step ? 'step' : undefined}>{label}</li>)}</ol>}
+    </section>
+    <nav className="order-detail-tabs" role="tablist" aria-label="Nội dung đơn vận chuyển">{[
+      ['overview', 'Tổng quan'], ['journey', 'Hành trình'], ['documents', 'Hồ sơ'], ['finance', 'Thanh toán'], ['support', 'Hỗ trợ']
+    ].map(([key, label]) => <button key={key} type="button" role="tab" tabIndex={tab === key ? 0 : -1} aria-selected={tab === key} onClick={() => changeTab(key)} onKeyDown={event => { if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); const buttons = [...event.currentTarget.parentElement.querySelectorAll('[role=tab]')]; const index = buttons.indexOf(event.currentTarget); const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length; buttons[next].click(); buttons[next].focus(); }}>{label}</button>)}</nav>
+    <p className="order-tabs-hint">Vuốt thanh mục sang ngang để xem thêm.</p>
+    <div hidden={tab !== 'overview'} className="order-overview">
+      {!(order.status === 'DELIVERING' && user?.role === 'CUSTOMER') && <div className="order-attention"><p>{attention}</p>{canPay && <Button type="primary" onClick={() => setPaymentOpen(true)}>{needsDeposit ? 'Thanh toán tiền cọc' : 'Thanh toán phần còn lại'}</Button>}</div>}
+      {hasCare && <div className="order-care"><strong>Lưu ý chăm sóc</strong><p>{care}</p></div>}
+    </div>
+    <div hidden={tab !== 'journey'}>
+      <p className="ops-secondary">Lịch khởi hành tính theo giờ tại điểm đón ({order.departureTimezone}).</p>
+      {visited.includes('journey') && <section className="order-map-section"><div><h2>Bản đồ tuyến đường</h2><p>Chỉ mở bản đồ khi cần tra cứu điểm đón và điểm giao.</p></div><Button aria-expanded={mapOpen} onClick={() => setMapOpen(value => !value)}>{mapOpen ? 'Thu gọn bản đồ' : 'Xem bản đồ'}</Button>{mapOpen && order.originLocation && order.destinationLocation && <div className="order-map-frame"><LocationMap originLocation={order.originLocation} destinationLocation={order.destinationLocation} height="280px" /></div>}</section>}
+    </div>
+    <div hidden={tab !== 'documents'}>{visited.includes('documents') && <ComplianceDocuments orderId={order.id || order._id} customer={user?.role === 'CUSTOMER'} specialist={user?.role === 'TRANSPORT_SPECIALIST'} onChanged={refresh} />}</div>
+    <div hidden={tab !== 'finance'}>
       {/* Financials & Settlement Card */}
       <Card
         style={{
@@ -460,7 +188,6 @@ const OrderDetail = () => {
               {canPay && (
                 <Button
                   type="primary"
-                  icon={<CreditCard size={15} />}
                   onClick={() => setPaymentOpen(true)}
                   style={{
                     background: '#0F3E2E',
@@ -487,6 +214,9 @@ const OrderDetail = () => {
         )}
       </Card>
 
+
+    </div>
+    <OrderOperations key={order.id || order._id} orderId={order.id || order._id} view={tab} onChanged={refresh} />
       {/* VNPAY Payment Modal */}
       <Modal
         title={needsDeposit ? 'Đặt cọc 20% qua cổng VNPAY' : 'Thanh toán phần còn lại qua cổng VNPAY'}
@@ -507,8 +237,7 @@ const OrderDetail = () => {
           </div>
         </div>
       </Modal>
-    </div>
-  );
-};
 
+  </Workspace></div>;
+};
 export default OrderDetail;

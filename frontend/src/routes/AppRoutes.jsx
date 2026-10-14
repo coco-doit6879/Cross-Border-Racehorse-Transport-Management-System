@@ -103,7 +103,7 @@ const AppRoutes = () => (
             <Route path="/fleet/vehicles" element={<VehiclePage />} />
             <Route path="/fleet/staff" element={<FleetStaffPage />} />
           </Route>
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR]} />}>
             <Route path="/manager/schedules" element={<TransportSchedulesPage />} />
           </Route>
 
@@ -111,7 +111,7 @@ const AppRoutes = () => (
             <Route path="/incidents/sos" element={<SOSAlerts />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={OPERATIONAL_ROLES} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.LOGISTICS_MANAGER]} />}>
             <Route path="/revenue" element={<RevenueDashboard />} />
           </Route>
 

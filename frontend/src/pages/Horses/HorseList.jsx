@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Button, Card, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Alert, Button, Input, Modal, Select, Table, message } from 'antd';
 import { useHorseStore } from '../../store/useHorseStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import HorseProfileForm, { canReviewHorse, reviewColors, reviewLabels } from './HorseProfileForm';
+import { DataPanel, Metrics, StatusPill, Workspace } from '../../components/operations/OperationsUI';
+import HorseProfileForm, { canReviewHorse, reviewLabels } from './HorseProfileForm';
 
 export default function HorseList() {
   const navigate = useNavigate();
@@ -24,30 +25,44 @@ export default function HorseList() {
     } catch (err) { message.error(err.response?.data?.message || 'Không thể tạo hồ sơ.'); }
     finally { setSaving(false); }
   };
-  const filtered = horses.filter((h) => (status === 'ALL' || h.reviewStatus === status) && `${h.name} ${h.microchipId} ${h.feiPassportNo}`.toLowerCase().includes(search.toLowerCase()));
+  const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  const query = normalize(search.trim());
+  const filtered = horses.filter((horse) => (status === 'ALL' || horse.reviewStatus === status)
+    && normalize([horse.name, horse.microchipId, horse.feiPassportNo, horse.ownerName].join(' ')).includes(query));
+  const countByStatus = (value) => horses.filter((horse) => horse.reviewStatus === value).length;
   const columns = [
-    { title: 'Tên ngựa', dataIndex: 'name', render: (name, h) => <div><strong>{name}</strong><div>{h.ownerName}</div></div> },
-    { title: 'Mã vi chip', dataIndex: 'microchipId' },
-    { title: 'Số hộ chiếu', dataIndex: 'feiPassportNo' },
-    { title: 'Giống ngựa', dataIndex: 'breed' },
-    { title: 'Địa điểm hiện tại', dataIndex: 'currentStopId', render: (value) => value || <Tag color="red">Chưa khai báo</Tag> },
-    { title: 'Tuổi / Cân nặng', render: (_, h) => `${h.age} • ${h.weight || '—'} kg` },
-    { title: 'Kiểm duyệt sức khỏe', dataIndex: 'reviewStatus', render: (value) => <Tag color={reviewColors[value]}>{reviewLabels[value]}</Tag> },
-    { title: 'Thao tác', render: (_, h) => <Button onClick={() => navigate(`/horses/${h.id}`)}>{reviewer ? 'Xem & kiểm duyệt' : 'Hồ sơ & giấy tờ'}</Button> }
+    { title: 'Tên ngựa / Chủ sở hữu', dataIndex: 'name', width: 210, render: (name, horse) => <div><strong>{name}</strong><div className="ops-secondary">{horse.ownerName || 'Chưa có thông tin chủ sở hữu'}</div></div> },
+    { title: 'Mã vi chip', dataIndex: 'microchipId', width: 160 },
+    { title: 'Số hộ chiếu', dataIndex: 'feiPassportNo', width: 150 },
+    { title: 'Giống ngựa', dataIndex: 'breed', width: 140 },
+    { title: 'Địa điểm hiện tại', dataIndex: 'currentStopId', width: 170, render: (value) => value || <StatusPill value="PENDING" label="Chưa khai báo" /> },
+    { title: 'Tuổi / Cân nặng', width: 150, render: (_, horse) => `${horse.age} tuổi / ${horse.weight || '—'} kg` },
+    { title: 'Kiểm duyệt sức khỏe', dataIndex: 'reviewStatus', width: 210, render: (value) => <StatusPill value={value} label={reviewLabels[value] || value} /> },
+    { title: 'Thao tác', width: 180, render: (_, horse) => <Button onClick={() => navigate(`/horses/${horse.id}`)}>{reviewer ? 'Xem & kiểm duyệt' : 'Hồ sơ & giấy tờ'}</Button> }
   ];
-  return <Space direction="vertical" size={20} style={{ width: '100%' }}>
-    <Card title={reviewer ? 'Kiểm duyệt hồ sơ & sức khỏe ngựa' : 'Hồ sơ đàn ngựa'} extra={user?.role === 'CUSTOMER' && <Button type="primary" onClick={() => setOpen(true)}>Thêm ngựa mới</Button>}>
-      <p>{reviewer ? 'Đối chiếu nhận dạng, hộ chiếu và hồ sơ tiêm chủng trước khi duyệt sức khỏe.' : 'Khai báo thông tin và gửi hồ sơ cho Chuyên viên Thủ tục & Kiểm dịch.'}</p>
-      <Space wrap>
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm tên ngựa, mã chip, số hộ chiếu" style={{ width: 320 }} allowClear />
-        <Select value={status} onChange={setStatus} style={{ width: 220 }} options={[{ value: 'ALL', label: 'Tất cả trạng thái' }, ...Object.entries(reviewLabels).map(([value, label]) => ({ value, label }))]} />
-        <Button onClick={() => fetchHorses().catch(() => {})}>Tải lại</Button>
-      </Space>
-    </Card>
-    {error && <Alert type="error" showIcon message={error} />}
-    <Table columns={columns} dataSource={filtered} rowKey="id" loading={loading} scroll={{ x: 950 }} pagination={{ pageSize: 8 }} />
+  return <Workspace
+    eyebrow={reviewer ? 'Thủ tục & kiểm dịch' : 'Quản lý hồ sơ'}
+    title={reviewer ? 'Kiểm duyệt sức khỏe ngựa' : 'Hồ sơ đàn ngựa'}
+    description={reviewer ? 'Đối chiếu nhận dạng, hộ chiếu và hồ sơ tiêm chủng trước khi duyệt sức khỏe.' : 'Khai báo thông tin và gửi hồ sơ cho chuyên viên thủ tục & kiểm dịch.'}
+    actions={user?.role === 'CUSTOMER' && <Button type="primary" onClick={() => setOpen(true)}>Thêm ngựa mới</Button>}
+  >
+    <Metrics items={[
+      { label: 'Tổng hồ sơ', value: horses.length, detail: 'Trong phạm vi quản lý của bạn' },
+      { label: 'Chờ duyệt', value: countByStatus('PENDING_REVIEW'), detail: 'Chờ đối chiếu sức khỏe' },
+      { label: 'Đã duyệt', value: countByStatus('APPROVED'), detail: 'Đã hoàn tất kiểm duyệt' },
+      { label: 'Cần xử lý', value: countByStatus('REJECTED'), detail: 'Cần bổ sung hoặc không đạt' }
+    ]} />
+    {error && <Alert type="error" message={error} />}
+    <DataPanel title="Danh sách hồ sơ" description="Tìm theo tên ngựa, chủ sở hữu, mã vi chip hoặc số hộ chiếu." extra={<span className="ops-secondary" aria-live="polite">{filtered.length} / {horses.length} hồ sơ</span>}>
+      <div className="ops-toolbar" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <Input aria-label="Tìm hồ sơ ngựa" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên ngựa, chủ sở hữu, mã chip, hộ chiếu" style={{ flex: '1 1 280px', minWidth: 0 }} allowClear />
+        <Select aria-label="Lọc trạng thái kiểm duyệt" value={status} onChange={setStatus} style={{ flex: '0 1 240px', minWidth: 0, width: '100%' }} options={[{ value: 'ALL', label: 'Tất cả trạng thái' }, ...Object.entries(reviewLabels).map(([value, label]) => ({ value, label }))]} />
+        <Button loading={loading} onClick={() => fetchHorses().catch(() => {})}>Tải lại</Button>
+      </div>
+      <Table columns={columns} dataSource={filtered} rowKey="id" loading={loading} scroll={{ x: 1370 }} pagination={{ pageSize: 8 }} locale={{ emptyText: 'Không có hồ sơ phù hợp.' }} />
+    </DataPanel>
     <Modal title="Đăng ký hồ sơ ngựa mới" open={open} onCancel={() => !saving && setOpen(false)} footer={null} width={1000} maskClosable={false}>
       {open && <HorseProfileForm onSave={create} saving={saving} />}
     </Modal>
-  </Space>;
+  </Workspace>;
 }

@@ -9,12 +9,14 @@ import RescueTransfer from './RescueTransfer';
 
 const money = n => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
 const date = value => value ? new Date(value).toLocaleString('vi-VN') : '—';
-export default function OrderOperations({ orderId, onChanged }) {
+export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
   const user = useAuthStore(s => s.user);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState('');
+  const [podOpen, setPodOpen] = useState(false);
+  const [podVisited, setPodVisited] = useState(false);
   const [chargeForm] = Form.useForm(); const [receiptForm] = Form.useForm(); const [clearForm] = Form.useForm();
   const load = useCallback(async () => {
     try { setData((await api.get(`/orders/${orderId}/operations`)).data.data); setError(''); }
@@ -59,6 +61,7 @@ export default function OrderOperations({ orderId, onChanged }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div hidden={!['all', 'overview'].includes(view)}>
       {order.operationsNotices?.length > 0 && (
         <Alert
           type="info"
@@ -81,17 +84,13 @@ export default function OrderOperations({ orderId, onChanged }) {
       )}
 
       {/* 1. Digital POD Acceptance Form (Show FIRST for Customer when delivering) */}
-      {isCustomer && route?.status === 'DELIVERING' && (
-        <DeliveryAcceptance
-          order={order}
-          route={route}
-          onChanged={() => {
-            load();
-            onChanged?.();
-          }}
-        />
-      )}
-
+      {isCustomer && route?.status === 'DELIVERING' && <section className="order-next-action">
+        <div><h2>Chờ kiểm tra & ký bàn giao</h2><p>Người tiếp nhận kiểm tra thể trạng ngựa và ký biên bản tại điểm giao.</p></div>
+        <Button type="primary" aria-expanded={podOpen} onClick={() => { setPodVisited(true); setPodOpen(v => !v); }}>{podOpen ? 'Thu gọn biên bản' : 'Kiểm tra & ký bàn giao'}</Button>
+      </section>}
+      {isCustomer && route?.status === 'DELIVERING' && <div hidden={!podOpen}>
+        {podVisited && <DeliveryAcceptance order={order} route={route} onChanged={() => { load(); onChanged?.(); }} />}
+      </div>}
       {/* 2. Manager Incident / Cancel actions */}
       {manager && route?.status === 'INCIDENT_HANDLING' && (
         <RescueTransfer order={order} route={route} recover={recover} busy={busy} />
@@ -112,45 +111,6 @@ export default function OrderOperations({ orderId, onChanged }) {
           </Form>
         </Card>
       )}
-
-      {/* 3. Transport Operations & Vehicle Info */}
-      <Card
-        style={{
-          borderRadius: 10,
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-        }}
-        title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-              Vận đơn và hành trình vận chuyển
-            </span>
-            <Button size="small" onClick={load} style={{ fontSize: 12 }}>
-              Làm mới
-            </Button>
-          </div>
-        }
-      >
-        {/* Stages Strip */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: 10,
-            background: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            borderRadius: 8,
-            padding: 12,
-            marginBottom: 16
-          }}
-        >
-          {stages.map(([label, value]) => (
-            <div key={label}>
-              <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{label}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginTop: 2 }}>{value}</div>
-            </div>
-          ))}
-        </div>
 
         {order.confirmationNotes && (
           <Alert message={`Phản hồi khách hàng: ${order.confirmationNotes}`} style={{ marginBottom: 12 }} />
@@ -204,6 +164,47 @@ export default function OrderOperations({ orderId, onChanged }) {
             </Button>
           </div>
         )}
+
+      </div>
+      <div hidden={!['all', 'journey'].includes(view)}>
+      {/* 3. Transport Operations & Vehicle Info */}
+      <Card
+        style={{
+          borderRadius: 10,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+        }}
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+              Vận đơn và hành trình vận chuyển
+            </span>
+            <Button size="small" onClick={load} style={{ fontSize: 12 }}>
+              Làm mới
+            </Button>
+          </div>
+        }
+      >
+        {/* Stages Strip */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 10,
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16
+          }}
+        >
+          {stages.map(([label, value]) => (
+            <div key={label}>
+              <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{label}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginTop: 2 }}>{value}</div>
+            </div>
+          ))}
+        </div>
 
         {/* Vehicle & Odometer Metrics */}
         {route && (
@@ -280,6 +281,7 @@ export default function OrderOperations({ orderId, onChanged }) {
                 Trạng thái ngựa trên chuyến:
               </div>
               <Table
+                scroll={{ x: 640 }}
                 size="small"
                 pagination={false}
                 rowKey="_id"
@@ -343,6 +345,8 @@ export default function OrderOperations({ orderId, onChanged }) {
         )}
       </Card>
 
+      </div>
+      <div hidden={!['all', 'documents'].includes(view)}>
       {/* 4. Clearance by Checkpoint (Only show if there are records or specialist) */}
       {route && (route.clearances?.length > 0 || specialist) && (
         <Card
@@ -364,6 +368,7 @@ export default function OrderOperations({ orderId, onChanged }) {
         >
           {route.clearances?.length > 0 ? (
             <Table
+                scroll={{ x: 640 }}
               size="small"
               rowKey="_id"
               pagination={false}
@@ -450,6 +455,8 @@ export default function OrderOperations({ orderId, onChanged }) {
         </Card>
       )}
 
+      </div>
+      <div hidden={!['all', 'finance'].includes(view)}>
       {/* 5. Settlement & Surcharges (Phụ thu và quyết toán tài chính) */}
       <Card
         style={{
@@ -509,6 +516,7 @@ export default function OrderOperations({ orderId, onChanged }) {
             </div>
             {order.settlement?.surcharges?.length > 0 && (
               <Table
+                scroll={{ x: 640 }}
                 size="small"
                 pagination={false}
                 rowKey="_id"
@@ -563,6 +571,7 @@ export default function OrderOperations({ orderId, onChanged }) {
               Chứng từ thu:
             </div>
             <Table
+                scroll={{ x: 640 }}
               size="small"
               pagination={false}
               rowKey="_id"
@@ -620,6 +629,8 @@ export default function OrderOperations({ orderId, onChanged }) {
         )}
       </Card>
 
+      </div>
+      <div hidden={!['all', 'support'].includes(view)}>
       {/* 6. Exception Requests & Claims (Placed cleanly at the bottom) */}
       <ExceptionRequests
         order={order}
@@ -629,6 +640,7 @@ export default function OrderOperations({ orderId, onChanged }) {
         recover={recover}
         destinationOptions={data.destinationOptions}
       />
+      </div>
     </div>
   );
 }

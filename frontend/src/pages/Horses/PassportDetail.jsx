@@ -4,6 +4,7 @@ import { Alert, Button, Card, Checkbox, Col, Descriptions, Input, Row, Space, Sp
 import { useHorseStore } from '../../store/useHorseStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import HorseProfileForm, { HorsePhotoGallery, canReviewHorse, reviewColors, reviewLabels } from './HorseProfileForm';
+import { Workspace, StatusPill } from '../../components/operations/OperationsUI';
 
 export default function PassportDetail() {
   const { id } = useParams();
@@ -47,9 +48,9 @@ export default function PassportDetail() {
       }
     } finally { setSaving(false); }
   };
-  return <Space direction="vertical" size={20} style={{ width: '100%' }}>
-    <Card title={horse.name} extra={<Button onClick={() => navigate('/horses')}>Quay lại danh sách</Button>}>
-      <Tag color={reviewColors[horse.reviewStatus]}>{reviewLabels[horse.reviewStatus]}</Tag>
+  return <Workspace eyebrow="Hồ sơ ngựa / Thẩm định sức khỏe" title={horse.name} description="Đối chiếu thông tin nhận dạng, chứng từ và lưu kết luận kiểm duyệt." actions={<Button onClick={() => navigate(reviewer ? '/specialist/horses' : '/horses')}>Về danh sách</Button>}>
+    <Card title="Trạng thái hồ sơ">
+      <StatusPill value={horse.reviewStatus} label={reviewLabels[horse.reviewStatus]} />
       {horse.transportAssignment && <Alert style={{ marginTop: 12 }} type="info" message={`${({ ASSIGNED: 'Dự kiến lên xe', ON_BOARD: 'Đang trên xe', DELIVERED: 'Đã giao từ xe' })[horse.transportAssignment.state]} ${horse.transportAssignment.vehiclePlateNumber} · ${horse.transportAssignment.bookingCode}`} action={<Button onClick={() => navigate(`/orders/${horse.transportAssignment.orderId}`)}>Xem vận đơn</Button>} />}
       {horse.reviewNotes && <Alert style={{ marginTop: 16 }} type={horse.reviewStatus === 'REJECTED' ? 'error' : 'success'} message={horse.reviewNotes} description={`Người duyệt: ${horse.reviewedBy?.fullName || horse.reviewedBy || '—'} • ${horse.reviewedAt ? new Date(horse.reviewedAt).toLocaleString('vi-VN') : ''}`} />}
       {owned && <Button style={{ marginTop: 16 }} disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa / Bổ sung hồ sơ'}</Button>}
@@ -72,5 +73,5 @@ export default function PassportDetail() {
       <Space wrap><Button type="primary" loading={saving} disabled={checks.length !== 3 || !notes.trim()} onClick={() => review('APPROVED')}>Duyệt hồ sơ sức khỏe</Button><Button danger loading={saving} disabled={!notes.trim()} onClick={() => review('REJECTED')}>Từ chối / Yêu cầu bổ sung</Button></Space>
     </Card>}
     {horse.reviewHistory?.length > 0 && <Card title="Lịch sử kiểm duyệt">{horse.reviewHistory.map((entry, i) => <p key={entry._id || i}><Tag color={reviewColors[entry.decision]}>{reviewLabels[entry.decision]}</Tag> {new Date(entry.reviewedAt).toLocaleString('vi-VN')} · {entry.notes}</p>)}</Card>}
-  </Space>;
+  </Workspace>;
 }

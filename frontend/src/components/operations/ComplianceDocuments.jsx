@@ -57,14 +57,14 @@ export default function ComplianceDocuments({ orderId, specialist = false, custo
       }
     >
       {error && <Alert type="error" message={error} style={{ marginBottom: 14 }} />}
-    {specialist && <Space direction="vertical" style={{ width: '100%', marginBottom: 20 }}>
-      <Select aria-label="Nhóm hồ sơ" value={category} onChange={setCategory} options={[{ value: 'LEGAL', label: 'Giấy tờ pháp lý — vận hành xử lý' }, { value: 'HORSE', label: 'Hồ sơ ngựa — khách hoặc vận hành bổ sung' }]} style={{ minWidth: 300 }} />
-      <Select aria-label="Mốc cần hồ sơ" value={stage} onChange={setStage} options={[{ value: 'DEPARTURE', label: 'Trước khởi hành' }, { value: 'BORDER', label: 'Tại cửa khẩu' }, { value: 'DELIVERY', label: 'Khi giao nhận' }]} style={{ minWidth: 220 }} />
+    {specialist && <details style={{ marginBottom: 20 }}><summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: 14 }}>Thêm yêu cầu bổ sung hồ sơ</summary><Space direction="vertical" style={{ width: '100%' }}>
+      <Select aria-label="Nhóm hồ sơ" value={category} onChange={setCategory} options={[{ value: 'LEGAL', label: 'Giấy tờ pháp lý — vận hành xử lý' }, { value: 'HORSE', label: 'Hồ sơ ngựa — khách hoặc vận hành bổ sung' }]} style={{ width: '100%', minWidth: 0 }} />
+      <Select aria-label="Mốc cần hồ sơ" value={stage} onChange={setStage} options={[{ value: 'DEPARTURE', label: 'Trước khởi hành' }, { value: 'BORDER', label: 'Tại cửa khẩu' }, { value: 'DELIVERY', label: 'Khi giao nhận' }]} style={{ width: '100%', minWidth: 0 }} />
       {stage === 'BORDER' && <Input placeholder="Tên cửa khẩu (trùng tên điểm trên vận đơn)" value={checkpoint} onChange={e => setCheckpoint(e.target.value)} />}
       <Input aria-label="Loại giấy tờ cần bổ sung" maxLength={150} placeholder="Loại giấy tờ: ví dụ giấy phép nhập khẩu" value={type} onChange={e => setType(e.target.value)} />
       <Input.TextArea aria-label="Nội dung yêu cầu" maxLength={2000} placeholder="Ghi rõ cần bổ sung gì, cho ngựa nào và lý do" value={reason} onChange={e => setReason(e.target.value)} />
       <Button type="primary" loading={busy} disabled={!type.trim() || !reason.trim() || (stage === 'BORDER' && !checkpoint.trim())} onClick={() => act(async () => { await api.post('/compliance/requests', { orderId, documentType: type, requestReason: reason, category, stage, checkpoint }); setType(''); setReason(''); })}>Thêm mục hồ sơ</Button>
-    </Space>}
+    </Space></details>}
     {!docs.length && !error && <p>Chưa có yêu cầu bổ sung giấy tờ cho đơn này.</p>}
     {docs.map(doc => <Card key={doc._id} size="small" style={{ marginBottom: 12 }} title={doc.documentType} extra={<Tag>{({ PENDING_UPLOAD: 'Cần bổ sung', PENDING_REVIEW: 'Chờ thẩm định', APPROVED: 'Đã duyệt', REJECTED: 'Cần nộp lại' })[doc.status]}</Tag>}>
       <Tag>{doc.category === 'HORSE' ? 'Hồ sơ ngựa' : 'Giấy tờ pháp lý'}</Tag><Tag>{({ DEPARTURE: 'Trước khởi hành', BORDER: 'Tại cửa khẩu', DELIVERY: 'Khi giao nhận' })[doc.stage || 'DEPARTURE']}</Tag>
