@@ -34,6 +34,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { analyticsApi } from '../../services/analyticsApi';
+import RevenueBarChart, { formatShortVnd } from '../../components/analytics/RevenueBarChart';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -367,27 +368,31 @@ export default function RevenueDashboard() {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card
-            bordered={false}
+            variant="borderless"
             style={{
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-              borderTop: '4px solid #0F3E2E'
+              borderTop: '4px solid #0F3E2E',
+              background: '#ffffff'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
                   Tổng Doanh Thu Thực Thu
                 </Text>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#0F3E2E', marginTop: 4 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#0F3E2E', marginTop: 4 }}>
+                  {formatShortVnd(summary.totalGrossRevenue)}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
                   {formatVnd(summary.totalGrossRevenue)}
                 </div>
               </div>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   background: '#EBF5F0',
                   display: 'flex',
                   alignItems: 'center',
@@ -395,10 +400,10 @@ export default function RevenueDashboard() {
                   color: '#0F3E2E'
                 }}
               >
-                <DollarSign size={24} />
+                <DollarSign size={22} />
               </div>
             </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: '#666' }}>
+            <div style={{ marginTop: 12, fontSize: 12, color: '#888' }}>
               Đã ghi nhận qua VNPAY & sổ quỹ
             </div>
           </Card>
@@ -406,27 +411,31 @@ export default function RevenueDashboard() {
 
         <Col xs={24} sm={12} lg={6}>
           <Card
-            bordered={false}
+            variant="borderless"
             style={{
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-              borderTop: '4px solid #2563EB'
+              borderTop: '4px solid #2563EB',
+              background: '#ffffff'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
                   Doanh Thu Đặt Cọc (20%)
                 </Text>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#2563EB', marginTop: 4 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#2563EB', marginTop: 4 }}>
+                  {formatShortVnd(summary.depositCollected)}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
                   {formatVnd(summary.depositCollected)}
                 </div>
               </div>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   background: '#EFF6FF',
                   display: 'flex',
                   alignItems: 'center',
@@ -434,10 +443,10 @@ export default function RevenueDashboard() {
                   color: '#2563EB'
                 }}
               >
-                <ShieldCheck size={24} />
+                <ShieldCheck size={22} />
               </div>
             </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: '#666' }}>
+            <div style={{ marginTop: 12, fontSize: 12, color: '#888' }}>
               {summary.depositedOrdersCount || 0} đơn đã cọc giữ chỗ & duyệt hồ sơ
             </div>
           </Card>
@@ -445,27 +454,31 @@ export default function RevenueDashboard() {
 
         <Col xs={24} sm={12} lg={6}>
           <Card
-            bordered={false}
+            variant="borderless"
             style={{
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-              borderTop: '4px solid #059669'
+              borderTop: '4px solid #059669',
+              background: '#ffffff'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
                   Thanh Toán Đủ (80%)
                 </Text>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#059669', marginTop: 4 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#059669', marginTop: 4 }}>
+                  {formatShortVnd(summary.balanceCollected)}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
                   {formatVnd(summary.balanceCollected)}
                 </div>
               </div>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   background: '#ECFDF5',
                   display: 'flex',
                   alignItems: 'center',
@@ -473,10 +486,10 @@ export default function RevenueDashboard() {
                   color: '#059669'
                 }}
               >
-                <Wallet size={24} />
+                <Wallet size={22} />
               </div>
             </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: '#666' }}>
+            <div style={{ marginTop: 12, fontSize: 12, color: '#888' }}>
               {summary.paidOrdersCount || 0} đơn đã thanh toán hoàn tất
             </div>
           </Card>
@@ -484,27 +497,31 @@ export default function RevenueDashboard() {
 
         <Col xs={24} sm={12} lg={6}>
           <Card
-            bordered={false}
+            variant="borderless"
             style={{
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-              borderTop: '4px solid #D97706'
+              borderTop: '4px solid #D97706',
+              background: '#ffffff'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
                   Công Nợ / Còn Phải Thu
                 </Text>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#D97706', marginTop: 4 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#D97706', marginTop: 4 }}>
+                  {formatShortVnd(summary.totalOutstanding)}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
                   {formatVnd(summary.totalOutstanding)}
                 </div>
               </div>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   background: '#FFFBEB',
                   display: 'flex',
                   alignItems: 'center',
@@ -512,15 +529,18 @@ export default function RevenueDashboard() {
                   color: '#D97706'
                 }}
               >
-                <Clock size={24} />
+                <Clock size={22} />
               </div>
             </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: '#666' }}>
-              Tổng hợp đồng: {formatVnd(summary.totalContractValue)}
+            <div style={{ marginTop: 12, fontSize: 12, color: '#888' }}>
+              Tổng hợp đồng: {formatShortVnd(summary.totalContractValue)}
             </div>
           </Card>
         </Col>
       </Row>
+
+      {/* Visual Bar Chart Section */}
+      <RevenueBarChart monthlyData={monthlyTrend} orderData={orderFinancials} />
 
       {/* Secondary Metrics & Flow explanation */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

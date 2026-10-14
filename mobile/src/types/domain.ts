@@ -1,5 +1,6 @@
 export type User = { id: string; username: string; email?: string; fullName: string; role: string; phone?: string; permissions?: string[] };
 export type Waypoint = {
+  demoDepartedAt?: string;
   _id: string; sequence: number; name: string;
   type: 'PICKUP' | 'REST_STOP' | 'BORDER_CUSTOMS' | 'VET_CHECK' | 'DELIVERY';
   location: { coordinates: [number, number] }; estimatedArrival: string; actualArrival?: string;
@@ -12,6 +13,7 @@ export type Order = {
   requestedDepartureDate: string; horseIds: string[]; status: string;
 };
 export type TransportRoute = {
+  demoSimulation?: boolean;
   _id: string; orderId: Order; vehiclePlateNumber: string; driverId: User | string; escortId: User | string;
   waypoints: Waypoint[];
   status: 'SCHEDULED' | 'IN_TRANSIT' | 'INCIDENT_HANDLING' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';

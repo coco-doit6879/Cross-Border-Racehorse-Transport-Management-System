@@ -21,11 +21,14 @@ function financials(order) {
 async function stageReady(orderId, stage, checkpoint) {
   const docs = await Doc.find({ orderId });
   const relevant = docs.filter(d => (d.stage || 'DEPARTURE') === stage && (!checkpoint || !d.checkpoint || d.checkpoint === checkpoint));
-  return relevant.length > 0 && relevant
-    .every(d => d.status === 'APPROVED' && (!d.expiresAt || new Date(d.expiresAt) >= new Date()));
+  if (stage === 'DEPARTURE') {
+    return relevant.length > 0 && relevant.every(d => d.status === 'APPROVED' && (!d.expiresAt || new Date(d.expiresAt) >= new Date()));
+  }
+  return relevant.length === 0 || relevant.every(d => d.status === 'APPROVED' && (!d.expiresAt || new Date(d.expiresAt) >= new Date()));
 }
 function clearanceReady(route, order, checkpoint) {
   if (order.origin.countryCode === order.destination.countryCode && !checkpoint) return true;
+  if (route.demoSimulation) return true;
   const latest = new Map();
   for (const c of route.clearances || []) latest.set(`${id(c.horseId)}:${c.countryCode}:${c.checkpoint}`, c);
   const items = [...latest.values()];
@@ -37,6 +40,16 @@ function clearanceReady(route, order, checkpoint) {
 async function deliveryProblem(route, order) {
   if (!route || !order) return 'Không tìm thấy chuyến hoặc đơn vận chuyển.';
   if (route.status !== 'DELIVERING') return 'Chuyến chưa ở giai đoạn bàn giao.';
+  if (route.demoSimulation && order?.destination?.coordinates) {
+    route.currentLocation = {
+      type: 'Point',
+      coordinates: order.destination.coordinates,
+      updatedAt: new Date(),
+      speedKmh: 0,
+      headingDegree: 0
+    };
+    await route.save();
+  }
   const positionError = locationProblem(route.currentLocation, order.destination?.coordinates);
   if (positionError) return positionError;
   if (await activeIncident(route._id)) return 'Cần xử lý toàn bộ sự cố trước khi giao nhận.';

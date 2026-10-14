@@ -71,7 +71,8 @@ exports.signPOD = async (req, res, next) => {
       await finishDelivery(route, deliveryOrder);
       return res.json({ success: true, isDuplicate: true, data: existingPOD });
     }
-    if (!validCoordinates(coords) || !validCoordinates(deliveryOrder.destination?.coordinates) || distanceKm(coords, deliveryOrder.destination.coordinates) > 0.5) return res.status(409).json({ success: false, message: 'Người nhận cần xác nhận tại điểm giao.' });
+    const signingCoords = route.demoSimulation && deliveryOrder.destination?.coordinates ? deliveryOrder.destination.coordinates : coords;
+    if (!validCoordinates(signingCoords) || !validCoordinates(deliveryOrder.destination?.coordinates) || distanceKm(signingCoords, deliveryOrder.destination.coordinates) > 0.5) return res.status(409).json({ success: false, message: 'Người nhận cần xác nhận tại điểm giao.' });
     if (!Array.isArray(horseConditionsOnArrival) || horseConditionsOnArrival.length !== deliveryOrder.horseIds.length || new Set(horseConditionsOnArrival.map(h => String(h.horseId))).size !== deliveryOrder.horseIds.length || !deliveryOrder.horseIds.every(h => horseConditionsOnArrival.some(c => String(c.horseId) === String(h)))) return res.status(400).json({ success: false, message: 'Cần xác nhận tình trạng của từng ngựa trong đơn.' });
     if (horseConditionsOnArrival.some(h => !['EXCELLENT', 'GOOD', 'MINOR_STRESS'].includes(h.conditionStatus))) return res.status(409).json({ success: false, message: 'Ngựa bị thương hoặc tình trạng chưa hợp lệ: báo sự cố và xử lý trước khi ký nhận.' });
     if (typeof signatureImageUrl !== 'string' || signatureImageUrl.length > 300000 || !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(signatureImageUrl)) return res.status(400).json({ success: false, message: 'Chữ ký phải là ảnh PNG hợp lệ, tối đa 300 KB dạng dữ liệu.' });
@@ -87,7 +88,7 @@ exports.signPOD = async (req, res, next) => {
       signatureImageUrl,
       locationSigned: {
         type: 'Point',
-        coordinates: coords
+        coordinates: signingCoords
       },
       horseConditionsOnArrival: horseConditionsOnArrival || [],
       signedAt: new Date()

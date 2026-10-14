@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const waypointSchema = new mongoose.Schema({
+  demoDepartedAt: Date,
   sequence: {
     type: Number,
     required: true
@@ -100,6 +101,7 @@ const assignmentHistorySchema = new mongoose.Schema({
 }, { _id: true });
 
 const transportRouteSchema = new mongoose.Schema({
+  demoSimulation: { type: Boolean, default: false },
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',

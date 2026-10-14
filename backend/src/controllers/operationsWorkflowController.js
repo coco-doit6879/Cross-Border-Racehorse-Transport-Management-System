@@ -168,6 +168,21 @@ exports.update = async (req, res, next) => {
           route.horseMovements.push({ horseId: req.body.horseId, loadedAt: now, recordedBy: req.user._id });
         } else {
           if (route.status !== 'DELIVERING' || !item?.loadedAt || item.unloadedAt) return fail(res, 409, 'Chỉ giao ngựa đã lên xe tại giai đoạn bàn giao.');
+          if (route.demoSimulation && order?.destination?.coordinates) {
+            route.currentLocation = {
+              type: 'Point',
+              coordinates: order.destination.coordinates,
+              updatedAt: now,
+              speedKmh: 0,
+              headingDegree: 0
+            };
+            const destStop = route.waypoints.find(w => w.type === 'DELIVERY' || w.sequence === route.waypoints.length);
+            if (destStop && destStop.status !== 'ARRIVED') {
+              destStop.status = 'ARRIVED';
+              destStop.actualArrival = now;
+            }
+            await route.save();
+          }
           const gpsProblem = locationProblem(route.currentLocation, order.destination?.coordinates);
           if (gpsProblem) return fail(res, 409, gpsProblem);
           if (await activeIncident(route._id)) return fail(res, 409, 'Cần giải quyết sự cố trước khi xác nhận giao ngựa.');
