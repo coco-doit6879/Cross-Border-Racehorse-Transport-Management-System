@@ -33,9 +33,30 @@ export default function ComplianceDocuments({ orderId, specialist = false, custo
       const link = document.createElement('a'); link.href = blobUrl; link.download = 'giay-to'; link.click(); setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (e) { message.error(e.message || 'Không thể mở tệp.'); }
   };
-  return <Card title="Hồ sơ theo chuyến: pháp lý và hồ sơ ngựa" extra={<Button onClick={load}>Làm mới</Button>}>
-    <p>Giấy tờ hải quan và kiểm dịch do chuyên viên vận hành chuẩn bị. Khách hàng chỉ bổ sung hồ sơ ngựa được yêu cầu.</p>
-    {error && <Alert type="error" message={error} />}
+  return (
+    <Card
+      style={{
+        borderRadius: 10,
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+      }}
+      title={
+        <div>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+            Hồ sơ pháp lý & chứng nhận kiểm dịch
+          </span>
+          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 400 }}>
+            Giấy tờ hải quan và kiểm dịch chuyên ngành do bộ phận vận hành phối hợp xử lý
+          </div>
+        </div>
+      }
+      extra={
+        <Button size="small" onClick={load} style={{ fontSize: 12 }}>
+          Làm mới
+        </Button>
+      }
+    >
+      {error && <Alert type="error" message={error} style={{ marginBottom: 14 }} />}
     {specialist && <Space direction="vertical" style={{ width: '100%', marginBottom: 20 }}>
       <Select aria-label="Nhóm hồ sơ" value={category} onChange={setCategory} options={[{ value: 'LEGAL', label: 'Giấy tờ pháp lý — vận hành xử lý' }, { value: 'HORSE', label: 'Hồ sơ ngựa — khách hoặc vận hành bổ sung' }]} style={{ minWidth: 300 }} />
       <Select aria-label="Mốc cần hồ sơ" value={stage} onChange={setStage} options={[{ value: 'DEPARTURE', label: 'Trước khởi hành' }, { value: 'BORDER', label: 'Tại cửa khẩu' }, { value: 'DELIVERY', label: 'Khi giao nhận' }]} style={{ minWidth: 220 }} />
@@ -63,5 +84,6 @@ export default function ComplianceDocuments({ orderId, specialist = false, custo
       </Space>}
       {!!doc.history?.length && <details style={{ marginTop: 12 }}><summary>Lịch sử xử lý</summary>{doc.history.map((h, i) => <p key={i}>{new Date(h.at).toLocaleString('vi-VN')} · {({ REQUESTED: 'Yêu cầu bổ sung', SUBMITTED: 'Đã nộp', APPROVED: 'Đã duyệt', REJECTED: 'Yêu cầu nộp lại' })[h.action]} {h.notes && `— ${h.notes}`}</p>)}</details>}
     </Card>)}
-  </Card>;
+    </Card>
+  );
 }

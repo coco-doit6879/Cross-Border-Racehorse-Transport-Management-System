@@ -71,6 +71,7 @@ router.patch('/:id/assignment', protect, checkPermission('route:dispatch'), requ
  *         description: Route details
  */
 router.get('/:id', protect, routeController.getRouteById);
+router.post('/:id/demo', protect, require('../controllers/demoRouteController').simulate);
 
 /**
  * @swagger

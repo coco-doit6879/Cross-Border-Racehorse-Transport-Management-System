@@ -263,6 +263,7 @@ exports.updateTripStatus = async (req, res, next) => {
     }
 
     const currentStatus = route.status;
+    if (route.demoSimulation && status === 'DELIVERING' && route.waypoints.some(w => w.status !== 'ARRIVED' || (w.type === 'REST_STOP' && !w.demoDepartedAt))) return res.status(409).json({ message: 'Hoàn thành check-in tất cả điểm và kết thúc nghỉ trước khi bàn giao.' });
     if (currentStatus === 'INCIDENT_HANDLING') return res.status(409).json({ success: false, message: 'Chỉ tiếp tục chuyến sau khi điều phối xử lý hết sự cố.' });
     const allowedNextStatuses = ALLOWED_TRIP_TRANSITIONS[currentStatus] || [];
 
@@ -401,6 +402,15 @@ exports.waypointCheckin = async (req, res, next) => {
     if (!['IN_TRANSIT', 'DELIVERING'].includes(route.status)) return res.status(409).json({ success: false, message: 'Chuyến chưa chạy, đã kết thúc hoặc đang xử lý sự cố.' });
     if (status && !['ARRIVED', 'SKIPPED'].includes(status)) return res.status(400).json({ success: false, message: 'Trạng thái điểm dừng không hợp lệ.' });
     if (waypoint.status !== 'PENDING') return res.json({ success: true, isDuplicate: true, data: route });
+    if (route.demoSimulation) {
+      const ordered = [...route.waypoints].sort((a, b) => a.sequence - b.sequence);
+      const target = ordered.find(w => w.status === 'PENDING');
+      const resting = ordered.some(w => w.type === 'REST_STOP' && w.status === 'ARRIVED' && !w.demoDepartedAt);
+      const { locationProblem } = require('../services/tripSafety');
+      if (resting || String(target?._id) !== String(waypoint._id) || status === 'SKIPPED') return res.status(409).json({ message: 'Hoàn tất nghỉ và check-in đúng thứ tự điểm mô phỏng.' });
+      const problem = locationProblem(route.currentLocation, waypoint.location.coordinates);
+      if (problem) return res.status(409).json({ message: 'Bấm di chuyển mô phỏng tới điểm tiếp theo trước khi check-in.' });
+    }
     if (waypoint.type === 'BORDER_CUSTOMS') {
       const order = await Order.findById(route.orderId);
       if (status === 'SKIPPED' || !clearanceReady(route, order, waypoint.name) || !(await stageReady(order._id, 'BORDER', waypoint.name))) return res.status(409).json({ success: false, message: 'Chuyên viên cần hoàn tất thông quan và hồ sơ cửa khẩu trước khi xác nhận qua cửa khẩu.' });

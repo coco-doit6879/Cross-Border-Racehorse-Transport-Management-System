@@ -11,7 +11,7 @@ type Movement = { horseId: string; loadedAt?: string; unloadedAt?: string };
 type Workflow = { order: { _id: string; horseIds: Horse[] }; route: { status: string; rescuePending?: boolean; acceptedAt?: string; odometerStart?: number; odometerEnd?: number; operationsVersion?: number; horseMovements?: Movement[]; clearances?: { _id: string; horseId: string; checkpoint: string; status: string }[] } };
 type Document = { _id: string; documentType: string; status: string; fileUrl?: string; stage?: string };
 
-export function TripOperations({ orderId, onChanged }: { orderId: string; onChanged: () => void }) {
+export function TripOperations({ orderId, onChanged, compact = false }: { orderId: string; onChanged: () => void; compact?: boolean }) {
   const { apiFetch, accessToken } = useSession();
   const [data, setData] = useState<Workflow | null>(null);
   const [docs, setDocs] = useState<Document[]>([]);
@@ -63,10 +63,10 @@ export function TripOperations({ orderId, onChanged }: { orderId: string; onChan
   const button = (label: string, action: () => void, disabled = false) => <Pressable disabled={busy || disabled} onPress={action} style={{ padding: 12, borderRadius: 8, backgroundColor: busy || disabled ? '#94a3b8' : colors.primary, marginTop: 8 }}><Text style={{ color: '#fff', fontWeight: '700' }}>{label}</Text></Pressable>;
   if (!data) return <View>{error ? <Text>{error}</Text> : <ActivityIndicator />}{button('Tải lại vận đơn', load)}</View>;
   const route = data.route;
-  return <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 10 }}>
-    <Text style={{ fontSize: 18, fontWeight: '800' }}>Tiếp nhận vận đơn và hồ sơ</Text>
+  return <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 20, gap: 14 }}>
+    {!compact && <Text style={{ fontSize: 17, fontWeight: '700', color: colors.text }}>Ngựa & hồ sơ chuyến</Text>}
     {!!error && <Text style={{ color: colors.danger }}>{error}</Text>}
-    {button('Làm mới vận đơn', load)}
+    {!!error && button('Thử tải lại', load)}
     <Text>{route.acceptedAt ? `Đã nhận: ${new Date(route.acceptedAt).toLocaleString('vi-VN')}` : 'Chưa xác nhận nhận nhiệm vụ'}</Text>
     {route.status === 'SCHEDULED' && !route.acceptedAt && button('Tôi tiếp nhận vận đơn', () => act('ACCEPT'))}
     {data.order.horseIds.map(horse => {
@@ -78,12 +78,14 @@ export function TripOperations({ orderId, onChanged }: { orderId: string; onChan
     })}
     <Text>Km đầu: {route.odometerStart ?? 'Chưa ghi'} · Km cuối: {route.odometerEnd ?? 'Chưa ghi'}</Text>
     {route.rescuePending && <><Text>Đối chiếu toàn bộ mã chip ở trên trước khi tiếp nhận xe cứu hộ.</Text><TextInput placeholder="Km đầu xe thay thế" keyboardType="decimal-pad" value={km} onChangeText={setKm} />{button('Xác nhận đã nhận đủ ngựa trên xe thay thế', () => Alert.alert('Xác nhận bàn giao', 'Bạn đã kiểm tra đúng và đủ tất cả ngựa?', [{ text: 'Chưa', style: 'cancel' }, { text: 'Đã nhận đủ', onPress: () => act('ACCEPT_RESCUE', { value: Number(km), confirmAllHorses: true }) }]), !km.trim() || !Number.isFinite(Number(km)))}</>}
-    {['SCHEDULED', 'DELIVERING', 'COMPLETED'].includes(route.status) && <><TextInput accessibilityLabel="Chỉ số công-tơ-mét" placeholder="Chỉ số công-tơ-mét" keyboardType="decimal-pad" value={km} onChangeText={setKm} style={{ borderWidth: 1, borderColor: colors.border, padding: 12, borderRadius: 8 }} />{button(route.status === 'SCHEDULED' ? 'Ghi km đầu chuyến' : 'Ghi km cuối chuyến', () => act('ODOMETER', { kind: route.status === 'SCHEDULED' ? 'START' : 'END', value: Number(km) }), !km.trim() || !Number.isFinite(Number(km)))}</>}
+    {['SCHEDULED', 'DELIVERING'].includes(route.status) && (route.status === 'SCHEDULED' ? route.odometerStart == null : route.odometerEnd == null) && <><TextInput accessibilityLabel="Chỉ số công-tơ-mét" placeholder="Nhập chỉ số km trên xe" keyboardType="decimal-pad" value={km} onChangeText={setKm} style={{ borderWidth: 1, borderColor: colors.border, padding: 16, borderRadius: 12 }} />{button(route.status === 'SCHEDULED' ? 'Lưu km đầu chuyến' : 'Lưu km cuối chuyến', () => act('ODOMETER', { kind: route.status === 'SCHEDULED' ? 'START' : 'END', value: Number(km) }), !km.trim() || !Number.isFinite(Number(km)))}</>}
+    {!compact && <>
     <Text style={{ fontWeight: '800' }}>Thông quan — do vận hành cập nhật</Text>
     {!(route.clearances || []).length && <Text>Chưa ghi nhận thông quan.</Text>}
     {[...(route.clearances || [])].reverse().map(c => <Text key={c._id}>{data.order.horseIds.find(h => h._id === c.horseId)?.name} · {c.checkpoint}: {({ PENDING: 'Chưa thông quan', CLEARED: 'Đã thông quan', HELD: 'Đang bị giữ' })[c.status]}</Text>)}
     <Text style={{ fontWeight: '800' }}>Giấy tờ xuất trình</Text>
     {docs.filter(d => d.status === 'APPROVED' && d.fileUrl).map(doc => <View key={doc._id}>{button(`Mở / tải ${doc.documentType}`, () => openDocument(doc))}</View>)}
     {!docs.some(d => d.status === 'APPROVED' && d.fileUrl) && <Text>Chưa có tệp được xác nhận để xuất trình.</Text>}
+    </>}
   </View>;
 }

@@ -135,6 +135,10 @@ module.exports = (io, socket) => {
       }
 
       const updateTimestamp = timestamp ? new Date(timestamp) : new Date();
+      if (route.demoSimulation) {
+        if (typeof callback === 'function') callback({ success: false, message: 'Chuyến đang dùng vị trí mô phỏng.' });
+        return;
+      }
       const age = Date.now() - updateTimestamp.getTime();
       if (!Number.isFinite(age) || age < -30000 || age > 120000 || (route.currentLocation?.updatedAt && updateTimestamp <= new Date(route.currentLocation.updatedAt))) {
         if (typeof callback === 'function') callback({ success: false, message: 'GPS cũ hoặc thời gian không hợp lệ.' });

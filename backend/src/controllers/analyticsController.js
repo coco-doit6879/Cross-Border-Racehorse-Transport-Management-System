@@ -296,6 +296,17 @@ exports.getRevenueAnalytics = async (req, res, next) => {
       cur.total += Number(tx.amountVnd || 0);
       monthlyMap.set(monthKey, cur);
     });
+
+    // Ensure past 6 months are present for smooth bar charting
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mKey = d.toISOString().slice(0, 7);
+      if (!monthlyMap.has(mKey)) {
+        monthlyMap.set(mKey, { month: mKey, deposit: 0, balance: 0, total: 0 });
+      }
+    }
+
     const monthlyTrend = Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month));
 
     // Bank breakdown

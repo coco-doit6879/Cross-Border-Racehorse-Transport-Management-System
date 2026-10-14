@@ -153,6 +153,7 @@ export default function RouteMap() {
       </Card>
 
       {error && <Alert type="error" showIcon message={error} />}
+      {visible.some(route => route.demoSimulation) && <Alert type="warning" showIcon message="DEMO — Có chuyến sử dụng vị trí và trạm nghỉ mô phỏng, không phải GPS thực tế." />}
 
       {!routes.length ? (
         <Empty description="Chưa có chuyến vận chuyển nào được điều phối" />
