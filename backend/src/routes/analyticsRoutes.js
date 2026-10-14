@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const analyticsController = require('../controllers/analyticsController');
-const { protect, checkPermission } = require('../middlewares/authMiddleware');
+const { protect, checkPermission, authorize } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -79,13 +79,7 @@ router.get('/b2b-reconciliation', protect, checkPermission('analytics:view'), an
 router.get(
   '/revenue',
   protect,
-  (req, res, next) => {
-    const perms = req.user.effectivePermissions || [];
-    if (perms.includes('analytics:view') || req.user.role === 'LOGISTICS_MANAGER' || req.user.role === 'FLEET_COORDINATOR') {
-      return next();
-    }
-    return res.status(403).json({ success: false, message: 'Forbidden: Insufficient permissions for revenue analytics' });
-  },
+  authorize('LOGISTICS_MANAGER'),
   analyticsController.getRevenueAnalytics
 );
 

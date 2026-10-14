@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants';
 import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 import { isManagerDemoEnabled } from '../../config/managerDemo';
+import { canAccessPage } from '../../utils/pageAccess';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -155,7 +156,7 @@ const Header = () => {
         </Link>
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {navItems.map((item) => {
+          {navItems.filter(item => canAccessPage(user, item.path)).map((item) => {
             const isActive =
               item.path === '/'
                 ? location.pathname === '/'

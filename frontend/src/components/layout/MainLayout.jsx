@@ -13,10 +13,10 @@ const MainLayout = ({ children }) => {
   const isManagerRoute = location.pathname.startsWith('/manager') || OPERATIONAL_ROLES.includes(user?.role);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8F9FA' }}>
+    <div className={/^\/orders\/[^/]+$/.test(location.pathname) ? 'order-page-layout' : undefined} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8F9FA' }}>
       <Header />
       {isManagerRoute ? (
-        <div className="layout-body">
+        <div className={`layout-body ${[USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role) ? 'layout-body--operations' : ''}`}>
           <Sidebar />
           <main className="app-content">{children}</main>
         </div>

@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ErrorState, LoadingState } from '../components/operations/PageFeedback';
 import { useAuthStore } from '../store/useAuthStore';
 import { hasPermission } from '../utils/permissions';
+import { canAccessPage } from '../utils/pageAccess';
 
 const ProtectedRoute = ({ allowedRoles, requiredPermission }) => {
   const location = useLocation();
@@ -27,6 +28,8 @@ const ProtectedRoute = ({ allowedRoles, requiredPermission }) => {
   if (sessionStatus !== 'authenticated' || !user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
+
+  if (!canAccessPage(user, location.pathname)) return <Navigate to="/forbidden" replace />;
 
   if (allowedRoles?.length && !allowedRoles.includes(user.role)) {
     return <Navigate to="/forbidden" replace />;

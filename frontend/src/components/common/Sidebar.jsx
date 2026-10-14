@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES } from '../../utils/constants';
 import { hasPermission, PERMISSIONS } from '../../utils/permissions';
 import { isManagerDemoEnabled } from '../../config/managerDemo';
+import { canAccessPage } from '../../utils/pageAccess';
 
 const Sidebar = () => {
   const user = useAuthStore((state) => state.user);
@@ -37,7 +38,6 @@ const Sidebar = () => {
   const fleetItems = [
     { to: '/orders', label: 'Đơn hàng & nhập hỗ trợ', icon: PackageSearch },
     { to: '/manager', label: 'Trung tâm điều phối', icon: Gauge },
-    { to: '/manager/revenue', label: 'Doanh thu & Tài chính', icon: DollarSign },
     { to: '/manager/schedules', label: 'Lịch & giá cố định', icon: CalendarClock },
     { to: '/fleet/trips', label: 'Phân công chuyến', icon: Route },
     { to: '/fleet/vehicles', label: 'Đội xe', icon: Truck },
@@ -49,14 +49,17 @@ const Sidebar = () => {
     ? [...roleManagerItems, { to: '/incidents/sos', label: 'Cảnh báo SOS', icon: AlertTriangle }]
     : roleManagerItems;
 
+  const isOperationsWorkspace = [USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role);
+  const workspaceLabel = user?.role === USER_ROLES.TRANSPORT_SPECIALIST ? 'Thủ tục & kiểm dịch' : isOperationsWorkspace ? 'Điều phối vận tải' : 'Quản lý logistics';
+
   return (
     <aside className="app-sidebar">
       <div className="app-sidebar__brand">CBRT</div>
       <nav aria-label="Điều hướng chính">
-        {isManager ? <p className="app-sidebar__label">Quản lý logistics</p> : null}
-        {(isManager ? managerItems : baseItems).map(({ to, label, icon: Icon }) => (
+        {isManager ? <p className="app-sidebar__label">{workspaceLabel}</p> : null}
+        {(isManager ? managerItems : baseItems).filter(item => canAccessPage(user, item.to)).map(({ to, label, icon: Icon }) => (
           <NavLink className={({ isActive }) => `app-sidebar__link ${isActive ? 'is-active' : ''}`} to={to} key={to} end={to === '/' || to === '/manager'}>
-            <Icon size={18} /><span>{label}</span>
+            {!isOperationsWorkspace && <Icon size={18} />}<span>{label}</span>
           </NavLink>
         ))}
       </nav>
