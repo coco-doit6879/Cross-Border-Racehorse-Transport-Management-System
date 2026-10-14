@@ -72,9 +72,9 @@ const PersonnelContent = ({ role }) => {
                 <td>{isDriver ? <><span>{person.licenseClass} · {person.licenseNumber}</span><small>Hết hạn {formatDate(person.licenseExpiry)}</small></> : <span className="table-clamp">{person.experience || 'Chưa có thông tin'}</span>}</td>
                 <td><span className={`status-badge status-badge--${person.status.toLowerCase()}`}>{PERSON_STATUS_LABELS[person.status]}</span></td>
                 <td><div className="table-actions">
-                  <button type="button" onClick={() => setModal({ mode: 'view', person })} title="Xem chi tiết"><Eye size={16} /></button>
-                  <button type="button" onClick={() => setModal({ mode: 'edit', person })} title="Sửa hồ sơ"><Pencil size={16} /></button>
-                  <button className="is-danger" type="button" onClick={() => remove(person)} title="Xóa hồ sơ"><Trash2 size={16} /></button>
+                  <button type="button" onClick={() => setModal({ mode: 'view', person })} title="Xem chi tiết" aria-label="Xem chi tiết nhân sự"><Eye size={16} /></button>
+                  <button type="button" onClick={() => setModal({ mode: 'edit', person })} title="Sửa hồ sơ" aria-label="Sửa hồ sơ nhân sự"><Pencil size={16} /></button>
+                  <button className="is-danger" type="button" onClick={() => remove(person)} title="Xóa hồ sơ" aria-label="Xóa hồ sơ nhân sự"><Trash2 size={16} /></button>
                 </div></td>
               </tr>
             ))}

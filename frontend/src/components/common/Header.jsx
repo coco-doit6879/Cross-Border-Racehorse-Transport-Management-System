@@ -118,7 +118,8 @@ const Header = () => {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
         <Link
-          to="/"
+                  className="interaction-brand"
+                  to="/"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -163,7 +164,8 @@ const Header = () => {
                 : location.pathname.startsWith(item.path);
             return (
               <Link
-                key={item.path}
+                              className="interaction-nav-link"
+                              key={item.path}
                 to={item.path}
                 style={{
                   padding: '8px 16px',
@@ -185,18 +187,7 @@ const Header = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} trigger={['click']} placement="bottomRight">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              cursor: 'pointer',
-              padding: '6px 12px',
-              borderRadius: 6,
-              border: '1px solid #E5E7EB',
-              backgroundColor: '#FAFAFA'
-            }}
-          >
+          <button type="button" className="interaction-account" aria-label="Mở menu tài khoản" aria-haspopup="menu">
             <div
               style={{
                 width: 26,
@@ -222,7 +213,7 @@ const Header = () => {
               </div>
             </div>
             <ChevronDown size={14} color="#6B7280" />
-          </div>
+          </button>
         </Dropdown>
       </div>
     </header>
