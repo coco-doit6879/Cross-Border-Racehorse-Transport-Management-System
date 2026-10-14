@@ -1,0 +1,57 @@
+/* Shared interaction affordances. Navigation, actions and status text stay distinct. */
+.app-container a[href]:where(:not(:is(.ant-btn, .button, .app-sidebar__link, .quick-action, .upcoming-card, .interaction-brand, .interaction-nav-link))) {
+  color: #14513c;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.app-container a[href]:where(:not(:is(.ant-btn, .button, .app-sidebar__link, .quick-action, .upcoming-card, .interaction-brand, .interaction-nav-link))):hover { color: #082e20; text-decoration-thickness: 2px; }
+.app-container :is(.ops-actions, .content-card__heading, .dashboard-trip__actions) > a[href]:not(.ant-btn),
+.app-container :is(a.table-link, a.trip-detail-link, a.back-link) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 13px; border: 1px solid #8ca99a; border-radius: 7px;
+  background: #f1f6f2; color: #164632; text-decoration: none; font-size: 13px; font-weight: 600;
+  transition: background-color .15s, border-color .15s;
+}
+.app-container :is(.ops-actions, .content-card__heading, .dashboard-trip__actions) > a[href]:not(.ant-btn):hover,
+.app-container :is(a.table-link, a.trip-detail-link, a.back-link):hover { background: #e3eee6; border-color: #235c42; text-decoration: none; }
+.app-container .ant-table-tbody a[href]:not(.ant-btn) { display: inline-block; padding: 7px 2px; text-decoration: underline; text-underline-offset: 4px; }
+.app-container .ops-actions { row-gap: 10px; }
+.ant-btn-default:not(:disabled):not(.ant-btn-dangerous) { border-color: #94a89c; color: #254b38; background: #fff; font-weight: 600; }
+.ant-btn-default:not(:disabled):not(.ant-btn-dangerous):hover { border-color: #22583e; background: #eff5f0; color: #103e2c; }
+.ant-btn:is(.ant-btn-text, .ant-btn-link):not(:disabled) { border: 1px solid #b7c9bd; background: #f3f7f4; color: #14513c; font-weight: 600; }
+.ant-btn:is(.ant-btn-text, .ant-btn-link):not(:disabled):hover { border-color: #235c42; background: #e6efe8; color: #0f3e2e; }
+.ant-btn[disabled], .app-container button:disabled { cursor: not-allowed; }
+.app-container .button--secondary { border-color: #94a89c; }
+.app-container .button--secondary:hover:not(:disabled) { background: #edf4ef; border-color: #235c42; }
+.app-container :is(.quick-action, .upcoming-card) { border: 1px solid #b9cbbf; background: #f6f9f6; text-decoration: none; cursor: pointer; transition: background-color .15s, border-color .15s; }
+.app-container :is(.quick-action, .upcoming-card):hover { border-color: #235c42; background: #edf4ef; }
+.app-container .app-sidebar__link { border: 1px solid transparent; min-height: 42px; }
+.app-container .app-sidebar__link:hover { border-color: #739788; background: #28594a; }
+.app-container .app-sidebar__link:focus-visible { outline-color: #fff; outline-offset: -3px; }
+.app-container .app-header__user button { border-color: #a1bbae; min-height: 36px; }
+.app-container .app-header__user button:hover { background: #ffffff1f; border-color: #fff; }
+.app-container .interaction-nav-link { border: 1px solid #dce5de; text-decoration: none; }
+.app-container .interaction-nav-link:hover { border-color: #8ca99a; background: #eff5f0 !important; }
+.app-container .interaction-account { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid #94a89c; background: #fafcfa; color: inherit; }
+.app-container .interaction-account:hover { background: #edf4ef; border-color: #235c42; }
+.app-container details > summary { display: list-item; width: fit-content; max-width: 100%; padding: 10px 14px; border: 1px solid #a7bdae; border-radius: 7px; background: #f3f7f4; color: #164632; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 40px; }
+.app-container details > summary:hover { border-color: #235c42; background: #e8f1eb; }
+.app-container details[open] > summary { background: #e8f1eb; border-color: #517b60; margin-bottom: 14px; }
+.app-container :is(.ops-order-choice, .order-detail-tabs button):hover { background: #e7f0e9; outline: 1px solid #8ca99a; outline-offset: -1px; }
+.app-container .order-detail-tabs button:not([aria-selected="true"]) { border: 1px solid #bdcec3; background: #fff; }
+:is(.app-container a, .app-container button, .app-container summary, .app-container [role="button"], .ant-btn):focus-visible { outline: 3px solid #286345; outline-offset: 3px; }
+:is(.ant-btn, .button, .trip-action-button):active:not(:disabled) { filter: brightness(.94); }
+.app-container .interaction-search-result { width: 100%; text-align: left; border: 1px solid #d7e1da; background: #fff; color: inherit; }
+.app-container .interaction-search-result:hover { border-color: #517b60; }
+.app-container :is(.table-actions button, .pagination button, .manager-modal__header > button, .manager-notice > button, .sos-banner button) { border: 1px solid #a7bdae; border-radius: 6px; background: #fff; min-width: 36px; min-height: 36px; }
+.app-container :is(.table-actions button, .pagination button, .manager-modal__header > button, .manager-notice > button):hover:not(:disabled) { border-color: #235c42; background: #e8f1eb; }
+.app-container .table-actions button.is-danger { border-color: #d5a2a2; background: #fff6f5; color: #a42d2d; }
+@media (pointer: coarse) {
+  .ant-btn:not(.ant-btn-icon-only), .app-container :is(.button, .table-link, .trip-detail-link, .back-link, summary, .interaction-account) { min-height: 44px; height: auto; }
+  .app-container .ant-table-tbody a[href]:not(.ant-btn) { padding-block: 12px; }
+  .app-container :is(.table-actions button, .pagination button, .manager-modal__header > button, .app-header__user button) { min-width: 44px; min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .app-container :is(a, button) { transition: none !important; transform: none !important; } }

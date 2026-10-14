@@ -174,7 +174,9 @@ const AddressSearchSelector = ({
               </div>
 
               {results.map((item, index) => (
-                <div
+                <button
+                  type="button"
+                  className="interaction-search-result"
                   key={index}
                   onClick={() => handleSelectResult(item)}
                   style={{
@@ -199,7 +201,7 @@ const AddressSearchSelector = ({
                       Quốc gia: {item.countryCode} • Tọa độ: [{item.coordinates[0].toFixed(4)}, {item.coordinates[1].toFixed(4)}]
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
