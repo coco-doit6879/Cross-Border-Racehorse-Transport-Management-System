@@ -1,29 +1,30 @@
+import { useHorseStore } from './useHorseStore';
+import { useOrderStore } from './useOrderStore';
 import { create } from 'zustand';
 import { authApi } from '../services/authApi';
 import { disconnectSocket } from '../socket/socketClient';
 import { getApiErrorMessage } from '../utils/apiResponse';
-import { getAccessToken, removeAccessToken, setAccessToken, getStoredUser, setStoredUser } from '../utils/authSession';
-import { USER_ROLES } from '../utils/constants';
+import { getAccessToken, removeAccessToken, setAccessToken } from '../utils/authSession';
 
 const storedToken = getAccessToken();
-const storedUser = getStoredUser();
 let bootstrapRequest = null;
 
 const removeStoredSession = () => {
   removeAccessToken();
   disconnectSocket();
+  useHorseStore.setState({ horses: [], error: null, loading: false });
+  useOrderStore.setState({ orders: [], error: null, loading: false });
 };
 
 export const useAuthStore = create((set, get) => ({
-  user: storedUser,
+  user: null,
   token: storedToken,
   isAuthenticated: Boolean(storedToken),
-  sessionStatus: storedToken ? 'authenticated' : 'unauthenticated',
+  sessionStatus: storedToken ? 'idle' : 'unauthenticated',
   profileError: '',
 
   setSession: ({ token, user }) => {
     setAccessToken(token);
-    setStoredUser(user);
     set({
       token,
       user,
@@ -38,14 +39,11 @@ export const useAuthStore = create((set, get) => ({
     set({ token, isAuthenticated: true, sessionStatus: 'authenticated' });
   },
 
-  setUser: (user) => {
-    setStoredUser(user);
-    set({
-      user,
-      isAuthenticated: Boolean(user && get().token),
-      sessionStatus: user && get().token ? 'authenticated' : get().sessionStatus
-    });
-  },
+  setUser: (user) => set({
+    user,
+    isAuthenticated: Boolean(user && get().token),
+    sessionStatus: user && get().token ? 'authenticated' : get().sessionStatus
+  }),
 
   clearSession: () => {
     removeStoredSession();
@@ -64,24 +62,6 @@ export const useAuthStore = create((set, get) => ({
     if (!token) {
       set({ user: null, sessionStatus: 'unauthenticated', isAuthenticated: false, profileError: '' });
       return null;
-    }
-
-    if (token.startsWith('demo-token-')) {
-      let demoUser = user || getStoredUser();
-      if (!demoUser) {
-        if (token.includes('manager')) {
-          demoUser = { id: 'usr-manager', fullName: 'MG-01 Quản lý Logistics', email: 'manager01@gmail.com', role: USER_ROLES.LOGISTICS_MANAGER };
-        } else if (token.includes('specialist')) {
-          demoUser = { id: 'usr-specialist', fullName: 'SP-01 Chuyên viên Kiểm dịch', email: 'specialist01@gmail.com', role: USER_ROLES.TRANSPORT_SPECIALIST };
-        } else if (token.includes('coordinator')) {
-          demoUser = { id: 'usr-coordinator', fullName: 'CO-01 Điều phối viên Đội xe', email: 'coordinator01@gmail.com', role: USER_ROLES.FLEET_COORDINATOR };
-        } else {
-          demoUser = { id: 'usr-customer', fullName: 'Tran Le Anh Quan', email: 'anhquan@gmail.com', role: USER_ROLES.CUSTOMER };
-        }
-      }
-      setStoredUser(demoUser);
-      set({ user: demoUser, isAuthenticated: true, sessionStatus: 'authenticated', profileError: '' });
-      return demoUser;
     }
 
     if (user && !force) {

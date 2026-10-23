@@ -3,6 +3,7 @@ import { getAccessToken, removeAccessToken } from '../utils/authSession';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -22,14 +23,10 @@ apiClient.interceptors.response.use(
     const status = error?.response?.status;
     const requestUrl = error?.config?.url || '';
 
-    // The confirmed backend contract has no refresh-token endpoint. A 401 from
+    // A 401 from
     // an authenticated request therefore ends the local session. A 403 never
     // changes authentication state.
-    // In demo/test mode, demo tokens should never cause session logout.
-    const token = getAccessToken();
-    const isDemoToken = Boolean(token && token.startsWith('demo-token-'));
-
-    if (status === 401 && !requestUrl.endsWith('/auth/login') && !isDemoToken) {
+    if (status === 401 && !requestUrl.endsWith('/auth/login')) {
       removeAccessToken();
       window.dispatchEvent(new Event('cbrt:session-expired'));
     }

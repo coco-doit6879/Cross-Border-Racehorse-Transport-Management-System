@@ -16,16 +16,22 @@
 }
 
 .refined-app .customer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
   height: 68px !important;
-  padding: 0 max(24px, calc((100vw - 1200px) / 2)) !important;
+  padding: 0 max(24px, calc((100% - 1400px) / 2)) !important;
   border-bottom: 1px solid #e2e8f0 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  gap: 28px;
+  gap: 20px;
   background: #ffffff !important;
 }
 
 .customer-header > div:first-child {
-  gap: 32px !important;
+  gap: 24px !important;
   min-width: 0;
 }
 
@@ -64,7 +70,94 @@
 }
 
 .customer-header nav {
-  gap: 24px !important;
+  gap: 16px !important;
+}
+
+.customer-header-actions {
+  flex-shrink: 0;
+  gap: 12px !important;
+  white-space: nowrap;
+}
+
+.customer-header .interaction-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.customer-header .interaction-account > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.customer-header .interaction-account > div:nth-child(2) {
+  max-width: 140px;
+  overflow: hidden;
+}
+
+.customer-header .interaction-account > div:nth-child(2) > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1300px) {
+  .customer-header .interaction-account > div:nth-child(2),
+  .customer-header-logout span {
+    display: none;
+  }
+  .customer-header > div:first-child {
+    gap: 16px !important;
+  }
+  .customer-header nav {
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 1000px) {
+  .refined-app .customer-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: auto !important;
+    padding: 12px 20px 0 !important;
+    gap: 8px 16px;
+  }
+  .customer-header .customer-header-main {
+    display: contents !important;
+  }
+  .customer-header .interaction-brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .customer-header-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .customer-header nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  .customer-header .interaction-nav-link {
+    padding: 12px 4px !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .refined-app .customer-header {
+    padding: 10px 12px 0 !important;
+    column-gap: 8px;
+  }
+  .customer-header .interaction-brand > div:last-child {
+    display: none;
+  }
+  .customer-header-actions {
+    gap: 8px !important;
+  }
 }
 
 .customer-header .interaction-nav-link {

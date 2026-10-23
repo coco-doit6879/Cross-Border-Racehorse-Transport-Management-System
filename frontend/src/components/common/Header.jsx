@@ -26,7 +26,7 @@ const Header = () => {
   const isBackoffice = location.pathname.startsWith('/manager') || OPERATIONAL_ROLES.includes(user?.role);
 
   const getInitials = (name) => {
-    if (!name) return 'AQ';
+    if (!name) return '?';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) return `${parts[parts.length - 2][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
@@ -79,7 +79,7 @@ const Header = () => {
           >
             <Shield size={16} color="#ea580c" />
             <span style={{ fontWeight: 700, fontSize: 13, color: '#9a3412' }}>
-              [{rolePrefix}] {user?.email || 'manager01@gmail.com'}
+              [{rolePrefix}] {user?.email || 'Chưa cập nhật email'}
             </span>
           </div>
           <span style={{ color: '#cbd5e1' }}>/</span>
@@ -96,7 +96,7 @@ const Header = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <Badge count={2} size="small" offset={[-2, 2]}>
+          <Badge count={0} size="small" offset={[-2, 2]}>
             <button
               type="button"
               style={{
@@ -178,8 +178,8 @@ const Header = () => {
       key: 'user-info',
       label: (
         <div style={{ padding: '6px 4px' }}>
-          <div style={{ fontWeight: 700, color: '#0f172a' }}>{user?.fullName || 'Trần Lê Anh Quân'}</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>{user?.email || 'anhquan@gmail.com'}</div>
+          <div style={{ fontWeight: 700, color: '#0f172a' }}>{user?.fullName || 'Tài khoản'}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>{user?.email || 'Chưa cập nhật email'}</div>
         </div>
       ),
       disabled: true
@@ -200,7 +200,7 @@ const Header = () => {
 
   return (
     <header className="customer-header">
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div className="customer-header-main" style={{ display: 'flex', alignItems: 'center' }}>
         <Link className="interaction-brand" to="/orders">
           <div>🏇</div>
           <div>
@@ -209,7 +209,7 @@ const Header = () => {
           </div>
         </Link>
 
-        <nav style={{ display: 'flex', alignItems: 'center', marginLeft: 16 }}>
+        <nav aria-label="Điều hướng chính" style={{ display: 'flex', alignItems: 'center' }}>
           {navItems.map((item) => {
             const isActive =
               item.path === '/orders'
@@ -232,7 +232,7 @@ const Header = () => {
         </nav>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div className="customer-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {/* Language selector pill VI | EN */}
         <div
           style={{
@@ -279,7 +279,7 @@ const Header = () => {
         </div>
 
         {/* Notification Bell */}
-        <Badge count={1} size="small" offset={[-2, 2]}>
+        <Badge count={0} size="small" offset={[-2, 2]}>
           <button
             type="button"
             style={{
@@ -298,11 +298,11 @@ const Header = () => {
 
         {/* User Account Dropdown */}
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
-          <button type="button" className="interaction-account">
-            <div>AQ</div>
+          <button type="button" className="interaction-account" aria-label="Tài khoản của tôi">
+            <div>{getInitials(user?.fullName)}</div>
             <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>
-                {user?.fullName || 'Tran Le Anh Quan'}
+                {user?.fullName || 'Tài khoản'}
               </div>
               <div style={{ fontSize: 11 }}>Khách hàng</div>
             </div>
@@ -315,6 +315,7 @@ const Header = () => {
           type="button"
           onClick={handleLogout}
           title="Đăng xuất khỏi hệ thống"
+          className="customer-header-logout"
           style={{
             border: '1px solid #e2e8f0',
             background: '#ffffff',

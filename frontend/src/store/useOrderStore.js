@@ -1,9 +1,5 @@
 import { create } from 'zustand';
 import { orderApi } from '../services/orderApi';
-import { horseApi } from '../services/horseApi';
-import { calculateTransportSchedule } from '../utils/transportCalculator';
-import { wdpDemoService } from '../services/wdpDemoService';
-import { getAccessToken } from '../utils/authSession';
 
 const mapOrderData = (o) => {
   const originAddr = typeof o.origin === 'object' ? o.origin?.address || '' : o.origin || '';
@@ -11,7 +7,8 @@ const mapOrderData = (o) => {
   const originShort = originAddr.split(',')[0] || originAddr;
   const destShort = destAddr.split(',')[0] || destAddr;
 
-  const schedule = calculateTransportSchedule(o.requestedDepartureDate || o.createdAt, o.origin, o.destination);
+  const departure = o.requestedDepartureDate ? new Date(o.requestedDepartureDate) : null;
+  const validDeparture = departure && !Number.isNaN(departure.getTime());
 
   const resolvedDriverName = o.driverName || o.assignedDriver?.fullName || 'Chưa phân công';
   const resolvedVehiclePlate = o.vehiclePlate || o.assignedVehicle?.plateNumber || null;
@@ -23,38 +20,37 @@ const mapOrderData = (o) => {
     horseNames = o.horses;
   }
 
-  const startFormatted = o.departureDate || new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeZone: o.departureTimezone || 'Asia/Ho_Chi_Minh' }).format(new Date(schedule.startAt));
-  const endFormatted = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(schedule.endAt));
+  const startFormatted = validDeparture ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeZone: o.departureTimezone || 'Asia/Ho_Chi_Minh' }).format(departure) : 'Chưa có lịch';
 
   // Ensure valid GeoJSON coordinates for Map rendering [lng, lat]
   const originCoords = typeof o.origin === 'object' && Array.isArray(o.origin.coordinates) && o.origin.coordinates.length === 2
     ? o.origin.coordinates
-    : (o.originLocation?.coordinates || [106.700806, 10.776889]);
+    : null;
   const destCoords = typeof o.destination === 'object' && Array.isArray(o.destination.coordinates) && o.destination.coordinates.length === 2
     ? o.destination.coordinates
-    : (o.destinationLocation?.coordinates || [106.9534, 10.7816]);
+    : null;
 
   return {
     ...o,
     id: o._id || o.id,
     _id: o._id || o.id,
-    orderCode: o.bookingCode || o.orderCode || (o._id ? `TR-2026-${String(o._id).slice(-4)}` : 'TR-2026-0001'),
+    orderCode: o.bookingCode || o.orderCode || String(o._id || o.id),
     bookingCode: o.bookingCode || o.orderCode,
     customerName: o.customerId?.fullName || o.customerName || 'Khách hàng',
     origin: originAddr || 'Chưa xác định',
     destination: destAddr || 'Chưa xác định',
-    originLocation: { formattedAddress: originAddr || 'Điểm đón', countryCode: o.origin?.countryCode || 'VN', coordinates: originCoords },
-    destinationLocation: { formattedAddress: destAddr || 'Điểm giao', countryCode: o.destination?.countryCode || 'KH', coordinates: destCoords },
-    routeLabel: o.routeLabel || (originAddr && destAddr ? `${originShort} → ${destShort}` : 'Chưa thiết lập tuyến đường'),
+    originLocation: { formattedAddress: originAddr || 'Điểm đón', countryCode: o.origin?.countryCode || '', coordinates: originCoords },
+    destinationLocation: { formattedAddress: destAddr || 'Điểm giao', countryCode: o.destination?.countryCode || '', coordinates: destCoords },
+    routeLabel: originAddr && destAddr ? `${originShort} → ${destShort}` : 'Chưa thiết lập tuyến đường',
     departureDate: startFormatted,
-    departureTime: o.departureTime || o.departureLocalTime || new Date(schedule.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: o.departureTimezone || 'Asia/Ho_Chi_Minh' }),
+    departureTime: o.departureLocalTime || (validDeparture ? departure.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: o.departureTimezone || 'Asia/Ho_Chi_Minh' }) : '—'),
     departureTimezone: o.departureTimezone || 'Asia/Ho_Chi_Minh',
     departureId: o.departureId || null,
-    estimatedArrivalDate: schedule.endAt,
-    eta: `${endFormatted} (${schedule.durationFormatted})`,
-    estimatedDistanceKm: schedule.distanceKm,
-    durationFormatted: schedule.durationFormatted,
-    gpsTimeAgo: o.gpsTimeAgo || 'Mới cập nhật',
+    estimatedArrivalDate: o.estimatedArrivalDate || null,
+    eta: o.estimatedArrivalDate ? new Date(o.estimatedArrivalDate).toLocaleString('vi-VN') : 'Chưa có dự kiến từ điều phối',
+    estimatedDistanceKm: o.estimatedDistanceKm ?? null,
+    durationFormatted: o.durationFormatted || 'Chưa cập nhật',
+    gpsTimeAgo: o.updatedAt ? new Date(o.updatedAt).toLocaleString('vi-VN') : 'Chưa cập nhật',
     horses: horseNames,
     horseIds: o.horseIds || [],
     status: o.status || 'PENDING_APPROVAL',
@@ -66,62 +62,40 @@ const mapOrderData = (o) => {
     paymentReference: o.paymentReference || null,
     paidAt: o.paidAt || null,
     depositRequired: Boolean(o.depositRequired),
-    depositPercent: o.depositPercent || 30,
+    depositPercent: o.depositPercent || null,
     depositAmountVnd: o.depositAmountVnd || 0,
     depositStatus: o.depositStatus || 'NOT_REQUIRED',
     depositDueAt: o.depositDueAt || null,
     depositReference: o.depositReference || null,
     depositedAt: o.depositedAt || null,
     specialRequirements: o.specialRequirements || '',
-    milestones: o.milestones || [],
-    flowStep: o.flowStep || 1,
-    flowStepLabel: o.flowStepLabel || 'Bước 1/8: Gửi đơn'
+    milestones: o.milestones || []
   };
 };
 
 export const useOrderStore = create((set, get) => ({
-  orders: wdpDemoService.getOrders().map(mapOrderData),
+  orders: [],
   loading: false,
   error: null,
 
   fetchOrders: async () => {
     set({ loading: true, error: null });
-    const token = getAccessToken();
-    if (!token || token.startsWith('demo-token-')) {
-      const demoOrders = wdpDemoService.getOrders().map(mapOrderData);
-      set({ orders: demoOrders, loading: false });
-      return demoOrders;
-    }
-
     try {
       const response = await orderApi.getOrders();
       const rawOrders = response?.data?.data || response?.data || [];
-      const mapped = rawOrders.length > 0 ? rawOrders.map(mapOrderData) : wdpDemoService.getOrders().map(mapOrderData);
+      const mapped = rawOrders.map(mapOrderData);
+      mapped.sort((a, b) => String(b._id || b.id).localeCompare(String(a._id || a.id)));
       set({ orders: mapped, loading: false });
       return mapped;
-    } catch {
-      const fallback = wdpDemoService.getOrders().map(mapOrderData);
-      set({ orders: fallback, loading: false, error: null });
-      return fallback;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể tải danh sách đơn vận chuyển';
+      set({ error: msg, loading: false, orders: [] });
+      throw err;
     }
   },
 
   fetchOrderById: async (orderId) => {
     set({ loading: true, error: null });
-    const token = getAccessToken();
-    if (!token || token.startsWith('demo-token-')) {
-      const fallbackDoc = wdpDemoService.getOrderById(orderId);
-      if (fallbackDoc) {
-        const mapped = mapOrderData(fallbackDoc);
-        set((state) => ({
-          orders: state.orders.map((o) => (String(o.id) === String(mapped.id) || o.orderCode === mapped.orderCode ? mapped : o)),
-          loading: false,
-          error: null
-        }));
-        return mapped;
-      }
-    }
-
     try {
       const response = await orderApi.getOrderById(orderId);
       const orderDoc = response?.data?.data || response?.data;
@@ -138,19 +112,10 @@ export const useOrderStore = create((set, get) => ({
       });
 
       return mapped;
-    } catch {
-      const fallbackDoc = wdpDemoService.getOrderById(orderId);
-      if (fallbackDoc) {
-        const mapped = mapOrderData(fallbackDoc);
-        set((state) => ({
-          orders: state.orders.map((o) => (String(o.id) === String(mapped.id) || o.orderCode === mapped.orderCode ? mapped : o)),
-          loading: false,
-          error: null
-        }));
-        return mapped;
-      }
-      set({ loading: false });
-      return null;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể tải chi tiết đơn vận chuyển';
+      set({ error: msg, loading: false });
+      throw err;
     }
   },
 
@@ -175,15 +140,10 @@ export const useOrderStore = create((set, get) => ({
       }));
 
       return mapped;
-    } catch {
-      // Fallback create BK-005 demo order
-      const newOrderDoc = wdpDemoService.createOrderBK005(orderData);
-      const mapped = mapOrderData(newOrderDoc);
-      set((state) => ({
-        orders: [mapped, ...state.orders.filter(o => o.orderCode !== 'BK-005')],
-        loading: false
-      }));
-      return mapped;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Không thể tạo đơn vận chuyển';
+      set({ error: msg, loading: false });
+      throw err;
     }
   },
 

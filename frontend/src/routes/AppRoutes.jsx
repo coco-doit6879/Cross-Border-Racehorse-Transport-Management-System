@@ -27,14 +27,15 @@ import ProtectedRoute from './ProtectedRoute';
 import { useAuthStore } from '../store/useAuthStore';
 import { USER_ROLES } from '../utils/constants';
 import { PERMISSIONS } from '../utils/permissions';
-import { isManagerDemoEnabled } from '../config/managerDemo';
 import { ManagerDataProvider } from '../context/ManagerDataContext';
 
 import LandingPage from '../pages/Landing/LandingPage';
 
 const ProtectedLayout = () => <MainLayout><Outlet /></MainLayout>;
-const ManagerDataBoundary = () => <ManagerDataProvider><Outlet /></ManagerDataProvider>;
-const ManagerDemoLayout = () => <ManagerDataProvider><MainLayout><Outlet /></MainLayout></ManagerDataProvider>;
+const ManagerDataBoundary = () => {
+  const role = useAuthStore(state => state.user?.role);
+  return role === USER_ROLES.LOGISTICS_MANAGER ? <ManagerDataProvider><Outlet /></ManagerDataProvider> : <Outlet />;
+};
 
 const ManagerIndex = () => {
   const role = useAuthStore((state) => state.user?.role);
@@ -63,7 +64,7 @@ const OPERATIONAL_ROLES = [
 
 const HomeRoute = () => {
   const role = useAuthStore((state) => state.user?.role);
-  if (isManagerDemoEnabled || OPERATIONAL_ROLES.includes(role)) return <Navigate to="/manager" replace />;
+  if (OPERATIONAL_ROLES.includes(role)) return <Navigate to="/manager" replace />;
   return <Overview />;
 };
 
@@ -84,7 +85,6 @@ const AppRoutes = () => (
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {isManagerDemoEnabled ? <Route path="/manager" element={<ManagerDemoLayout />}>{managerRoutes}</Route> : null}
 
       <Route element={<ProtectedRoute />}>
         <Route element={<ProtectedLayout />}>
@@ -118,11 +118,11 @@ const AppRoutes = () => (
             <Route path="/revenue" element={<RevenueDashboard />} />
           </Route>
 
-          {!isManagerDemoEnabled ? (
+          {(
             <Route element={<ProtectedRoute allowedRoles={OPERATIONAL_ROLES} />}>
               <Route path="/manager" element={<ManagerDataBoundary />}>{managerRoutes}</Route>
             </Route>
-          ) : null}
+          )}
 
           <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

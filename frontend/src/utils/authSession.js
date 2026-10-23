@@ -5,7 +5,9 @@ const USER_KEY = 'cbrt_user';
 // different roles can be used side-by-side during operations and demos.
 export const getAccessToken = () => {
   try {
-    return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+    const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+    if (token?.startsWith('demo-token-')) { removeAccessToken(); return null; }
+    return token;
   } catch {
     return null;
   }

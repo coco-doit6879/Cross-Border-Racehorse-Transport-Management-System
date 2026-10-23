@@ -2,13 +2,11 @@ import React, { useEffect } from 'react';
 import { ConfigProvider } from 'antd';
 import AppRoutes from './routes/AppRoutes';
 import { useAuthStore } from './store/useAuthStore';
-import { isManagerDemoEnabled } from './config/managerDemo';
 
 function App() {
   const bootstrapSession = useAuthStore((state) => state.bootstrapSession);
 
   useEffect(() => {
-    if (isManagerDemoEnabled) return undefined;
     bootstrapSession().catch(() => {
       // The store keeps the recoverable profile error for the route guard.
     });

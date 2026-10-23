@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '../common/Header';
 import Sidebar from '../common/Sidebar';
-import RoleSwitcher from '../common/RoleSwitcher';
 import { ConfigProvider } from 'antd';
 import '../operations/refined-ui.css';
 
@@ -50,7 +49,6 @@ const MainLayout = ({ children }) => {
             {children}
           </main>
         )}
-        <RoleSwitcher />
       </div>
     </ConfigProvider>
   );

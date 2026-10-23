@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Tag, Empty } from 'antd';
+import { Button, Card, Tag, Empty, Alert } from 'antd';
 import {
   Plus,
   AlertTriangle,
@@ -33,8 +33,8 @@ const getStatusBadge = (status) => {
 
 const Overview = () => {
   const navigate = useNavigate();
-  const { horses, fetchHorses } = useHorseStore();
-  const { orders, fetchOrders } = useOrderStore();
+  const { horses, fetchHorses, error: horseError } = useHorseStore();
+  const { orders, fetchOrders, error: orderError } = useOrderStore();
 
   useEffect(() => {
     fetchHorses().catch(() => {});
@@ -59,6 +59,7 @@ const Overview = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {(horseError || orderError) && <Alert type="error" message={horseError || orderError} />}
       {/* 1. Hero Banner */}
       <div
         style={{
