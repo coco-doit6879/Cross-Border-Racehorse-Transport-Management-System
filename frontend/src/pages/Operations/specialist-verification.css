@@ -1,0 +1,313 @@
+/* =========================================================
+   specialist-verification.css - Specialist Horse Review Workflow
+   Matching swp-rht-1ksz.vercel.app/backoffice/specialist/verification
+   ========================================================= */
+
+@keyframes specFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.specialist-page-container {
+  padding: 20px 24px 60px;
+  max-width: 1480px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #0f172a;
+  animation: specFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Page Header */
+.spec-header {
+  margin-bottom: 22px;
+}
+
+.spec-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ea580c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.spec-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.spec-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.spec-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+/* Top Metrics */
+.spec-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.spec-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.spec-metric-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.spec-metric-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 6px 0 2px;
+}
+
+.spec-metric-desc {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Tabs & Filter Bar */
+.spec-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  border-bottom: 1.5px solid #e2e8f0;
+  padding-bottom: 2px;
+}
+
+.spec-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+}
+
+.spec-tab-btn:hover {
+  color: #0f172a;
+}
+
+.spec-tab-btn--active {
+  color: #ea580c;
+  font-weight: 700;
+  border-bottom-color: #ea580c;
+}
+
+.spec-tab-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.spec-tab-btn--active .spec-tab-badge {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+/* Main Content Card (Table Container) */
+.spec-content-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.spec-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.spec-search-input {
+  max-width: 420px;
+}
+
+/* Custom Table Style */
+.spec-horse-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.spec-horse-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 12px 14px;
+  border-bottom: 1.5px solid #e2e8f0;
+  text-align: left;
+}
+
+.spec-horse-table td {
+  padding: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.spec-horse-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.spec-horse-cell-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.spec-horse-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  border: 1px solid #fed7aa;
+}
+
+.spec-btn-review {
+  background: #ea580c !important;
+  border-color: #ea580c !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25) !important;
+}
+
+.spec-btn-review:hover {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+}
+
+/* =========================================================
+   Inspection Modal View (Screenshots 3 & 4)
+   ========================================================= */
+
+.spec-modal-header-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.spec-doc-checklist-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.spec-doc-card-item {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #ffffff;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.spec-doc-card-item:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.spec-doc-info-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.spec-doc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.spec-confirm-box {
+  background: #fff7ed;
+  border: 1.5px solid #fed7aa;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spec-confirm-box label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9a3412;
+  cursor: pointer;
+}
+
+.spec-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}

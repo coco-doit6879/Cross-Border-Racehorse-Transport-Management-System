@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CalendarClock, DollarSign, Gauge, Home, Map, PackageCheck, PackageSearch, Route, Truck, UserRound, UsersRound } from 'lucide-react';
+import { AlertTriangle, CalendarClock, DollarSign, Gauge, Home, Map, PackageCheck, PackageSearch, Route, ShieldCheck, Truck, UserRound, UsersRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES } from '../../utils/constants';
@@ -31,10 +31,8 @@ const Sidebar = () => {
   ];
   logisticsItems.push({ to: '/horses', label: 'Hồ sơ ngựa', icon: PackageSearch });
   const specialistItems = [
-    { to: '/manager', label: 'Bàn làm việc', icon: Gauge },
-    { to: '/specialist/horses', label: 'Kiểm duyệt sức khỏe', icon: PackageSearch },
-    { to: '/specialist/compliance', label: 'Giấy tờ kiểm dịch', icon: PackageCheck },
-    { to: '/orders', label: 'Đơn vận chuyển', icon: Route }
+    { to: '/specialist/horses', label: 'Duyệt hồ sơ ngựa', icon: ShieldCheck },
+    { to: '/specialist/compliance', label: 'Giấy tờ kiểm dịch', icon: PackageCheck }
   ];
   const fleetItems = [
     { to: '/orders', label: 'Đơn hàng & nhập hỗ trợ', icon: PackageSearch },

@@ -20,6 +20,7 @@ import TransportSchedulesPage from '../pages/Manager/TransportSchedulesPage';
 import RevenueDashboard from '../pages/Manager/RevenueDashboard';
 import OperationsDashboard from '../pages/Operations/OperationsDashboard';
 import ComplianceQueue from '../pages/Operations/ComplianceQueue';
+import HorseVerificationPage from '../pages/Operations/HorseVerificationPage';
 import VehiclePage from '../pages/Operations/VehiclePage';
 import FleetStaffPage from '../pages/Operations/FleetStaffPage';
 import FleetTripsPage from '../pages/Operations/FleetTripsPage';
@@ -98,7 +99,9 @@ const AppRoutes = () => (
           <Route path="/horses/:id" element={<PassportDetail />} />
           <Route path="/routes/tracking" element={<RouteMap />} />
           <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.LOGISTICS_MANAGER]} />}>
-            <Route path="/specialist/horses" element={<HorseList />} />
+            <Route path="/specialist/horses" element={<HorseVerificationPage />} />
+            <Route path="/specialist/verification" element={<HorseVerificationPage />} />
+            <Route path="/backoffice/specialist/verification" element={<HorseVerificationPage />} />
             <Route path="/specialist/compliance" element={<ComplianceQueue />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR, USER_ROLES.LOGISTICS_MANAGER]} />}>

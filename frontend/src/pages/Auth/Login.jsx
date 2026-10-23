@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { getApiErrorMessage } from '../../utils/apiResponse';
 import { USER_ROLES } from '../../utils/constants';
 
-const roleHome = role => ({ LOGISTICS_MANAGER: '/manager', TRANSPORT_SPECIALIST: '/specialist/compliance', FLEET_COORDINATOR: '/fleet/trips', CUSTOMER: '/dashboard' })[role] || '/dashboard';
+const roleHome = role => ({ LOGISTICS_MANAGER: '/manager', TRANSPORT_SPECIALIST: '/specialist/horses', FLEET_COORDINATOR: '/fleet/trips', CUSTOMER: '/dashboard' })[role] || '/dashboard';
 
 const Login = () => {
   const navigate = useNavigate();
