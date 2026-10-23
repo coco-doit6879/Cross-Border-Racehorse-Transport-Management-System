@@ -24,7 +24,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
       label: 'Người nhận ủy quyền tại đích',
       name: 'Sokha Kem',
       phone: '0912 888 999',
-      desc: 'Đại diện tiếp nhận tại chuồng đích (Campuchia)'
+      desc: 'Đại diện tiếp nhận tại chuồng đích (Cơ sở tiếp nhận)'
     },
     STABLE_MANAGER: {
       label: 'Quản lý chuồng trại đích',
@@ -188,7 +188,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               Điểm đến bàn giao:
             </Text>
             <Text strong style={{ fontSize: 14, color: '#0F172A' }}>
-              {order.destination?.address || 'Phnom Penh, Campuchia'}
+              {order.destination?.address || 'Trường đua Quốc tế / Điểm giao đích'}
             </Text>
             <div style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>
               Xe đã đỗ tại chuồng đích · Ngựa đã xuống xe

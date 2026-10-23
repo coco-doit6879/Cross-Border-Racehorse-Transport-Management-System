@@ -28,3 +28,13 @@ build/
 .vscode/
 .idea/
 *.swp
+
+# Local scratch docs & extraction files
+/WDP.odt
+/extracted_doc_images/
+/extracted_content.txt
+/extracted_text.txt
+/doc_mapping.txt
+/extract_and_map.ps1
+/inspect_odt.ps1
+/launch_emulator.bat

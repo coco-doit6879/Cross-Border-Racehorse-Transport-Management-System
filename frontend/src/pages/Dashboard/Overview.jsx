@@ -93,12 +93,12 @@ const Overview = () => {
           icon={<Plus size={16} />}
           onClick={() => navigate('/orders/create')}
           style={{
-            backgroundColor: '#0F3E2E',
-            borderColor: '#0F3E2E',
+            backgroundColor: '#ea580c',
+            borderColor: '#ea580c',
             height: 42,
             padding: '0 20px',
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 700,
             borderRadius: 8
           }}
         >
@@ -228,13 +228,13 @@ const Overview = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#0F3E2E' }}>
-                    <MapPin size={16} color="#0F3E2E" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#2563eb' }}>
+                    <MapPin size={16} color="#2563eb" />
                     <span>{activeTrip.origin} → {activeTrip.destination}</span>
                   </div>
                   <div
                     style={{
-                      backgroundColor: activeTrip.vehiclePlate ? '#0F3E2E' : '#64748B',
+                      backgroundColor: activeTrip.vehiclePlate ? '#2563eb' : '#64748B',
                       color: '#FFFFFF',
                       padding: '4px 10px',
                       borderRadius: 6,
@@ -247,13 +247,13 @@ const Overview = () => {
                 </div>
 
                 <div style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
-                  Tài xế phụ trách: <strong style={{ color: '#0F3E2E' }}>{activeTrip.driverName}</strong>
+                  Tài xế phụ trách: <strong style={{ color: '#2563eb' }}>{activeTrip.driverName}</strong>
                 </div>
 
                 {/* Leaflet Route Map Embed */}
                 {activeTrip.originLocation && activeTrip.destinationLocation ? (
                   <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0F3E2E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                       🗺️ Bản đồ Lộ trình & Điểm đón / giao trực tiếp:
                     </div>
                     <LocationMap
@@ -331,7 +331,7 @@ const Overview = () => {
               <Button
                 type="primary"
                 onClick={() => navigate('/orders/create')}
-                style={{ marginTop: 12, backgroundColor: '#0F3E2E', borderColor: '#0F3E2E' }}
+                style={{ marginTop: 12, backgroundColor: '#2563eb', borderColor: '#2563eb' }}
               >
                 Tạo đơn vận chuyển ngay
               </Button>
@@ -343,7 +343,7 @@ const Overview = () => {
             <Button
               type="link"
               onClick={() => navigate('/orders')}
-              style={{ padding: 0, fontSize: 13, color: '#0F3E2E', fontWeight: 600 }}
+              style={{ padding: 0, fontSize: 13, color: '#2563eb', fontWeight: 600 }}
             >
               Xem danh sách đơn vận chuyển →
             </Button>
@@ -418,7 +418,7 @@ const Overview = () => {
             <Button
               type="link"
               onClick={() => navigate('/horses')}
-              style={{ padding: 0, fontSize: 13, color: '#0F3E2E', fontWeight: 600 }}
+              style={{ padding: 0, fontSize: 13, color: '#2563eb', fontWeight: 600 }}
             >
               Xem chi tiết hồ sơ đàn ngựa →
             </Button>

@@ -50,23 +50,28 @@ const Register = () => {
         </div>
         <div className="story-copy">
           <h1>An tâm cho ngựa.<br />Rõ ràng từng chặng.</h1>
-          <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br className="desktop-break" /> ngựa được xuyên biên giới.</p>
+          <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br className="desktop-break" /> chiến mã chuyên nghiệp trên từng chặng.</p>
         </div>
         <div className="story-bottom-info">
           <div className="story-feature-chips">
             <span>🛡️ Kiểm dịch thông quan</span>
             <span>🛰️ Định vị GPS 24/7</span>
-            <span>🐴 Phụ xe chuyên biệt</span>
+            <span>🐴 Đội ngũ chuyên biệt</span>
           </div>
-          <div className="story-footer">CROSS-BORDER RACEHORSE TRANSPORT</div>
+          <div className="story-footer">EQUINE EXPRESS & LOGISTICS SYSTEM</div>
         </div>
       </section>
 
       <section className="login-panel">
         <div className="login-content">
-          <p className="eyebrow">Cổng quản lý vận chuyển</p>
-          <h2>Đăng ký khách hàng</h2>
-          <p className="login-intro">Tạo tài khoản để bắt đầu quản lý hành trình.</p>
+          <div style={{ marginBottom: 20 }}>
+            <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>
+              ← Về Trang chủ
+            </Link>
+          </div>
+          <p className="eyebrow">CỔNG QUẢN LÝ VẬN CHUYỂN</p>
+          <h2>Đăng ký tài khoản</h2>
+          <p className="login-intro">Tạo tài khoản chủ ngựa để bắt đầu đặt chuyến và quản lý hồ sơ.</p>
 
           <form className="login-form register-form" onSubmit={handleSubmit}>
             <div className="register-fields">
@@ -76,19 +81,32 @@ const Register = () => {
               </div>
               <div>
                 <label htmlFor="phone">Số điện thoại <span>*</span></label>
-                <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="090 123 4567" autoComplete="tel" required />
+                <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="Ví dụ: 090 123 4567" autoComplete="tel" required />
               </div>
             </div>
 
             <label htmlFor="email">Email <span>*</span></label>
-            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="ten@congty.com" autoComplete="email" required />
+            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="example@gmail.com" autoComplete="email" required />
 
-            <div className="fixed-role" aria-label="Vai trò tài khoản">
-              <span>Loại tài khoản</span>
-              <strong>Khách hàng</strong>
+            <div style={{ marginTop: 16 }}>
+              <label htmlFor="address" style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 6 }}>
+                Trang trại / Địa chỉ thường trú
+              </label>
+              <input
+                id="address"
+                name="address"
+                type="text"
+                placeholder="VD: Trang trại Tân Bình, TP. Hồ Chí Minh"
+                onChange={handleChange}
+              />
             </div>
 
-            <div className="register-fields">
+            <div className="fixed-role" aria-label="Vai trò tài khoản" style={{ marginTop: 14 }}>
+              <span>Loại tài khoản:</span>
+              <strong style={{ color: '#2563eb' }}>Khách hàng (Chủ ngựa / CLB Đua)</strong>
+            </div>
+
+            <div className="register-fields" style={{ marginTop: 14 }}>
               <div>
                 <label htmlFor="password">Mật khẩu <span>*</span></label>
                 <input id="password" name="password" type="password" value={form.password} onChange={handleChange} placeholder="••••••••••••" autoComplete="new-password" minLength="8" required />
@@ -101,12 +119,14 @@ const Register = () => {
 
             {error && <p className="form-error" role="alert">{error}</p>}
 
-            <button className="login-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+            <button className="login-button" type="submit" disabled={isSubmitting} style={{ marginTop: 20 }}>
+              {isSubmitting ? 'Đang tạo tài khoản...' : 'Đăng ký tài khoản'}
             </button>
           </form>
 
-          <p className="login-note">Đã có tài khoản? <Link to="/login">Đăng nhập tại đây</Link></p>
+          <p className="login-note" style={{ marginTop: 20 }}>
+            Đã có tài khoản? <Link to="/login" style={{ color: '#2563eb', fontWeight: 600 }}>Đăng nhập tại đây</Link>
+          </p>
         </div>
       </section>
 

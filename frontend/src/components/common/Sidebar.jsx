@@ -13,11 +13,12 @@ const Sidebar = () => {
   const isManager = isManagerDemoEnabled || OPERATIONAL_ROLES.includes(user?.role);
 
   const baseItems = [
-    { to: '/', label: 'Trang chủ', icon: Home, visible: true },
+    { to: '/dashboard', label: 'Bảng điều khiển', icon: Gauge, visible: true },
     { to: '/orders', label: 'Đơn vận chuyển', icon: PackageSearch, visible: true },
     { to: '/horses', label: 'Hồ sơ ngựa', icon: PackageSearch, visible: user?.role === USER_ROLES.CUSTOMER },
     { to: '/routes/tracking', label: 'Theo dõi tuyến', icon: Map, visible: true },
-    { to: '/incidents/sos', label: 'Cảnh báo SOS', icon: AlertTriangle, visible: hasPermission(user, PERMISSIONS.SOS_MANAGE) }
+    { to: '/incidents/sos', label: 'Cảnh báo SOS', icon: AlertTriangle, visible: hasPermission(user, PERMISSIONS.SOS_MANAGE) },
+    { to: '/', label: 'Trang chủ giới thiệu', icon: Home, visible: true }
   ].filter((item) => item.visible);
 
   const logisticsItems = [

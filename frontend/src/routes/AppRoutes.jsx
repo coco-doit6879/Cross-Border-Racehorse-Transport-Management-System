@@ -12,7 +12,7 @@ import HorseList from '../pages/Horses/HorseList';
 import PassportDetail from '../pages/Horses/PassportDetail';
 import RouteMap from '../pages/Routes/RouteMap';
 import SOSAlerts from '../pages/Incidents/SOSAlerts';
-import ManagerDashboard from '../pages/Manager/ManagerDashboard';
+import ManagerDashboard from '../pages/Manager/ManagerWorkflow';
 import PersonnelPage from '../pages/Manager/PersonnelPage';
 import TripsPage from '../pages/Manager/TripsPage';
 import TripDetailPage from '../pages/Manager/TripDetailPage';
@@ -29,6 +29,8 @@ import { USER_ROLES } from '../utils/constants';
 import { PERMISSIONS } from '../utils/permissions';
 import { isManagerDemoEnabled } from '../config/managerDemo';
 import { ManagerDataProvider } from '../context/ManagerDataContext';
+
+import LandingPage from '../pages/Landing/LandingPage';
 
 const ProtectedLayout = () => <MainLayout><Outlet /></MainLayout>;
 const ManagerDataBoundary = () => <ManagerDataProvider><Outlet /></ManagerDataProvider>;
@@ -78,15 +80,16 @@ const ForbiddenPage = () => (
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
       {isManagerDemoEnabled ? <Route path="/manager" element={<ManagerDemoLayout />}>{managerRoutes}</Route> : null}
-      {isManagerDemoEnabled ? <Route path="/" element={<Navigate to="/manager" replace />} /> : null}
 
       <Route element={<ProtectedRoute />}>
         <Route element={<ProtectedLayout />}>
-          {!isManagerDemoEnabled ? <Route path="/" element={<HomeRoute />} /> : null}
+          <Route path="/dashboard" element={<HomeRoute />} />
+          <Route path="/overview" element={<HomeRoute />} />
           <Route path="/orders" element={<OrderList />} />
           <Route path="/orders/create" element={<CreateOrder />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
@@ -94,11 +97,11 @@ const AppRoutes = () => (
           <Route path="/horses" element={<HorseList />} />
           <Route path="/horses/:id" element={<PassportDetail />} />
           <Route path="/routes/tracking" element={<RouteMap />} />
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.TRANSPORT_SPECIALIST]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.LOGISTICS_MANAGER]} />}>
             <Route path="/specialist/horses" element={<HorseList />} />
             <Route path="/specialist/compliance" element={<ComplianceQueue />} />
           </Route>
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR, USER_ROLES.LOGISTICS_MANAGER]} />}>
             <Route path="/fleet/trips" element={<FleetTripsPage />} />
             <Route path="/fleet/vehicles" element={<VehiclePage />} />
             <Route path="/fleet/staff" element={<FleetStaffPage />} />

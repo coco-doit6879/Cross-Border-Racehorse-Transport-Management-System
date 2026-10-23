@@ -12,6 +12,10 @@ const Incident = require('../models/Incident');
 const DigitalPOD = require('../models/DigitalPOD');
 const AuditLog = require('../models/AuditLog');
 const RefreshTokenSession = require('../models/RefreshTokenSession');
+const PaymentTransaction = require('../models/PaymentTransaction');
+const OperationalAlert = require('../models/OperationalAlert');
+const HorseFile = require('../models/HorseFile');
+const Vehicle = require('../models/Vehicle');
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cbrt_db';
 
@@ -34,6 +38,9 @@ async function resetTestData() {
   const podRes = await DigitalPOD.deleteMany({});
   const auditRes = await AuditLog.deleteMany({});
   const tokenRes = await RefreshTokenSession.deleteMany({});
+  const paymentRes = await PaymentTransaction.deleteMany({});
+  const alertRes = await OperationalAlert.deleteMany({});
+  const fileRes = await HorseFile.deleteMany({});
 
   console.log(`   - Deleted Horses: ${horseRes.deletedCount}`);
   console.log(`   - Deleted Orders: ${orderRes.deletedCount}`);
@@ -44,6 +51,22 @@ async function resetTestData() {
   console.log(`   - Deleted Digital PODs: ${podRes.deletedCount}`);
   console.log(`   - Deleted Audit Logs: ${auditRes.deletedCount}`);
   console.log(`   - Deleted Refresh Sessions: ${tokenRes.deletedCount}`);
+  console.log(`   - Deleted Payment Transactions: ${paymentRes.deletedCount}`);
+  console.log(`   - Deleted Operational Alerts: ${alertRes.deletedCount}`);
+  console.log(`   - Deleted Horse Files: ${fileRes.deletedCount}`);
+
+  // Ensure vehicles exist and are active
+  const vehicleCount = await Vehicle.countDocuments();
+  if (vehicleCount === 0) {
+    await Vehicle.insertMany([
+      { plateNumber: '51C-987.65', name: 'Isuzu Horsebox 2 chỗ', capacityHorses: 2, countryCode: 'VN', registrationExpiresAt: new Date('2028-12-31'), inspectionExpiresAt: new Date('2027-12-31'), status: 'ACTIVE' },
+      { plateNumber: '29H-246.80', name: 'Mercedes Atego Horsebox', capacityHorses: 4, countryCode: 'VN', registrationExpiresAt: new Date('2029-06-30'), inspectionExpiresAt: new Date('2027-06-30'), status: 'ACTIVE' }
+    ]);
+    console.log('   - Seeded default vehicles: 51C-987.65, 29H-246.80');
+  } else {
+    await Vehicle.updateMany({}, { status: 'ACTIVE' });
+    console.log(`   - Preserved and reset status for ${vehicleCount} vehicles.`);
+  }
 
   // 2. Ensure system accounts exist and passwords are valid
   console.log('\n🔒 Resetting system accounts with valid passwords...');

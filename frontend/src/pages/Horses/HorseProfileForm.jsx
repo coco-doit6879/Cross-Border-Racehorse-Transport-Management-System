@@ -165,6 +165,8 @@ export function HorsePhotoGallery({ value = [], onChange, disabled = false, onBu
 export default function HorseProfileForm({ horse, onSave, saving }) {
   const [form] = Form.useForm();
   const [uploads, setUploads] = useState(0);
+  const [section, setSection] = useState('identity');
+  const identityFields = ['name', 'microchipId', 'breed', 'gender', 'dateOfBirth', 'weightKg', 'color', 'currentStopId', 'photos'];
   const [stops, setStops] = useState([]);
   const [stopError, setStopError] = useState('');
   useEffect(() => {
@@ -183,9 +185,13 @@ export default function HorseProfileForm({ horse, onSave, saving }) {
     (groups[stop.countryCode] ||= []).push({ value: stop.id, label: stop.name });
     return groups;
   }, {})).map(([label, options]) => ({ label, options }));
-  return <Form form={form} layout="vertical" onFinish={onSave}>
-    <Alert type="info" showIcon message="Hồ sơ được gửi đến Chuyên viên Thủ tục & Kiểm dịch để xác minh nhận dạng và duyệt sức khỏe." description="Mỗi lần lưu thay đổi sẽ đưa hồ sơ về trạng thái chờ duyệt." style={{ marginBottom: 24 }} />
-    <Card title="Thông tin nhận dạng" style={{ marginBottom: 20 }}>
+  return <Form className="workflow-profile-form" form={form} layout="vertical" onFinish={onSave} onFinishFailed={({ errorFields }) => { setSection(identityFields.includes(errorFields[0]?.name[0]) ? 'identity' : 'documents'); }}>
+    <div className="workflow-tabs" aria-label="Các phần hồ sơ">
+      <button type="button" aria-pressed={section === 'identity'} onClick={() => setSection('identity')}>1. Nhận dạng & địa điểm</button>
+      <button type="button" aria-pressed={section === 'documents'} onClick={() => setSection('documents')}>2. Giấy tờ & sức khỏe</button>
+    </div>
+    <p className="workflow-muted">Điền thông tin và tải giấy tờ để gửi kiểm duyệt. Mỗi lần lưu thay đổi, hồ sơ sẽ được duyệt lại.</p>
+    <div hidden={section !== 'identity'}><Card title="Thông tin nhận dạng" style={{ marginBottom: 20 }}>
       <Row gutter={24}>
         <Col xs={24} md={12}><Form.Item name="name" label="Tên ngựa (Tên đăng ký thi đấu)" rules={required}><Input /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="microchipId" label="Mã vi chip (Microchip ID)" rules={[...required, { pattern: /^[A-Za-z0-9]{10,18}$/, message: 'Nhập 10–18 ký tự chữ hoặc số.' }]}><Input maxLength={18} /></Form.Item></Col>
@@ -198,8 +204,8 @@ export default function HorseProfileForm({ horse, onSave, saving }) {
         <Col xs={24} md={12}><Form.Item name="identifyingMarks" label="Đặc điểm dị biệt nhận dạng (nếu có)"><Input placeholder="Sao trắng trán, tất trắng chân sau…" /></Form.Item></Col>
         <Col span={24}><Form.Item name="photos" label="Bộ ảnh nhận dạng ngựa" extra="Tải ít nhất 2 ảnh (nên có ảnh toàn thân và khuôn mặt). Có thể chọn nhiều ảnh cùng lúc." rules={[{ validator: (_, value) => Array.isArray(value) && value.length >= 2 && value.length <= 10 ? Promise.resolve() : Promise.reject(new Error('Vui lòng tải từ 2 đến 10 ảnh ngựa.')) }]}><HorsePhotoGallery onBusy={busy} /></Form.Item></Col>
       </Row>
-    </Card>
-    <Card title="Hồ sơ pháp lý & giấy tờ thú y" style={{ marginBottom: 20 }}>
+    </Card></div>
+    <div hidden={section !== 'documents'}><Card title="Hồ sơ pháp lý & giấy tờ thú y" style={{ marginBottom: 20 }}>
       <Row gutter={24}>
         <Col xs={24} md={12}><Form.Item name="feiPassportNumber" label="Số hộ chiếu ngựa / FEI" rules={required}><Input /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="lastVaccinationDate" label="Ngày tiêm phòng cúm ngựa gần nhất" extra="Cần hồ sơ tiêm phòng trong vòng 6 tháng để được duyệt." rules={required}><Input type="date" max={today()} /></Form.Item></Col>
@@ -207,8 +213,11 @@ export default function HorseProfileForm({ horse, onSave, saving }) {
         <Col span={24}><Form.Item name="vaccinationRecordUrl" label="Sổ tiêm chủng / Chứng nhận kiểm dịch" rules={[{ validator: (_, value) => Array.isArray(value) && value.length >= 1 && value.length <= 10 ? Promise.resolve() : Promise.reject(new Error('Vui lòng tải từ 1 đến 10 tệp tiêm chủng.')) }]}><HorsePhotoGallery allowPdf onBusy={busy} /></Form.Item></Col>
         <Col span={24}><Form.Item name="medicalHistoryNotes" label="Tiền sử y tế & lưu ý sức khỏe"><Input.TextArea rows={3} /></Form.Item></Col>
       </Row>
-    </Card>
+    </Card></div>
     {stopError && <Alert type="error" showIcon message={stopError} style={{ marginBottom: 16 }} />}
-    <Button htmlType="submit" type="primary" loading={saving} disabled={uploads > 0 || Boolean(stopError)}>Gửi hồ sơ kiểm duyệt sức khỏe</Button>
+    <div className="workflow-form-footer">
+      <Button disabled={section === 'identity' || saving} onClick={() => setSection('identity')}>Quay lại</Button>
+      {section === 'identity' ? <Button type="primary" disabled={uploads > 0} onClick={async () => { try { await form.validateFields(identityFields); setSection('documents'); } catch { /* Field errors are displayed in place. */ } }}>Tiếp tục: giấy tờ</Button> : <Button htmlType="submit" type="primary" loading={saving} disabled={uploads > 0 || Boolean(stopError)}>Gửi hồ sơ kiểm duyệt</Button>}
+    </div>
   </Form>;
 }

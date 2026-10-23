@@ -12,12 +12,12 @@
 .order-summary-facts small { display: block; color: #66716b; margin-top: 4px; font-size: 12px; }
 .order-progress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); list-style: none; padding: 0; margin: 24px 0 0; gap: 8px; }
 .order-progress li { border-top: 3px solid #e6eae6; padding-top: 8px; color: #66716b; font-size: 12px; }
-.order-progress .is-done { border-color: #91ad9a; }
-.order-progress .is-current { border-color: #0f3e2e; color: #0f3e2e; font-weight: 600; }
+.order-progress .is-done { border-color: #93c5fd; }
+.order-progress .is-current { border-color: #2563eb; color: #2563eb; font-weight: 600; }
 .order-detail-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; border-bottom: 1px solid #dfe5e0; padding-bottom: 8px; }
 .order-detail-tabs button { font: inherit; font-size: 14px; border: 0; border-radius: 6px; background: transparent; color: #66716b; padding: 11px 14px; min-height: 44px; flex-shrink: 0; cursor: pointer; }
 .order-tabs-hint { display: none; }
-.order-detail-tabs button[aria-selected="true"] { background: #e9f0eb; color: #0f3e2e; font-weight: 600; }
+.order-detail-tabs button[aria-selected="true"] { background: #eff6ff; color: #2563eb; font-weight: 600; }
 .order-next-action, .order-attention, .order-map-section { border: 1px solid #dfe5e0; border-radius: 10px; padding: 20px; background: #fff; }
 .order-next-action { background: #f0f5f1; margin-bottom: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; }
 .order-next-action h2, .order-map-section h2 { font-size: 17px; font-weight: 600; margin: 0; }

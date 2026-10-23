@@ -25,7 +25,11 @@ apiClient.interceptors.response.use(
     // The confirmed backend contract has no refresh-token endpoint. A 401 from
     // an authenticated request therefore ends the local session. A 403 never
     // changes authentication state.
-    if (status === 401 && !requestUrl.endsWith('/auth/login')) {
+    // In demo/test mode, demo tokens should never cause session logout.
+    const token = getAccessToken();
+    const isDemoToken = Boolean(token && token.startsWith('demo-token-'));
+
+    if (status === 401 && !requestUrl.endsWith('/auth/login') && !isDemoToken) {
       removeAccessToken();
       window.dispatchEvent(new Event('cbrt:session-expired'));
     }
