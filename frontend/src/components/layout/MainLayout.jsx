@@ -39,12 +39,12 @@ const MainLayout = ({ children }) => {
       }}
     >
       <div
-        className={`refined-app ${[USER_ROLES.LOGISTICS_MANAGER, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role) ? 'backoffice-layout' : ''} ${/^\/orders\/[^/]+$/.test(location.pathname) ? 'order-page-layout' : ''} ${user?.role === USER_ROLES.CUSTOMER ? 'customer-orders-layout' : ''} ${user?.role === USER_ROLES.CUSTOMER ? 'customer-booking-layout' : ''}`}
+        className={`refined-app ${isManagerRoute ? 'backoffice-layout' : ''} ${user?.role === USER_ROLES.TRANSPORT_SPECIALIST ? 'specialist-layout' : ''} ${/^\/orders\/[^/]+$/.test(location.pathname) ? 'order-page-layout' : ''} ${user?.role === USER_ROLES.CUSTOMER ? 'customer-orders-layout' : ''} ${user?.role === USER_ROLES.CUSTOMER ? 'customer-booking-layout' : ''}`}
         style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}
       >
         <Header />
         {isManagerRoute ? (
-          <div className={`layout-body ${[USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role) ? 'layout-body--operations' : ''}`}>
+          <div className="layout-body">
             <Sidebar />
             <main className="app-content">{children}</main>
           </div>

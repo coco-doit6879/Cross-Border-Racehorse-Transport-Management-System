@@ -7,3 +7,46 @@
 
 .refined-app.backoffice-layout .app-sidebar { background: #fff !important; color: #424c5b; }
 .refined-app.backoffice-layout .app-sidebar__link { color: #424c5b !important; }
+
+/* Specialist shares the manager shell and its content spacing. */
+.specialist-layout .specialist-page-container,
+.specialist-layout .ops-workspace {
+  --ops-border: #edf0f4;
+  --ops-muted: #8b929d;
+  padding: 0;
+  max-width: none;
+  margin: 0;
+  font-family: inherit;
+  color: #263141;
+}
+.specialist-layout .spec-title,
+.specialist-layout .ops-heading h1 { font-size: 23px; letter-spacing: -.4px; color: #263141; }
+.specialist-layout .spec-subtitle,
+.specialist-layout .ops-heading p { font-size: 12px; color: #8b929d; }
+.specialist-layout .spec-eyebrow,
+.specialist-layout .ops-eyebrow { font-size: 10px; color: #c86e35; margin-bottom: 7px; }
+.specialist-layout .spec-metric-card,
+.specialist-layout .spec-content-card { border-color: #edf0f4; border-radius: 12px; box-shadow: none; }
+.specialist-layout .spec-metric-label { font-size: 11px; color: #78818e; }
+.specialist-layout .spec-tab-btn { font-size: 12px; padding: 15px 8px; }
+.specialist-layout .spec-tab-btn--active { color: #c86e35; border-bottom-color: #d4814a; }
+.specialist-layout .spec-horse-table th { background: #f6f7f9; color: #78818e; font-size: 10px; }
+.specialist-layout .spec-horse-table tbody tr:hover td { background: #fffbf5; }
+.specialist-layout .ops-order-choice[aria-pressed="true"] { border-color: #d4814a; background: #fff7ed; box-shadow: inset 3px 0 #d4814a; }
+.specialist-layout .ops-workspace :is(a, button, summary, input):focus-visible { outline-color: #fb923c; }
+@media (max-width: 760px) {
+  .specialist-layout .spec-metrics-grid { grid-template-columns: 1fr; }
+  .specialist-layout .spec-title-row,
+  .specialist-layout .spec-table-toolbar { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .specialist-layout .spec-filter-tabs { overflow-x: auto; }
+  .specialist-layout .spec-tab-btn { white-space: nowrap; }
+  .specialist-layout .spec-content-card { padding: 14px; }
+}
+/* Keep the shared sidebar vertical until the mobile navigation breakpoint. */
+@media (min-width: 541px) {
+  .refined-app.backoffice-layout .app-sidebar nav { display: block; }
+  .refined-app.backoffice-layout .app-sidebar__link { flex-direction: row; }
+}
+@media (max-width: 540px) {
+  .refined-app.backoffice-layout .app-sidebar__link { flex-direction: row; }
+}

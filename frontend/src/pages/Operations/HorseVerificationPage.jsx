@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Badge,
@@ -407,9 +408,11 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
 }
 
 export default function HorseVerificationPage() {
+  const [params] = useSearchParams();
   const { horses: realHorses, fetchHorses, reviewHorse, loading } = useHorseStore();
   const [activeTab, setActiveTab] = useState('PENDING_REVIEW'); // 'PENDING_REVIEW' | 'REJECTED' | 'APPROVED'
   const [search, setSearch] = useState('');
+  useEffect(() => { setSearch(params.get('q') || ''); }, [params]);
   const [selectedHorse, setSelectedHorse] = useState(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);

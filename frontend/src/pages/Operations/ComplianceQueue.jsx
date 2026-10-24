@@ -10,6 +10,7 @@ export default function ComplianceQueue() {
   const orderId = params.get('orderId');
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState('');
+  useEffect(() => { setSearch(params.get('q') || ''); }, [params]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
@@ -21,7 +22,7 @@ export default function ComplianceQueue() {
   useEffect(() => { load(); }, [load]);
   const selected = orders.find(o => o._id === orderId);
   const filtered = orders.filter(o => `${o.bookingCode} ${o.customerId?.fullName || ''} ${o.origin?.address || ''} ${o.destination?.address || ''}`.toLowerCase().includes(search.toLowerCase()));
-  return <Workspace eyebrow="Thủ tục & kiểm dịch" title="Thẩm định chứng từ" description="Chọn đơn vận chuyển, kiểm tra hồ sơ và lưu kết quả xét duyệt theo từng mốc hành trình." actions={<Button loading={loading} onClick={load}>Làm mới danh sách</Button>}>
+  return <Workspace inheritTheme eyebrow="Thủ tục & kiểm dịch" title="Thẩm định chứng từ" description="Chọn đơn vận chuyển, kiểm tra hồ sơ và lưu kết quả xét duyệt theo từng mốc hành trình." actions={<Button loading={loading} onClick={load}>Làm mới danh sách</Button>}>
     <Metrics items={[
       { label: 'Đơn trong hàng đợi', value: orders.length, detail: 'Đã duyệt hoặc đang xử lý hồ sơ' },
       { label: 'Đang xử lý hồ sơ', value: orders.filter(o => o.status === 'DOCS_PROCESSING').length },

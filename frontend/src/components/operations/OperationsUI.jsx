@@ -18,8 +18,8 @@ export function StatusPill({ value, label }) {
   return <span className={`ops-status ops-status--${tone}`}>{label || labels[value] || value || 'Chưa cập nhật'}</span>;
 }
 
-export function Workspace({ eyebrow, title, description, actions, children, className = '' }) {
-  return <ConfigProvider theme={{ token: { colorPrimary: '#0F3E2E', colorText: '#202824', colorTextSecondary: '#66716b', colorBorder: '#dce2dd', borderRadius: 8, controlHeight: 40 }, components: { Table: { headerBg: '#f5f7f5', headerColor: '#536057', cellPaddingBlock: 16 }, Card: { headerFontSize: 16 } } }}>
+export function Workspace({ eyebrow, title, description, actions, children, className = '', inheritTheme = false }) {
+  return <ConfigProvider theme={inheritTheme ? {} : { token: { colorPrimary: '#0F3E2E', colorText: '#202824', colorTextSecondary: '#66716b', colorBorder: '#dce2dd', borderRadius: 8, controlHeight: 40 }, components: { Table: { headerBg: '#f5f7f5', headerColor: '#536057', cellPaddingBlock: 16 }, Card: { headerFontSize: 16 } } }}>
     <section className={`ops-workspace ${className}`}>
       <header className="ops-heading">
         <div><div className="ops-eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>
