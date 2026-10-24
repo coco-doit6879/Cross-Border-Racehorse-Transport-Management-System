@@ -1,8 +1,16 @@
 export const idOf=value=>String(value?._id||value?.id||value||'');
-export const date=value=>value?new Intl.DateTimeFormat('vi-VN',{dateStyle:'short',timeZone:'Asia/Ho_Chi_Minh'}).format(new Date(value)):'—';
-export const datetime=value=>value?new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour12:false}):'—';
+export const date=value=>{
+  if(!value)return '—';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('vi-VN',{dateStyle:'short',timeZone:'Asia/Ho_Chi_Minh'}).format(d);
+};
+export const datetime=value=>{
+  if(!value)return '—';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'—':d.toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour12:false});
+};
 export const money=value=>Number.isFinite(value)?`${value.toLocaleString('vi-VN')} ₫`:'Chưa có báo giá';
-export const routeLabel=order=>`${order.origin?.address||'—'} → ${order.destination?.address||'—'}`;
+export const routeLabel=order=>`${order?.origin?.address||'—'} → ${order?.destination?.address||'—'}`;
 export function issue(resource,kind,order,orders=[],routes=[]){
  if(!resource)return 'Chưa chọn';
  const date=Math.max(Date.now(),new Date(order.requestedDepartureDate).getTime()||0);

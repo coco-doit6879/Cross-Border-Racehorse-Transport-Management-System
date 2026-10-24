@@ -25,9 +25,22 @@ export default function PassportDetail() {
     return () => { active = false; };
   }, [id, fetchHorse]);
   if (loading) return <Spin />;
-  if (error || !horse) return <Alert type="error" message={error || 'Không tìm thấy hồ sơ.'} action={<Button onClick={() => navigate('/horses')}>Quay lại</Button>} />;
   const owned = String(horse.ownerId?._id || horse.ownerId) === String(user?._id || user?.id);
   const reviewer = canReviewHorse(user) && !owned;
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (reviewer || user?.role === 'TRANSPORT_SPECIALIST') {
+      navigate('/specialist/horses');
+    } else if (user?.role === 'LOGISTICS_MANAGER') {
+      navigate('/manager');
+    } else if (['FLEET_COORDINATOR', 'ROUTE_COORDINATOR'].includes(user?.role)) {
+      navigate('/fleet/trips');
+    } else {
+      navigate('/horses');
+    }
+  };
+  if (error || !horse) return <Alert type="error" message={error || 'Không tìm thấy hồ sơ.'} action={<Button onClick={handleBack}>Quay lại</Button>} />;
   const save = async (values) => {
     setSaving(true);
     try { setHorse(await updateHorse(id, values)); setEditing(false); message.success('Đã gửi lại hồ sơ để duyệt sức khỏe.'); }
@@ -48,7 +61,7 @@ export default function PassportDetail() {
       }
     } finally { setSaving(false); }
   };
-  return <Workspace eyebrow="Hồ sơ ngựa / Thẩm định sức khỏe" title={horse.name} description="Đối chiếu thông tin nhận dạng, chứng từ và lưu kết luận kiểm duyệt." actions={<Button onClick={() => navigate(reviewer ? '/specialist/horses' : '/horses')}>Về danh sách</Button>}>
+  return <Workspace eyebrow="Hồ sơ ngựa / Thẩm định sức khỏe" title={horse.name} description="Đối chiếu thông tin nhận dạng, chứng từ và lưu kết luận kiểm duyệt." actions={<Button onClick={handleBack}>Về danh sách</Button>}>
     <Card title="Trạng thái hồ sơ">
       <StatusPill value={horse.reviewStatus} label={reviewLabels[horse.reviewStatus]} />
       {horse.transportAssignment && <Alert style={{ marginTop: 12 }} type="info" message={`${({ ASSIGNED: 'Dự kiến lên xe', ON_BOARD: 'Đang trên xe', DELIVERED: 'Đã giao từ xe' })[horse.transportAssignment.state]} ${horse.transportAssignment.vehiclePlateNumber} · ${horse.transportAssignment.bookingCode}`} action={<Button onClick={() => navigate(`/orders/${horse.transportAssignment.orderId}`)}>Xem vận đơn</Button>} />}
