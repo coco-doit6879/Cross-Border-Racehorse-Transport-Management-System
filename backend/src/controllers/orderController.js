@@ -11,6 +11,7 @@ const { logAudit } = require('../utils/auditLogger');
 const User = require('../models/User');
 const { staff, deliveryProblem } = require('../services/operationsWorkflow');
 const { accessibleOrders } = require('../services/resourceAccess');
+const { normalizeBookingContacts } = require('../utils/bookingContacts');
 
 /**
  * Auto-generates unique TR-YYYY-XXXX booking code
@@ -97,7 +98,7 @@ exports.getOrders = async (req, res, next) => {
 
     const orders = await Order.find(query)
       .populate('customerId', 'fullName email phone username')
-      .populate('horseIds', 'name microchipId feiPassportNumber breed weightKg');
+      .populate('horseIds', 'name microchipId feiPassportNumber breed weightKg reviewStatus');
 
     const ordersWithAssignments = await attachRouteAssignments(orders);
 
@@ -163,6 +164,9 @@ exports.getOrderById = async (req, res, next) => {
 exports.createOrder = async (req, res, next) => {
   try {
     const { horseIds, departureId, scheduleRevision, specialRequirements, addOnIds = [] } = req.body;
+    let contacts;
+    try { contacts = normalizeBookingContacts(req.body.contacts); }
+    catch (error) { return res.status(error.status || 400).json({ success: false, message: error.message }); }
     const assisting = staff(req.user) && req.body.customerId;
     const customerId = assisting ? req.body.customerId : req.user._id;
     if (assisting && !(await User.exists({ _id: customerId, role: 'CUSTOMER', isActive: true }))) return res.status(400).json({ success: false, message: 'Khách hàng không tồn tại hoặc đã ngừng hoạt động.' });
@@ -258,6 +262,7 @@ exports.createOrder = async (req, res, next) => {
     // Initial status is locked to PENDING_APPROVAL
     const order = await Order.create({
       ...departure,
+      ...(contacts ? { contacts } : {}),
       bookingCode,
       customerId,
       createdBy: req.user._id,
@@ -348,6 +353,7 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
 
+    if (['APPROVED','REJECTED'].includes(status) && req.user.role !== 'LOGISTICS_MANAGER') return res.status(403).json({message:'Chỉ quản lý được duyệt đơn vận chuyển.'});
     const currentStatus = order.status;
     if (status === 'APPROVED' && ['PENDING', 'CHANGES_REQUESTED'].includes(order.customerConfirmation)) return res.status(409).json({ success: false, message: 'Khách hàng cần xác nhận thông tin do nhân viên nhập hỗ trợ.' });
     if (status === 'COMPLETED') {
@@ -385,6 +391,8 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
 
+    if (status === 'APPROVED') { const horses = await Horse.find({_id:{$in:order.horseIds}}); if(horses.length!==order.horseIds.length || horses.some(h=>h.reviewStatus!=='APPROVED')) return res.status(409).json({message:'Hồ sơ ngựa chưa được duyệt sức khỏe.'}); }
+
     // Require rejectionReason if rejecting order
     if (status === 'REJECTED' && !rejectionReason) {
       return res.status(400).json({
@@ -394,6 +402,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     }
 
     order.status = status;
+    if(status==='APPROVED') {order.preparation={...(order.preparation||{}),approvedAt:new Date(),approvedBy:req.user._id};order.markModified?.('preparation');}
     if (rejectionReason) {
       order.rejectionReason = rejectionReason;
     }

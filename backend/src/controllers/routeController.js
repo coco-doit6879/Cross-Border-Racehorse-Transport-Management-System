@@ -110,108 +110,11 @@ exports.getRouteById = async (req, res, next) => {
 // @desc    Dispatch route & assign vehicle/driver/escort (Coordinator)
 // @route   POST /api/v1/routes/dispatch
 // @access  Private (route:dispatch)
-exports.dispatchRoute = async (req, res, next) => {
-  try {
-    const { orderId, vehicleId, driverId, escortId, waypoints, assignmentNote } = req.body;
+exports.dispatchRoute = async (req,res) => res.status(409).json({message:'Phân công kíp xe tại màn hình Duyệt giá sau khi khách thanh toán đủ và điều phối xác nhận xe, lộ trình.'});
 
-    if (!orderId || !vehicleId || !driverId || !escortId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng chọn đơn, phương tiện, tài xế và phụ xe.'
-      });
-    }
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    if (!['APPROVED', 'CLEARED_FOR_TRANSPORT', 'DOCS_PROCESSING'].includes(order.status)) {
-      return res.status(400).json({
-        success: false,
-        errorCode: 'INVALID_ORDER_STATUS',
-        message: `Cannot dispatch route for order in status '${order.status}'`
-      });
-    }
-
-    if (order.paymentStatus !== 'PAID') {
-      return res.status(409).json({
-        success: false,
-        errorCode: 'PAYMENT_REQUIRED',
-        message: 'Chỉ được phân công chuyến sau khi khách hàng đã thanh toán đủ.'
-      });
-    }
-
-    const existingRoute = await TransportRoute.findOne({ orderId });
-    if (existingRoute) {
-      return res.status(400).json({
-        success: false,
-        message: 'A transport route has already been dispatched for this order'
-      });
-    }
-
-    const assignment = await validateAssignment({ order, vehicleId, driverId, escortId });
-    if (assignment.error) return res.status(409).json({ success: false, message: assignment.error });
-
-    // Default waypoints from order origin & destination if not provided
-    const defaultWaypoints = waypoints && waypoints.length > 0 ? waypoints : [
-      {
-        sequence: 1,
-        name: order.origin.address,
-        type: 'PICKUP',
-        location: { coordinates: order.origin.coordinates },
-        estimatedArrival: order.requestedDepartureDate,
-        status: 'PENDING'
-      },
-      {
-        sequence: 2,
-        name: order.destination.address,
-        type: 'DELIVERY',
-        location: { coordinates: order.destination.coordinates },
-        estimatedArrival: new Date(new Date(order.requestedDepartureDate).getTime() + 24 * 60 * 60 * 1000),
-        status: 'PENDING'
-      }
-    ];
-
-    // Initial currentLocation MUST be null (prevents Null Island [0,0])
-    const route = await TransportRoute.create({
-      orderId,
-      vehicleId: assignment.vehicle._id,
-      vehiclePlateNumber: assignment.vehicle.plateNumber,
-      driverId,
-      escortId,
-      assignmentNote,
-      assignmentHistory: [{ changedBy: req.user._id, reason: 'Phân công ban đầu', vehicleId, driverId, escortId }],
-      waypoints: defaultWaypoints,
-      currentLocation: null,
-      status: 'SCHEDULED'
-    });
-
-    await logAudit({
-      actorId: req.user._id,
-      action: 'ROUTE_DISPATCH',
-      resource: 'TransportRoute',
-      resourceId: route._id.toString(),
-      result: 'SUCCESS',
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-
-    res.status(201).json({
-      success: true,
-      data: route
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc Update vehicle/driver/escort assignment for an existing scheduled route
 exports.updateAssignment = async (req, res, next) => {
   try {
+    if(req.user.role!=='LOGISTICS_MANAGER')return res.status(403).json({message:'Chỉ quản lý được thay đổi tài xế, phụ xe.'});
     const { vehicleId, driverId, escortId, reason, assignmentNote } = req.body;
     if (!vehicleId || !driverId || !escortId) return res.status(400).json({ success: false, message: 'Vui lòng chọn đủ xe, tài xế và phụ xe.' });
     const route = await TransportRoute.findById(req.params.id).populate('orderId');
@@ -219,6 +122,7 @@ exports.updateAssignment = async (req, res, next) => {
     if (route.status !== 'SCHEDULED') return res.status(409).json({ success: false, message: 'Chỉ được đổi phân công khi chuyến chưa khởi hành.' });
     const changed = String(route.vehicleId || '') !== String(vehicleId) || String(route.driverId) !== String(driverId) || String(route.escortId) !== String(escortId);
     if (changed && !String(reason || '').trim()) return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do thay đổi phân công.' });
+    if(idOf(vehicleId)!==idOf(route.vehicleId))return res.status(409).json({message:'Xe và lộ trình đã được điều phối xác nhận, không đổi xe tại bước phân công nhân sự.'});
     const assignment = await validateAssignment({ order: route.orderId, vehicleId, driverId, escortId, excludeRouteId: route._id });
     if (assignment.error) return res.status(409).json({ success: false, message: assignment.error });
     route.assignmentHistory.push({ changedBy: req.user._id, reason: String(reason || '').trim(), previousVehicleId: route.vehicleId, previousDriverId: route.driverId, previousEscortId: route.escortId, vehicleId, driverId, escortId });
@@ -247,7 +151,7 @@ exports.updateTripStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     if (status === 'INCIDENT_HANDLING') return res.status(409).json({ success: false, message: 'Hãy báo SOS để có hồ sơ sự cố và người tiếp nhận.' });
-    if (status === 'COMPLETED') return res.status(409).json({ success: false, message: 'Khách hàng cần ký xác nhận giao nhận để hoàn tất chuyến.' });
+
     if (status === 'CANCELLED') return res.status(409).json({ success: false, message: 'Cần xử lý hủy đơn qua điều phối, không hủy trực tiếp chuyến đang giữ ngựa.' });
     let route = await TransportRoute.findById(req.params.id);
 
@@ -262,6 +166,8 @@ exports.updateTripStatus = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Bạn không được phân công vào chuyến vận chuyển này.' });
     }
 
+    if (req.user.role !== 'DRIVER' || idOf(route.driverId)!==idOf(req.user._id)) return res.status(403).json({message:'Chỉ tài xế được phân công mới được bắt đầu, bàn giao hoặc hoàn thành chuyến.'});
+    if(['DELIVERING','COMPLETED'].includes(status)&&route.waypoints.some(w=>w.status!=='ARRIVED'))return res.status(409).json({message:'Tài xế cần xác nhận đến tất cả điểm dừng và điểm đích trước.'});
     const currentStatus = route.status;
     if (route.demoSimulation && status === 'DELIVERING' && route.waypoints.some(w => w.status !== 'ARRIVED' || (w.type === 'REST_STOP' && !w.demoDepartedAt))) return res.status(409).json({ message: 'Hoàn thành check-in tất cả điểm và kết thúc nghỉ trước khi bàn giao.' });
     if (currentStatus === 'INCIDENT_HANDLING') return res.status(409).json({ success: false, message: 'Chỉ tiếp tục chuyến sau khi điều phối xử lý hết sự cố.' });
@@ -323,7 +229,11 @@ exports.updateTripStatus = async (req, res, next) => {
       if (horses.length !== order.horseIds.length || horses.some(h => h.reviewStatus !== 'APPROVED' || !h.lastVaccinationDate || new Date(h.lastVaccinationDate) < cutoff || h.currentStopId !== order.originStopId)) return res.status(409).json({ success: false, message: 'Cần kiểm tra lại sức khỏe, tiêm phòng và vị trí từng ngựa trước khởi hành.' });
     }
 
-    if (status === 'IN_TRANSIT' && !(await stageReady(route.orderId, 'DEPARTURE'))) return res.status(409).json({ success: false, message: 'Hồ sơ cần trước khởi hành chưa hoàn tất hoặc hết hạn.' });
+    if (status === 'IN_TRANSIT' && !(await stageReady(route.orderId, 'DEPARTURE'))) {
+      const booking=await Order.findById(route.orderId);
+      const docs=await ComplianceDoc.find({orderId:route.orderId});
+      if(booking.origin.countryCode!==booking.destination.countryCode || docs.some(d=>(d.stage||'DEPARTURE')==='DEPARTURE'))return res.status(409).json({message:'Hồ sơ cần trước khởi hành chưa hoàn tất hoặc hết hạn.'});
+    }
     if (status === 'COMPLETED') {
       const problem = await deliveryProblem(route, await Order.findById(route.orderId));
       if (problem) return res.status(409).json({ success: false, message: problem });
@@ -354,6 +264,7 @@ exports.updateTripStatus = async (req, res, next) => {
       userAgent: req.get('User-Agent')
     });
 
+    req.app?.get?.('io')?.to(`trip_${route._id}`).emit('trip:status_updated',{tripId:String(route._id),status});
     res.json({
       success: true,
       message: `Trip status updated to ${status}`,
@@ -411,6 +322,8 @@ exports.waypointCheckin = async (req, res, next) => {
       const problem = locationProblem(route.currentLocation, waypoint.location.coordinates);
       if (problem) return res.status(409).json({ message: 'Bấm di chuyển mô phỏng tới điểm tiếp theo trước khi check-in.' });
     }
+    const nextPending=[...route.waypoints].sort((a,b)=>a.sequence-b.sequence).find(w=>w.status==='PENDING');
+    if(status==='SKIPPED'||String(nextPending?._id)!==String(waypoint._id))return res.status(409).json({message:'Xác nhận đúng thứ tự các điểm dừng, không được bỏ qua điểm.'});
     if (waypoint.type === 'BORDER_CUSTOMS') {
       const order = await Order.findById(route.orderId);
       if (status === 'SKIPPED' || !clearanceReady(route, order, waypoint.name) || !(await stageReady(order._id, 'BORDER', waypoint.name))) return res.status(409).json({ success: false, message: 'Chuyên viên cần hoàn tất thông quan và hồ sơ cửa khẩu trước khi xác nhận qua cửa khẩu.' });
@@ -431,6 +344,7 @@ exports.waypointCheckin = async (req, res, next) => {
     const io = req.app?.get?.('io');
     if (io && waypoint.location?.coordinates && waypoint.status === 'ARRIVED') {
       const roomName = `trip_${route._id.toString()}`;
+      io.to(roomName).emit('trip:waypoint_updated', {tripId:route._id.toString(),waypointId:String(waypoint._id),status:waypoint.status});
       io.to(roomName).emit('route:location_changed', {
         tripId: route._id.toString(),
         latitude: waypoint.location.coordinates[1],

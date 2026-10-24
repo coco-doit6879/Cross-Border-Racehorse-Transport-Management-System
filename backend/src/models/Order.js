@@ -10,7 +10,17 @@ const selectedAddOnSchema = new mongoose.Schema({
   amountVnd: { type: Number, required: true, min: 0 }
 }, { _id: false });
 
+const contactSchema = new mongoose.Schema({
+  fullName: { type: String, trim: true, maxlength: 120 },
+  phone: { type: String, trim: true, maxlength: 30 },
+  area: { type: String, trim: true, maxlength: 100 },
+  address: { type: String, trim: true, maxlength: 300 },
+  identityNumber: { type: String, trim: true, maxlength: 50 }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
+  preparation: { type: mongoose.Schema.Types.Mixed, default: undefined },
+  contacts: { sender: contactSchema, recipient: contactSchema },
   bookingCode: {
     type: String,
     required: [true, 'Booking code is required'],

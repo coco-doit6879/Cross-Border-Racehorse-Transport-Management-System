@@ -66,6 +66,7 @@ module.exports = (io, socket) => {
   };
 
   socket.on('join_trip', handleJoinTripRoom);
+  socket.on('leave_trip', data=>{if(/^[a-f0-9]{24}$/i.test(String(data?.tripId||'')))socket.leave(`trip_${data.tripId}`);});
   socket.on('gps:join_room', handleJoinTripRoom);
 
   /**

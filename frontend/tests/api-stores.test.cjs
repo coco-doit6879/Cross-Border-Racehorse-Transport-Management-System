@@ -44,3 +44,11 @@ test('mapping does not invent assignment, GPS coordinates or price', async () =>
   const store=loadStore('useOrderStore.js','orderApi',{getOrders:async()=>({data:{data:[{_id:'o',horseIds:[]}]}})});
   const [order]=await store.getState().fetchOrders(); assert.equal(order.vehiclePlate,null); assert.equal(order.originLocation.coordinates,null); assert.equal(order.pricing,null);
 });
+test('order store forwards sender and recipient information without flattening it into notes', async () => {
+  let payload;
+  const contacts = {sender:{fullName:'Test Sender',phone:'0900000000',area:'Area',address:'Farm',identityNumber:'TEST-SENDER'},recipient:{fullName:'Test Recipient',phone:'0900000001',area:'Area',address:'Farm',identityNumber:'TEST-RECIPIENT'}};
+  const store=loadStore('useOrderStore.js','orderApi',{createOrder:async p=>{payload=p;return {data:{data:{_id:'o',horseIds:[],contacts:p.contacts}}};}});
+  await store.getState().createOrder({departureId:'d',scheduleRevision:1,horseIds:['h'],contacts,specialRequirements:'Care notes'});
+  assert.deepEqual(payload.contacts,contacts);
+  assert.equal(payload.specialRequirements,'Care notes');
+});

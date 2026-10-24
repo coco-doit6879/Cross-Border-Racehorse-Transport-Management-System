@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Alert, Button, Card, Divider, Modal, Skeleton, Tag, message } from 'antd';
 import { useOrderStore } from '../../store/useOrderStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -8,16 +8,18 @@ import ComplianceDocuments from '../../components/operations/ComplianceDocuments
 import OrderOperations from '../../components/operations/OrderOperations';
 import { Workspace, StatusPill } from '../../components/operations/OperationsUI';
 import './order-detail.css';
+import {ORDER_STEPS,customerOrderState} from '../../utils/customerOrders';
 
 const formatVnd = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 const locationText = value => typeof value === 'string' ? value : value?.address || 'Chưa cập nhật';
-const progressLabels = ['Đặt cọc', 'Phê duyệt', 'Hồ sơ', 'Vận chuyển', 'Bàn giao'];
+const progressLabels = ORDER_STEPS;
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { orders, fetchOrderById, createVnpayPayment, loading, error } = useOrderStore();
   const user = useAuthStore(state => state.user);
-  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(Boolean(location.state?.openPayment));
   const [tab, setTab] = useState('overview');
   const [visited, setVisited] = useState(['overview']);
   const [mapOpen, setMapOpen] = useState(false);
@@ -48,16 +50,17 @@ const OrderDetail = () => {
   };
 
 
-  const step = order.status === 'COMPLETED' ? 5 : order.status === 'DELIVERING' ? 4 : order.status === 'IN_TRANSIT' || order.status === 'CLEARED_FOR_TRANSPORT' ? 3 : ['APPROVED', 'DOCS_PROCESSING'].includes(order.status) ? 2 : order.depositStatus === 'PAID' || !order.depositRequired ? 1 : 0;
+  const workflowState=customerOrderState(order);
+  const step=order.status==='COMPLETED'?8:Math.max(0,workflowState.step-1);
   const terminal = ['CANCELLED', 'REJECTED'].includes(order.status);
-  const attention = terminal ? 'Đơn đã dừng xử lý.' : order.status === 'COMPLETED' ? 'Bàn giao đã hoàn tất. Xem thanh toán hoặc liên hệ hỗ trợ khi cần.' : order.status === 'DELIVERING' ? 'Đang ở giai đoạn bàn giao tại điểm đến.' : canPay ? 'Hoàn tất thanh toán để đơn được xử lý ở bước tiếp theo.' : order.status === 'DOCS_PROCESSING' ? 'Hồ sơ đang được xử lý. Mở mục Hồ sơ để kiểm tra yêu cầu bổ sung.' : 'Theo dõi trạng thái đơn; chi tiết vận hành nằm trong mục Hành trình.';
+  const attention=workflowState.message;
   const care = order.specialRequirements?.trim();
   const hasCare = care && !['không', 'không có', 'none', 'no'].includes(care.toLowerCase().replace(/[.!]$/, ''));
   const refresh = () => fetchOrderById(id).catch(() => {});
   return <div className="order-detail-shell"><Workspace eyebrow="Đơn vận chuyển" title={order.orderCode} description={order.customerName ? `Chủ hàng: ${order.customerName}` : undefined} actions={<Button onClick={() => navigate('/orders')}>Về danh sách</Button>}>
     {error && <Alert type="error" message={error} action={<Button onClick={refresh}>Thử tải lại</Button>} />}
     <section className="order-summary">
-      <div className="order-summary-top"><StatusPill value={order.status} /><span className="order-payment-state"><StatusPill value={order.paymentStatus} /></span></div>
+      <div className="order-summary-top"><StatusPill value={order.status} label={workflowState.label} /><span className="order-payment-state"><StatusPill value={order.paymentStatus} /></span></div>
       <div className="order-route"><div><span>Điểm đón</span><strong>{locationText(order.origin)}</strong></div><div><span>Điểm giao</span><strong>{locationText(order.destination)}</strong></div></div>
       <dl className="order-summary-facts"><div><dt>Khởi hành</dt><dd>{order.departureDate} · {order.departureTime}</dd></div><div><dt>Ngựa vận chuyển</dt><dd>{order.horses?.join(', ') || 'Chưa cập nhật'}</dd></div><div><dt>Tài xế / xe</dt><dd>{order.driverName || 'Chưa phân công'}<small>{order.vehiclePlate || 'Chưa phân xe'}</small></dd></div></dl>
       {!terminal && <ol className="order-progress" aria-label="Tiến độ đơn hàng">{progressLabels.map((label, index) => <li key={label} className={index < step ? 'is-done' : index === step ? 'is-current' : ''} aria-current={index === step ? 'step' : undefined}>{label}</li>)}</ol>}
@@ -219,8 +222,8 @@ const OrderDetail = () => {
     <OrderOperations key={order.id || order._id} orderId={order.id || order._id} view={tab} onChanged={refresh} />
       {/* VNPAY Payment Modal */}
       <Modal
-        title={needsDeposit ? 'Đặt cọc 20% qua cổng VNPAY' : 'Thanh toán phần còn lại qua cổng VNPAY'}
-        open={paymentOpen}
+        title={needsDeposit ? `Đặt cọc${order.depositPercent ? ` ${order.depositPercent}%` : ''} qua cổng VNPAY` : 'Thanh toán phần còn lại qua cổng VNPAY'}
+        open={paymentOpen && Boolean(canPay)}
         onCancel={() => setPaymentOpen(false)}
         onOk={handlePayment}
         confirmLoading={loading}

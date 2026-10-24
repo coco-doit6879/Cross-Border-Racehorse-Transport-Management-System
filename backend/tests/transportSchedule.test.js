@@ -105,7 +105,7 @@ test('booking persists canonical stops and full timestamp from published schedul
   assert.equal(saved.paymentStatus, 'UNPAID');
   assert.equal(saved.depositRequired, true);
   assert.equal(saved.depositStatus, 'UNPAID');
-  assert.equal(saved.depositAmountVnd, Math.ceil((departure.basePriceVnd * 0.2) / 1000) * 1000);
+  assert.equal(saved.depositAmountVnd, Math.ceil((departure.basePriceVnd * 0.3) / 1000) * 1000);
 });
 
 test('server calculates route and optional service prices without trusting client totals', () => {

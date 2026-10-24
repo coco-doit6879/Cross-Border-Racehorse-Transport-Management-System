@@ -1,4 +1,4 @@
-const DEFAULT_DEPOSIT_PERCENT = 20;
+const DEFAULT_DEPOSIT_PERCENT = 30;
 const DEFAULT_DEPOSIT_WINDOW_MINUTES = 30;
 
 function boundedInteger(value, fallback, min, max) {
@@ -8,7 +8,7 @@ function boundedInteger(value, fallback, min, max) {
 
 function getPolicy() {
   return {
-    percent: boundedInteger(process.env.ORDER_DEPOSIT_PERCENT, DEFAULT_DEPOSIT_PERCENT, 1, 100),
+    percent: DEFAULT_DEPOSIT_PERCENT,
     windowMinutes: boundedInteger(process.env.ORDER_DEPOSIT_WINDOW_MINUTES, DEFAULT_DEPOSIT_WINDOW_MINUTES, 5, 1440)
   };
 }

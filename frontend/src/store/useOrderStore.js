@@ -130,6 +130,7 @@ export const useOrderStore = create((set, get) => ({
         specialRequirements: orderData.specialRequirements || ''
       };
       if (orderData.customerId) payload.customerId = orderData.customerId;
+      if (orderData.contacts) payload.contacts = orderData.contacts;
       const response = await orderApi.createOrder(payload);
       const newOrderDoc = response?.data?.data || response?.data;
       const mapped = mapOrderData(newOrderDoc);

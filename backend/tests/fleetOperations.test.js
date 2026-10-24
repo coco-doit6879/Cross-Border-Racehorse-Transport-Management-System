@@ -40,9 +40,10 @@ test('vehicle creation normalizes plate and fleet metadata', async (t) => {
 });
 
 test('dispatch requires a managed vehicle and active trip assignment cannot be changed', async (t) => {
-  assert.equal((await call(routeController.dispatchRoute, req({ orderId: '444444444444444444444444', driverId: '5', escortId: '6' }))).statusCode, 400);
+  assert.equal((await call(routeController.dispatchRoute, req({ orderId: '444444444444444444444444', driverId: '5', escortId: '6' }))).statusCode, 409);
   t.mock.method(TransportRoute, 'findById', () => queryResult({ _id: '222222222222222222222222', status: 'IN_TRANSIT', orderId: {} }));
-  const response = await call(routeController.updateAssignment, req({ vehicleId: '3', driverId: '5', escortId: '6', reason: 'test' }));
+  const updateReq=req({ vehicleId: '3', driverId: '5', escortId: '6', reason: 'test' });updateReq.user.role='LOGISTICS_MANAGER';
+  const response = await call(routeController.updateAssignment, updateReq);
   assert.equal(response.statusCode, 409);
 });
 
@@ -50,7 +51,7 @@ test('fleet cannot dispatch an unpaid order', async (t) => {
   t.mock.method(Order, 'findById', async () => ({ _id: '444444444444444444444444', status: 'APPROVED', paymentStatus: 'PARTIALLY_PAID' }));
   const response = await call(routeController.dispatchRoute, req({ orderId: '444444444444444444444444', vehicleId: '3', driverId: '5', escortId: '6' }));
   assert.equal(response.statusCode, 409);
-  assert.equal(response.body.errorCode, 'PAYMENT_REQUIRED');
+  assert.match(response.body.message, /Phân công kíp xe/);
 });
 
 test('an assigned trip cannot start if payment is no longer complete', async (t) => {
@@ -58,6 +59,7 @@ test('an assigned trip cannot start if payment is no longer complete', async (t)
   t.mock.method(TransportRoute, 'findById', async () => route);
   t.mock.method(Order, 'findById', async () => ({ paymentStatus: 'PARTIALLY_PAID', horseIds: [] }));
   const request = req({ status: 'IN_TRANSIT' });
+  request.user._id='driver';request.user.role='DRIVER';
   request.user.effectivePermissions = [...request.user.effectivePermissions, 'trip:start'];
   const response = await call(routeController.updateTripStatus, request);
   assert.equal(response.statusCode, 409);

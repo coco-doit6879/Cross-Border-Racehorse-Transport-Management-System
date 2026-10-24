@@ -2,23 +2,18 @@ const DigitalPOD = require('../models/DigitalPOD');
 const TransportRoute = require('../models/TransportRoute');
 const Order = require('../models/Order');
 const { logAudit } = require('../utils/auditLogger');
-const { moveOrderHorsesToDestination } = require('../services/horseLocationService');
 const { deliveryProblem } = require('../services/operationsWorkflow');
 const { canRead } = require('../services/operationsWorkflow');
 const { validCoordinates, distanceKm } = require('../services/tripSafety');
 
 const ALLOWED_SIGNER_ROLES = ['CUSTOMER', 'AUTHORIZED_RECIPIENT', 'STABLE_MANAGER', 'VETERINARIAN'];
 
-// A persisted POD is the durable receipt. Retrying converges the remaining
-// projections after a database failure without creating another signature.
+// Signing records the receipt. Only the assigned driver completes the trip.
 async function finishDelivery(route, order) {
   if (!['DELIVERING', 'COMPLETED'].includes(route.status)) {
     const error = new Error('Chuyến đang bị giữ xử lý; cần giải quyết trước khi hoàn tất biên bản đã ký.');
     error.statusCode = 409; throw error;
   }
-  await moveOrderHorsesToDestination(order);
-  if (order.status !== 'COMPLETED') { order.status = 'COMPLETED'; await order.save(); }
-  if (route.status !== 'COMPLETED') { route.status = 'COMPLETED'; await route.save(); }
 }
 
 // @desc    Sign Proof of Delivery (POD) & Complete Transport
@@ -109,7 +104,7 @@ exports.signPOD = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Proof of Delivery (POD) signed and trip completed successfully',
+      message: 'Đã lưu biên bản giao nhận. Tài xế sẽ xác nhận hoàn thành chuyến.',
       data: pod
     });
   } catch (error) {

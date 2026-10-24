@@ -50,7 +50,7 @@ router.route('/')
  *         description: Route dispatched in SCHEDULED status
  */
 router.post('/dispatch', protect, checkPermission('route:dispatch'), require('../middlewares/reservationReady'), routeController.dispatchRoute);
-router.patch('/:id/assignment', protect, checkPermission('route:dispatch'), require('../middlewares/reservationReady'), routeController.updateAssignment);
+router.patch('/:id/assignment', protect, (req,res,next)=>req.user.role==='LOGISTICS_MANAGER'?next():res.status(403).json({message:'Chỉ quản lý được phân công nhân sự.'}), require('../middlewares/reservationReady'), routeController.updateAssignment);
 
 /**
  * @swagger

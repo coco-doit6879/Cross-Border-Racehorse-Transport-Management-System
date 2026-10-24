@@ -4,6 +4,10 @@ import Header from '../common/Header';
 import Sidebar from '../common/Sidebar';
 import { ConfigProvider } from 'antd';
 import '../operations/refined-ui.css';
+import '../../pages/Backoffice/backoffice.css';
+import '../../pages/Orders/customer-orders.css';
+import '../../pages/Orders/customer-booking.css';
+import '../../pages/Dashboard/customer-home.css';
 
 import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES } from '../../utils/constants';
@@ -35,7 +39,7 @@ const MainLayout = ({ children }) => {
       }}
     >
       <div
-        className={`refined-app ${/^\/orders\/[^/]+$/.test(location.pathname) ? 'order-page-layout' : ''}`}
+        className={`refined-app ${[USER_ROLES.LOGISTICS_MANAGER, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(user?.role) ? 'backoffice-layout' : ''} ${/^\/orders\/[^/]+$/.test(location.pathname) ? 'order-page-layout' : ''} ${user?.role === USER_ROLES.CUSTOMER ? 'customer-orders-layout' : ''} ${user?.role === USER_ROLES.CUSTOMER ? 'customer-booking-layout' : ''}`}
         style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}
       >
         <Header />

@@ -4,6 +4,7 @@ import { Dropdown, Badge, Input } from 'antd';
 import { User, ChevronDown, LogOut, Bell, Search, Globe, Shield } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { USER_ROLES, USER_ROLE_LABELS } from '../../utils/constants';
+import BackofficeHeader from './BackofficeHeader';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const Header = () => {
   };
 
   // Backoffice Topbar (Manager, Specialist, Coordinator)
+  if (['LOGISTICS_MANAGER','FLEET_COORDINATOR','ROUTE_COORDINATOR'].includes(user?.role)) return <BackofficeHeader />;
   if (isBackoffice) {
     const rolePrefix =
       user?.role === USER_ROLES.LOGISTICS_MANAGER
@@ -201,7 +203,7 @@ const Header = () => {
   return (
     <header className="customer-header">
       <div className="customer-header-main" style={{ display: 'flex', alignItems: 'center' }}>
-        <Link className="interaction-brand" to="/orders">
+        <Link className="interaction-brand" to="/dashboard">
           <div>🏇</div>
           <div>
             <span>Vận chuyển Ngựa</span>
@@ -216,7 +218,7 @@ const Header = () => {
                 ? location.pathname === '/orders' && !location.search.includes('status=completed')
                 : item.path === '/orders?status=completed'
                 ? location.pathname === '/orders' && location.search.includes('status=completed')
-                : location.pathname.startsWith(item.path);
+                : item.path==='/dashboard' ? ['/', '/dashboard','/overview'].includes(location.pathname) : location.pathname.startsWith(item.path);
 
             return (
               <Link

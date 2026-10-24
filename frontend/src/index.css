@@ -1955,3 +1955,16 @@ a {
   .dashboard-trip { align-items: flex-start; flex-direction: column; }
   .manager-filter-grid .search-field { min-width: 0; }
 }
+/* Balance authentication pages across both columns and prevent viewport overflow. */
+.login-page { width: 100%; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: clamp(32px,5vw,88px); padding: 32px; }
+.login-panel { justify-self: center; justify-content: center; max-width: 480px; margin-inline: auto; }
+.login-story { width: 100%; min-width: 0; }
+@media(min-width:1600px){.login-page { padding-inline: max(32px,calc((100vw - 1660px)/2)); }}
+@media(max-width:900px){.login-page { grid-template-columns:1fr; padding:24px; }.login-story{height:420px;min-height:360px}.login-panel{max-width:520px;margin:0 auto 45px}}
+@media(max-width:520px){.login-page {padding:14px}.login-story{height:370px;min-height:330px}}
+.login-form .remember-option { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; }
+.login-form .remember-option input[type=checkbox] { width: 16px; height: 16px; margin: 0; padding: 0; flex-shrink: 0; }
+
+.login-form label > span { display: inline; color: #dc2626; }
+.login-page .page-caption { left: 0; right: 0; text-align: center; bottom: 6px; margin: 0; }
+.register-fields label { display: block; margin-bottom: 7px; }

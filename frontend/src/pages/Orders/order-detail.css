@@ -56,3 +56,5 @@
   .order-next-action, .order-attention, .order-map-section { padding: 16px; }
   .order-next-action > .ant-btn { width: 100%; }
 }
+
+.order-progress { grid-template-columns: repeat(8,minmax(95px,1fr)); overflow-x: auto; }

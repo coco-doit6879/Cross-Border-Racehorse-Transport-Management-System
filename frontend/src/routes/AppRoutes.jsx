@@ -24,6 +24,9 @@ import HorseVerificationPage from '../pages/Operations/HorseVerificationPage';
 import VehiclePage from '../pages/Operations/VehiclePage';
 import FleetStaffPage from '../pages/Operations/FleetStaffPage';
 import FleetTripsPage from '../pages/Operations/FleetTripsPage';
+import FleetPlanningPage from '../pages/Backoffice/FleetPlanningPage';
+import FleetMonitorPage from '../pages/Backoffice/FleetMonitorPage';
+import ManagerQueuePage from '../pages/Backoffice/ManagerQueuePage';
 import ProtectedRoute from './ProtectedRoute';
 import { useAuthStore } from '../store/useAuthStore';
 import { USER_ROLES } from '../utils/constants';
@@ -40,7 +43,8 @@ const ManagerDataBoundary = () => {
 
 const ManagerIndex = () => {
   const role = useAuthStore((state) => state.user?.role);
-  return [USER_ROLES.TRANSPORT_SPECIALIST, USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(role) ? <OperationsDashboard /> : <ManagerDashboard />;
+  if ([USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR].includes(role)) return <Navigate to="/fleet/trips" replace />;
+  return role === USER_ROLES.TRANSPORT_SPECIALIST ? <OperationsDashboard /> : <ManagerDashboard />;
 };
 
 const managerRoutes = (
@@ -52,6 +56,8 @@ const managerRoutes = (
       <Route path="trips" element={<TripsPage />} />
       <Route path="trips/:id" element={<TripDetailPage />} />
       <Route path="revenue" element={<RevenueDashboard />} />
+      <Route path="intake" element={<ManagerQueuePage mode="intake" />} />
+      <Route path="approvals" element={<ManagerQueuePage mode="quote" />} />
     </Route>
   </>
 );
@@ -105,7 +111,10 @@ const AppRoutes = () => (
             <Route path="/specialist/compliance" element={<ComplianceQueue />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.FLEET_COORDINATOR, USER_ROLES.ROUTE_COORDINATOR, USER_ROLES.LOGISTICS_MANAGER]} />}>
-            <Route path="/fleet/trips" element={<FleetTripsPage />} />
+            <Route path="/fleet/trips" element={<FleetPlanningPage />} />
+            <Route path="/fleet/trips/:orderId" element={<FleetPlanningPage />} />
+            <Route path="/fleet/monitor" element={<FleetMonitorPage />} />
+            <Route path="/fleet/dispatch" element={<FleetTripsPage />} />
             <Route path="/fleet/vehicles" element={<VehiclePage />} />
             <Route path="/fleet/staff" element={<FleetStaffPage />} />
           </Route>

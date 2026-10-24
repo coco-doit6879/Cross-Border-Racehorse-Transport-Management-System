@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   tokensInvalidBefore: Date,
+  operationalStatus: { type: String, enum: ['AVAILABLE','ON_DUTY','RETURNING'], default: 'AVAILABLE' },
   username: {
     type: String,
     required: [true, 'Username is required'],

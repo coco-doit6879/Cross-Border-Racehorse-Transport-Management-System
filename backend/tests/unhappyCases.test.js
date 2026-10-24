@@ -58,9 +58,10 @@ test('non-manager cannot approve a refund and manager must supply a reason', asy
   assert.equal(request.status, 'PENDING');
 });
 
-test('direct route completion is rejected without changing any record', async () => {
+test('driver cannot complete before arriving at every waypoint', async t => {
+  const Route=require('../src/models/TransportRoute');t.mock.method(Route,'findById',async()=>({_id:'r',driverId:'driver',status:'DELIVERING',waypoints:[{status:'PENDING'}],async save(){throw Error('must not save');}}));
   const controller = require('../src/controllers/routeController');
-  const result = await call(controller.updateTripStatus, { body: { status: 'COMPLETED' }, params: { id: 'r' }, user: { _id: 'driver' } });
+  const result = await call(controller.updateTripStatus, { body: { status: 'COMPLETED' }, params: { id: 'r' }, user: { _id: 'driver',role:'DRIVER' } });
   assert.equal(result.code, 409);
 });
 
@@ -79,7 +80,7 @@ test('resolving one incident keeps the trip paused while another is active', asy
   assert.equal(route.status, 'INCIDENT_HANDLING');
 });
 
-test('signed POD retry repairs a partial completion without creating another receipt', async t => {
+test('signed POD retry preserves the receipt without completing the driver trip', async t => {
   const Order = require('../src/models/Order');
   const Route = require('../src/models/TransportRoute');
   const POD = require('../src/models/DigitalPOD');
@@ -95,5 +96,5 @@ test('signed POD retry repairs a partial completion without creating another rec
   t.mock.method(Horse, 'updateMany', async () => ({}));
   const result = await call(controller.signPOD, { user: { _id: 'owner' }, body: { tripId: 'r', orderId: 'o', signerName: 'Owner', signerPhone: '0123456789', signerRole: 'CUSTOMER', signatureImageUrl: 'existing', coordinates: [106, 10] } });
   assert.equal(result.code, 200); assert.equal(result.body.isDuplicate, true);
-  assert.equal(saves, 2); assert.equal(order.status, 'COMPLETED'); assert.equal(route.status, 'COMPLETED');
+  assert.equal(saves, 0); assert.equal(order.status, 'DELIVERING'); assert.equal(route.status, 'DELIVERING');
 });

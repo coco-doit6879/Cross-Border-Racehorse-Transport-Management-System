@@ -3,6 +3,7 @@ import { USER_ROLES as R } from './constants.js';
 const coordinators = [R.FLEET_COORDINATOR, R.ROUTE_COORDINATOR];
 const operators = [R.LOGISTICS_MANAGER, R.TRANSPORT_SPECIALIST, ...coordinators];
 const pages = [
+  [/^\/manager\/(?:intake|approvals)\/?$/, [R.LOGISTICS_MANAGER]],
   [/^\/manager\/schedules\/?$/, [R.FLEET_COORDINATOR]],
   [/^\/(?:manager\/)?revenue\/?$/, [R.LOGISTICS_MANAGER]],
   [/^\/manager\/(?:drivers|escorts|trips)(?:\/.*)?$/, [R.LOGISTICS_MANAGER]],
