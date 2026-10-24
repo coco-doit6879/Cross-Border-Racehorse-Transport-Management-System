@@ -35,3 +35,12 @@ export const isTripEditable = (trip) => {
 };
 
 
+
+// VNPAY returns local Vietnam time as YYYYMMDDHHmmss; API dates use ISO.
+export function formatPaymentDate(value) {
+  if (!value) return '—';
+  const text=String(value);
+  const iso=/^\d{14}$/.test(text)?`${text.slice(0,4)}-${text.slice(4,6)}-${text.slice(6,8)}T${text.slice(8,10)}:${text.slice(10,12)}:${text.slice(12,14)}+07:00`:text;
+  const date=new Date(iso);
+  return Number.isNaN(date.getTime())?'—':new Intl.DateTimeFormat('vi-VN',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Ho_Chi_Minh'}).format(date);
+}

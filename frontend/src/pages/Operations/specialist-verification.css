@@ -31,7 +31,7 @@
 .spec-eyebrow {
   font-size: 11px;
   font-weight: 700;
-  color: #ea580c;
+  color: #243c32;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 4px;
@@ -123,9 +123,9 @@
 }
 
 .spec-tab-btn--active {
-  color: #ea580c;
+  color: #243c32;
   font-weight: 700;
-  border-bottom-color: #ea580c;
+  border-bottom-color: #243c32;
 }
 
 .spec-tab-badge {
@@ -139,7 +139,7 @@
 
 .spec-tab-btn--active .spec-tab-badge {
   background: #fff7ed;
-  color: #ea580c;
+  color: #243c32;
 }
 
 /* Main Content Card (Table Container) */
@@ -204,7 +204,7 @@
   height: 36px;
   border-radius: 8px;
   background: #fff7ed;
-  color: #ea580c;
+  color: #243c32;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,8 +214,8 @@
 }
 
 .spec-btn-review {
-  background: #ea580c !important;
-  border-color: #ea580c !important;
+  background: #243c32 !important;
+  border-color: #243c32 !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
@@ -223,8 +223,8 @@
 }
 
 .spec-btn-review:hover {
-  background: #c2410c !important;
-  border-color: #c2410c !important;
+  background: #243c32 !important;
+  border-color: #243c32 !important;
 }
 
 /* =========================================================

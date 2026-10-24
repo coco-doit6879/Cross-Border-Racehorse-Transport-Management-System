@@ -64,3 +64,11 @@ test('deposit deadline uses actual due time and percent, with no invented deadli
   assert.equal(depositTimeLeft(order,now),'');
 });
 
+
+test('missing pricing does not imply that an approved order is fully paid', () => {
+  const state = customerOrderState({...order,status:'APPROVED',paymentStatus:'UNPAID'});
+  assert.equal(state.step,3);
+  assert.equal(state.label,'Chờ cập nhật chi phí');
+  assert.doesNotMatch(state.message,/đã.*thanh toán đủ/);
+  assert.equal(Boolean(state.canPay),false);
+});

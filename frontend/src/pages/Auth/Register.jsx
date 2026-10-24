@@ -1,3 +1,4 @@
+import AuthStory from '../../components/common/AuthStory';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
@@ -43,24 +44,7 @@ const Register = () => {
 
   return (
     <main className="login-page register-page">
-      <section className="login-story" aria-label="Giới thiệu CBRT">
-        <div className="story-top-row">
-          <div className="story-brand">CBRT / EQUINE TRANSPORT</div>
-          <div className="story-live-badge"><span className="pulse-dot"></span> LIVE TRACKING</div>
-        </div>
-        <div className="story-copy">
-          <h1>An tâm cho ngựa.<br />Rõ ràng từng chặng.</h1>
-          <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br className="desktop-break" /> chiến mã chuyên nghiệp trên từng chặng.</p>
-        </div>
-        <div className="story-bottom-info">
-          <div className="story-feature-chips">
-            <span>🛡️ Kiểm dịch thông quan</span>
-            <span>🛰️ Định vị GPS 24/7</span>
-            <span>🐴 Đội ngũ chuyên biệt</span>
-          </div>
-          <div className="story-footer">EQUINE EXPRESS & LOGISTICS SYSTEM</div>
-        </div>
-      </section>
+      <AuthStory />
 
       <section className="login-panel">
         <div className="login-content">

@@ -260,7 +260,7 @@ const OrderList = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="heritage-order-register">
       {error && <Alert type="error" message={error} action={<Button onClick={() => fetchOrders().catch(() => {})}>Thử lại</Button>} />}
       <div
         style={{

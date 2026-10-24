@@ -264,7 +264,7 @@ export default function CreateOrder() {
   return (
     <div className="create-order-page">
       {/* Breadcrumb with animation */}
-      <nav className="cbrt-breadcrumb cbrt-anim-header" aria-label="Đường dẫn">
+      <nav className="cbrt-breadcrumb " aria-label="Đường dẫn">
         <Link to="/dashboard">Trang chủ</Link>
         <ChevronRight size={14} />
         <Link to="/orders">Đơn vận chuyển</Link>
@@ -291,7 +291,7 @@ export default function CreateOrder() {
       </header>
 
       {/* Stepper with Sequential Stagger */}
-      <div className="cbrt-stepper cbrt-anim-stepper">
+      <div className="cbrt-stepper ">
         <div className={`cbrt-step-item ${originStopId && destinationStopId ? 'cbrt-step-item--active' : 'cbrt-step-item--active'}`}>
           <div className="cbrt-step-circle">1</div>
           <span>Chuyến đi</span>
@@ -324,10 +324,10 @@ export default function CreateOrder() {
       )}
 
       {assisting && (
-        <div className="cbrt-section-card cbrt-anim-card-1" style={{ borderLeft: '4px solid #ea580c' }}>
+        <div className="cbrt-section-card " style={{ borderLeft: '4px solid #243c32' }}>
           <div className="cbrt-card-header">
             <h2 className="cbrt-card-title">
-              <Sparkles size={18} color="#ea580c" /> Nhập đơn hỗ trợ khách hàng
+              <Sparkles size={18} color="#243c32" /> Nhập đơn hỗ trợ khách hàng
             </h2>
           </div>
           <p style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>
@@ -356,11 +356,11 @@ export default function CreateOrder() {
           {/* LEFT COLUMN: 4 Step Cards */}
           <Col xs={24} lg={16}>
             {/* CARD 01: Tuyến đường & Điểm đón / Điểm đến */}
-            <section className="cbrt-section-card cbrt-anim-card-1">
+            <section className="cbrt-section-card ">
               <div className="cbrt-card-header">
                 <h2 className="cbrt-card-title">
                   <span className="cbrt-num-badge">01</span>
-                  <MapPin size={18} color="#ea580c" />
+                  <MapPin size={18} color="#243c32" />
                   Tuyến đường & Điểm đón / Điểm đến
                 </h2>
               </div>
@@ -484,20 +484,20 @@ export default function CreateOrder() {
                   <strong>
                     {origin && destination
                       ? `Tuyến vận chuyển đường bộ: ${origin.name} → ${destination.name}`
-                      : 'Mạng lưới vận chuyển chiến mã chuẩn quốc tế CBRT'}
+                      : 'Tuyến vận chuyển theo lịch đã công bố'}
                   </strong>
                   <br />
-                  Xe thùng chuyên dụng có camera giám sát GPS liên tục 24/7, điều hòa và hệ thống đệm khí chống sốc chuyên dụng cho chiến mã thể thao.
+                  Điểm đón, điểm giao, ngày đi và chi phí được lấy từ lịch vận chuyển đang mở. Phương tiện và lộ trình được điều phối xác nhận sau khi đơn đã thanh toán đủ.
                 </div>
               </div>
             </section>
 
             {/* CARD 02: Lịch khởi hành & Lộ trình */}
-            <section className="cbrt-section-card cbrt-anim-card-2">
+            <section className="cbrt-section-card ">
               <div className="cbrt-card-header">
                 <h2 className="cbrt-card-title">
                   <span className="cbrt-num-badge">02</span>
-                  <CalendarDays size={18} color="#ea580c" />
+                  <CalendarDays size={18} color="#243c32" />
                   Lịch khởi hành & Lộ trình
                 </h2>
                 <Button
@@ -571,11 +571,11 @@ export default function CreateOrder() {
             </section>
 
             {/* CARD 03: Chọn ngựa vận chuyển */}
-            <section className="cbrt-section-card cbrt-anim-card-3">
+            <section className="cbrt-section-card ">
               <div className="cbrt-card-header">
                 <h2 className="cbrt-card-title">
                   <span className="cbrt-num-badge">03</span>
-                  <PackageCheck size={18} color="#ea580c" />
+                  <PackageCheck size={18} color="#243c32" />
                   Chọn ngựa vận chuyển
                 </h2>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
@@ -593,7 +593,7 @@ export default function CreateOrder() {
                   description={
                     <span>
                       Bạn chưa có hồ sơ ngựa nào.{' '}
-                      <Link to="/horses" style={{ color: '#ea580c', fontWeight: 600 }}>
+                      <Link to="/horses" style={{ color: '#243c32', fontWeight: 600 }}>
                         Đăng ký hồ sơ ngựa tại đây
                       </Link>
                     </span>
@@ -673,11 +673,11 @@ export default function CreateOrder() {
             </section>
 
             {/* CARD 04: Dịch vụ cộng thêm */}
-            <section className="cbrt-section-card cbrt-anim-card-4">
+            <section className="cbrt-section-card ">
               <div className="cbrt-card-header">
                 <h2 className="cbrt-card-title">
                   <span className="cbrt-num-badge">04</span>
-                  <CreditCard size={18} color="#ea580c" />
+                  <CreditCard size={18} color="#243c32" />
                   Dịch vụ cộng thêm
                 </h2>
               </div>
@@ -727,7 +727,7 @@ export default function CreateOrder() {
                       <div style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0 28px' }}>
                         {item.description}
                         {horseIds.length > 1 && item.pricingMode === 'PER_HORSE' && isSelected ? (
-                          <span style={{ color: '#ea580c', fontWeight: 600 }}>
+                          <span style={{ color: '#243c32', fontWeight: 600 }}>
                             {' '}· Thành tiền ({horseIds.length} ngựa): {formatVnd(item.unitPriceVnd * multiplier)}
                           </span>
                         ) : null}
@@ -741,9 +741,9 @@ export default function CreateOrder() {
 
           {/* RIGHT COLUMN: Sticky Summary Sidebar with Smooth Animation */}
           <Col xs={24} lg={8}>
-            <aside className="cbrt-summary-card cbrt-anim-sidebar">
+            <aside className="cbrt-summary-card ">
               <div className="cbrt-summary-header">
-                <Truck size={18} color="#ea580c" />
+                <Truck size={18} color="#243c32" />
                 <span>Chuyến vận chuyển của bạn</span>
               </div>
 
@@ -831,7 +831,7 @@ export default function CreateOrder() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#c2410c' }}>
                     Đặt cọc {depositPercent}%
                   </span>
-                  <div style={{ fontSize: 11, color: '#ea580c' }}>Thanh toán giữ chỗ</div>
+                  <div style={{ fontSize: 11, color: '#243c32' }}>Thanh toán giữ chỗ</div>
                 </div>
                 <strong style={{ fontSize: 18, color: '#c2410c' }}>{formatVnd(depositAmountVnd)}</strong>
               </div>

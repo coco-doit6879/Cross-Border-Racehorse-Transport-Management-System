@@ -1,3 +1,5 @@
+> Historical reference: this file documents the original cloned UI. The active redesign and confirmed workflow are documented in [docs/UI_REDESIGN.md](docs/UI_REDESIGN.md).
+
 # CBRT UI/UX REFERENCE BLUEPRINT & IMPLEMENTATION SPECIFICATION
 > **Tham chiếu trực tiếp từ:** `https://swp-rht-1ksz.vercel.app`  
 > **Dự án áp dụng:** `Cross-Border Racehorse Transport Management System (WDP301)`  

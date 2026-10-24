@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Modal, Form, Select, Upload, Tabs, Tag, message, Popconfirm } from 'antd';
+import { Button, Input, Modal, Drawer, Form, Select, Upload, Tabs, Tag, message, Popconfirm } from 'antd';
 import {
   Plus,
   Search,
@@ -68,7 +68,7 @@ export default function HorseList() {
   };
 
   return (
-    <div className="equine-profiles animate-slide-up">
+    <div className="equine-profiles heritage-dossiers">
       <nav className="equine-breadcrumb" aria-label="Đường dẫn"><button onClick={() => navigate('/')}>Trang chủ</button><ChevronRight size={13} /><span>Hồ sơ ngựa</span></nav>
       <header className="equine-heading"><div><span className="equine-eyebrow">QUẢN LÝ ĐÀN NGỰA</span><h1>Hồ sơ ngựa</h1><p>Thông tin nhận dạng, giấy tờ và vị trí — sẵn sàng cho hành trình tiếp theo.</p></div>{user?.role === 'CUSTOMER' && <Button type="primary" icon={<Plus size={18} />} onClick={handleOpenAddModal}>Thêm ngựa</Button>}</header>
       {error && <Alert type="error" message={error} action={<Button onClick={() => fetchHorses().catch(() => {})}>Thử lại</Button>} />}
@@ -94,9 +94,9 @@ export default function HorseList() {
         })}
       </section>
       {!filteredHorses.length && <div className="equine-empty"><Search size={30} /><h3>{loading ? 'Đang tải hồ sơ…' : 'Chưa có hồ sơ phù hợp'}</h3><p>Thử tìm theo tên, mã chip hoặc chọn bộ lọc khác.</p><Button onClick={() => { setSearch(''); setFilterTab('ALL'); }}>Xóa bộ lọc</Button></div>}
-      <Modal title={editingHorse ? 'Chỉnh sửa / bổ sung hồ sơ' : 'Đăng ký hồ sơ ngựa'} open={modalOpen} onCancel={() => !saving && setModalOpen(false)} footer={null} width={1000} maskClosable={false} destroyOnClose>
+      <Drawer className="heritage-horse-editor" title={editingHorse ? 'Chỉnh sửa / bổ sung hồ sơ' : 'Đăng ký hồ sơ ngựa'} open={modalOpen} onClose={() => !saving && setModalOpen(false)} footer={null} width="min(1000px, 96vw)" maskClosable={false} destroyOnClose>
         {modalOpen && <HorseProfileForm key={editingHorse?.id || 'new'} horse={editingHorse} onSave={handleSaveHorse} saving={saving} />}
-      </Modal>
+      </Drawer>
     </div>
   );
 }

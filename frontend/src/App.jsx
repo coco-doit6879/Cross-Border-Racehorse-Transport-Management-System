@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { ConfigProvider } from 'antd';
+import { heritageTheme } from './styles/heritageTheme';
 import AppRoutes from './routes/AppRoutes';
 import { useAuthStore } from './store/useAuthStore';
 
@@ -15,32 +16,7 @@ function App() {
 
   return (
     <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#ea580c',
-          borderRadius: 8,
-          colorBgContainer: '#ffffff',
-          colorBgLayout: '#f8fafc',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-        },
-        components: {
-          Button: {
-            controlHeight: 38,
-            borderRadius: 8
-          },
-          Input: {
-            controlHeight: 38,
-            borderRadius: 8
-          },
-          Select: {
-            controlHeight: 38,
-            borderRadius: 8
-          },
-          Card: {
-            borderRadiusLG: 12
-          }
-        }
-      }}
+      theme={heritageTheme}
     >
       <div className="app-container">
         <AppRoutes />

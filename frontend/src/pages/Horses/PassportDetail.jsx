@@ -25,7 +25,7 @@ export default function PassportDetail() {
     return () => { active = false; };
   }, [id, fetchHorse]);
   if (loading) return <Spin />;
-  const owned = String(horse.ownerId?._id || horse.ownerId) === String(user?._id || user?.id);
+  const owned = String(horse?.ownerId?._id || horse?.ownerId) === String(user?._id || user?.id);
   const reviewer = canReviewHorse(user) && !owned;
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -61,7 +61,7 @@ export default function PassportDetail() {
       }
     } finally { setSaving(false); }
   };
-  return <Workspace eyebrow="Hồ sơ ngựa / Thẩm định sức khỏe" title={horse.name} description="Đối chiếu thông tin nhận dạng, chứng từ và lưu kết luận kiểm duyệt." actions={<Button onClick={handleBack}>Về danh sách</Button>}>
+  return <Workspace className="heritage-passport" eyebrow="Hồ sơ ngựa / Thẩm định sức khỏe" title={horse.name} description="Đối chiếu thông tin nhận dạng, chứng từ và lưu kết luận kiểm duyệt." actions={<Button onClick={handleBack}>Về danh sách</Button>}>
     <Card title="Trạng thái hồ sơ">
       <StatusPill value={horse.reviewStatus} label={reviewLabels[horse.reviewStatus]} />
       {horse.transportAssignment && <Alert style={{ marginTop: 12 }} type="info" message={`${({ ASSIGNED: 'Dự kiến lên xe', ON_BOARD: 'Đang trên xe', DELIVERED: 'Đã giao từ xe' })[horse.transportAssignment.state]} ${horse.transportAssignment.vehiclePlateNumber} · ${horse.transportAssignment.bookingCode}`} action={<Button onClick={() => navigate(`/orders/${horse.transportAssignment.orderId}`)}>Xem vận đơn</Button>} />}
@@ -71,7 +71,7 @@ export default function PassportDetail() {
     {editing ? <HorseProfileForm horse={horse} onSave={save} saving={saving} /> : <>
       <Card title="Thông tin nhận dạng">
         <Descriptions bordered column={{ xs: 1, sm: 2 }} items={[
-          ['Chủ sở hữu', horse.ownerName], ['Mã vi chip', horse.microchipId], ['Số hộ chiếu', horse.feiPassportNumber], ['Địa điểm hiện tại', horse.currentStopId], ['Giống', horse.breed], ['Ngày sinh', horse.dateOfBirth?.slice(0, 10)], ['Giới tính', { STALLION: 'Đực', MARE: 'Cái', GELDING: 'Thiến' }[horse.gender]], ['Cân nặng', `${horse.weightKg} kg`], ['Màu lông', horse.color], ['Đặc điểm nhận dạng', horse.identifyingMarks || 'Không khai báo'], ['Tiêm phòng cúm ngựa gần nhất', horse.lastVaccinationDate?.slice(0, 10)], ['Tiền sử y tế', horse.medicalHistoryNotes || 'Không khai báo']
+          ['Chủ sở hữu', horse.ownerName], ['Mã vi chip', horse.microchipId], ['Số hộ chiếu', horse.feiPassportNumber || horse.feiPassportNo], ['Địa điểm hiện tại', horse.currentStopId], ['Giống', horse.breed], ['Ngày sinh', horse.dateOfBirth?.slice(0, 10)], ['Giới tính', { STALLION: 'Đực', MARE: 'Cái', GELDING: 'Thiến' }[horse.gender]], ['Cân nặng', horse.weightKg || horse.weight ? `${horse.weightKg || horse.weight} kg` : 'Chưa khai báo'], ['Màu lông', horse.color], ['Đặc điểm nhận dạng', horse.identifyingMarks || 'Không khai báo'], ['Tiêm phòng cúm ngựa gần nhất', horse.lastVaccinationDate?.slice(0, 10)], ['Tiền sử y tế', horse.medicalHistoryNotes || 'Không khai báo']
         ].map(([label, children]) => ({ key: label, label, children: children || 'Chưa khai báo' }))} />
       </Card>
       <Row gutter={[20, 20]}>

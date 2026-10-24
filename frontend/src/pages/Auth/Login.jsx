@@ -1,3 +1,4 @@
+import AuthStory from '../../components/common/AuthStory';
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
@@ -18,7 +19,7 @@ const Login = () => {
   const setSession = useAuthStore((state) => state.setSession);
 
   const [form, setForm] = useState({ email: '', password: '' });
-  const [rememberMe, setRememberMe] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -88,24 +89,7 @@ const Login = () => {
 
   return (
     <main className="login-page">
-      <section className="login-story" aria-label="Giới thiệu CBRT">
-        <div className="story-top-row">
-          <div className="story-brand">CBRT / EQUINE TRANSPORT</div>
-          <div className="story-live-badge"><span className="pulse-dot"></span> LIVE TRACKING</div>
-        </div>
-        <div className="story-copy">
-          <h1>An tâm cho ngựa.<br />Rõ ràng từng chặng.</h1>
-          <p>Quản lý hồ sơ, vận chuyển và phúc lợi<br />ngựa được xuyên biên giới.</p>
-        </div>
-        <div className="story-bottom-info">
-          <div className="story-feature-chips">
-            <span>🛡️ Kiểm dịch thông quan</span>
-            <span>🛰️ Định vị GPS 24/7</span>
-            <span>🐴 Phụ xe chuyên biệt</span>
-          </div>
-          <div className="story-footer">CROSS-BORDER RACEHORSE TRANSPORT</div>
-        </div>
-      </section>
+      <AuthStory />
 
       <section className="login-panel">
         <div className="login-content">
@@ -142,17 +126,7 @@ const Login = () => {
               required
             />
 
-            <div className="login-options">
-              <label className="remember-option">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(event) => setRememberMe(event.target.checked)}
-                />
-                <span>Ghi nhớ đăng nhập</span>
-              </label>
-              <Link to="/forgot-password">Quên mật khẩu?</Link>
-            </div>
+
 
             {error && <p className="form-error" role="alert">{error}</p>}
 

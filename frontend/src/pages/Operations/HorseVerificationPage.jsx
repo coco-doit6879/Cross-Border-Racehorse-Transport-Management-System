@@ -12,6 +12,7 @@ import {
   Image,
   Input,
   Modal,
+  Drawer,
   Row,
   Space,
   Spin,
@@ -46,11 +47,11 @@ import {
 } from 'lucide-react';
 import { useHorseStore } from '../../store/useHorseStore';
 import { horseApi } from '../../services/horseApi';
-import { wdpDemoService } from '../../services/wdpDemoService';
+
 import './specialist-verification.css';
 
 const formatDate = (d) => {
-  if (!d) return '20/10/2026 20:40';
+  if (!d || Number.isNaN(new Date(d).getTime())) return 'Chưa cập nhật';
   try {
     return new Date(d).toLocaleDateString('vi-VN', {
       day: '2-digit',
@@ -139,8 +140,8 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
       setLoading(false);
       setMetadata({
         name: typeof activeUrl === 'string' ? activeUrl.split('/').pop() : 'document.pdf',
-        mimeType: 'application/pdf',
-        size: 245000
+        mimeType: /\.(png|jpe?g|webp)$/i.test(String(activeUrl)) ? 'image/*' : 'application/pdf',
+        size: null
       });
     }
 
@@ -167,7 +168,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
       onCancel={onCancel}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <FileText size={18} color="#ea580c" />
+          <FileText size={18} color="#243c32" />
           <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>{title}</span>
           {horse?.name && (
             <Tag color="orange" style={{ fontWeight: 600 }}>
@@ -179,7 +180,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>
-            {metadata ? `Tệp: ${metadata.name} (${Math.ceil((metadata.size || 0) / 1024)} KB)` : 'Chứng từ số hóa CBRT'}
+            {metadata ? `Tệp: ${metadata.name}${metadata.size ? ` (${Math.ceil(metadata.size / 1024)} KB)` : ''}` : 'Chứng từ số hóa CBRT'}
           </div>
           <Space>
             {blobUrl && (
@@ -199,7 +200,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
                 </Button>
               </>
             )}
-            <Button type="primary" onClick={onCancel} style={{ background: '#ea580c', borderColor: '#ea580c' }}>
+            <Button type="primary" onClick={onCancel} style={{ background: '#243c32', borderColor: '#243c32' }}>
               Đã kiểm tra xong
             </Button>
           </Space>
@@ -220,8 +221,8 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
               style={{
                 borderRadius: 6,
                 fontWeight: activeIndex === idx ? 700 : 500,
-                background: activeIndex === idx ? '#ea580c' : undefined,
-                borderColor: activeIndex === idx ? '#ea580c' : undefined
+                background: activeIndex === idx ? '#243c32' : undefined,
+                borderColor: activeIndex === idx ? '#243c32' : undefined
               }}
               onClick={() => setActiveIndex(idx)}
             >
@@ -253,7 +254,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
             <span style={{ color: '#cbd5e1' }}>|</span>
             <Tag color={isImage ? 'blue' : 'purple'}>{metadata.mimeType || 'Tệp'}</Tag>
             <span style={{ color: '#cbd5e1' }}>|</span>
-            <span>{Math.ceil((metadata.size || 0) / 1024)} KB</span>
+            {metadata.size > 0 && <span>{Math.ceil(metadata.size / 1024)} KB</span>}
           </div>
           <Tag color="success" style={{ fontWeight: 600 }}>
             ✓ Đã xác thực chữ ký bảo mật
@@ -339,7 +340,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
               width: 56,
               height: 56,
               background: '#fff7ed',
-              color: '#ea580c',
+              color: '#243c32',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -386,7 +387,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
               </div>
               <div>
                 <span style={{ color: '#64748b' }}>Loại chứng từ:</span>{' '}
-                <strong style={{ color: '#ea580c' }}>{title}</strong>
+                <strong style={{ color: '#243c32' }}>{title}</strong>
               </div>
               <div>
                 <span style={{ color: '#64748b' }}>Tình trạng:</span> <Tag color="success">Đã đối chiếu hợp lệ</Tag>
@@ -409,7 +410,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
 
 export default function HorseVerificationPage() {
   const [params] = useSearchParams();
-  const { horses: realHorses, fetchHorses, reviewHorse, loading } = useHorseStore();
+  const { horses: realHorses, fetchHorses, reviewHorse, loading, error } = useHorseStore();
   const [activeTab, setActiveTab] = useState('PENDING_REVIEW'); // 'PENDING_REVIEW' | 'REJECTED' | 'APPROVED'
   const [search, setSearch] = useState('');
   useEffect(() => { setSearch(params.get('q') || ''); }, [params]);
@@ -424,43 +425,7 @@ export default function HorseVerificationPage() {
     fetchHorses().catch(() => {});
   }, [fetchHorses]);
 
-  // Combine real database horses with WDP demo horses
-  const allHorses = useMemo(() => {
-    const dbList = realHorses.map((h) => ({
-      ...h,
-      id: h.id || h._id,
-      _id: h.id || h._id,
-      name: h.name,
-      microchipId: h.microchipId,
-      breed: h.breed || 'Thuần chủng',
-      age: h.age || '5 năm',
-      ownerName: h.ownerName || h.ownerId?.fullName || 'Trần Lê Anh Quân',
-      reviewStatus: h.reviewStatus || 'PENDING_REVIEW',
-      submittedAt: h.createdAt ? formatDate(h.createdAt) : '20/10/2026 20:40',
-      isRealDb: true
-    }));
-
-    const demoList = wdpDemoService.getHorses().map((h) => ({
-      ...h,
-      id: h.id || h._id,
-      _id: h.id || h._id,
-      name: h.name,
-      microchipId: h.microchipId,
-      breed: h.breed,
-      age: h.age,
-      ownerName: h.ownerName || 'Trần Lê Anh Quân',
-      reviewStatus: h.reviewStatus || 'PENDING_REVIEW',
-      submittedAt: '20/10/2026 20:38',
-      isRealDb: false
-    }));
-
-    // Merge by microchipId or ID to eliminate duplicates
-    const map = new Map();
-    demoList.forEach((h) => map.set(h.microchipId || h.id, h));
-    dbList.forEach((h) => map.set(h.microchipId || h.id, h));
-
-    return Array.from(map.values());
-  }, [realHorses]);
+  const allHorses = useMemo(() => realHorses.map(h => ({...h,id:h.id||h._id,_id:h.id||h._id,breed:h.breed||'Chưa khai báo',age:h.age||'Chưa khai báo',ownerName:h.ownerName||h.ownerId?.fullName||'Chưa khai báo',reviewStatus:h.reviewStatus||'PENDING_REVIEW',submittedAt:h.createdAt?formatDate(h.createdAt):'Chưa cập nhật',isRealDb:true})),[realHorses]);
 
   // Counts for top metrics and tabs
   const pendingCount = allHorses.filter((h) => h.reviewStatus === 'PENDING_REVIEW').length;
@@ -493,22 +458,17 @@ export default function HorseVerificationPage() {
   const handleApprove = async () => {
     if (!selectedHorse) return;
     if (!confirmChecked) {
-      message.warning('Vui lòng đánh dấu xác nhận đã đối chiếu hộ chiếu, microchip và giấy xét nghiệm.');
+      message.warning('Vui lòng đánh dấu xác nhận đã đối chiếu hộ chiếu, microchip và hồ sơ thú y.');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (selectedHorse.isRealDb) {
-        await reviewHorse(selectedHorse.id, {
+      await reviewHorse(selectedHorse.id, {
           decision: 'APPROVED',
           notes: 'Hồ sơ sức khỏe và chứng từ kiểm dịch đạt tiêu chuẩn xuất phát.',
           profileVersion: selectedHorse.__v || 0
         });
-      } else {
-        // Update in demo service
-        wdpDemoService.reviewHorse(selectedHorse.id, 'APPROVED');
-      }
 
       message.success(`Đã duyệt hồ sơ ngựa ${selectedHorse.name} thành công. Khách hàng đã có thể đặt đơn vận chuyển cho ngựa này!`);
       setSelectedHorse(null);
@@ -530,15 +490,11 @@ export default function HorseVerificationPage() {
 
     setSubmitting(true);
     try {
-      if (selectedHorse.isRealDb) {
-        await reviewHorse(selectedHorse.id, {
+      await reviewHorse(selectedHorse.id, {
           decision: 'REJECTED',
           notes: rejectNotes.trim(),
           profileVersion: selectedHorse.__v || 0
         });
-      } else {
-        wdpDemoService.reviewHorse(selectedHorse.id, 'REJECTED');
-      }
 
       message.info(`Đã gửi yêu cầu bổ sung giấy tờ cho chủ ngựa ${selectedHorse.name}.`);
       setRejectModalOpen(false);
@@ -553,7 +509,7 @@ export default function HorseVerificationPage() {
   };
 
   return (
-    <div className="specialist-page-container">
+    <div className="specialist-page-container heritage-verification">{error&&<Alert type="error" showIcon message={error} action={<Button onClick={()=>fetchHorses().catch(()=>{})}>Thử lại</Button>}/>}
       {/* Header */}
       <header className="spec-header">
         <div className="spec-eyebrow">THỦ TỤC & KIỂM DỊCH</div>
@@ -561,7 +517,7 @@ export default function HorseVerificationPage() {
           <div>
             <h1 className="spec-title">Duyệt hồ sơ ngựa</h1>
             <p className="spec-subtitle">
-              Hồ sơ ngựa do khách hàng tạo được giao cho bạn. Đối chiếu hộ chiếu, microchip, xét nghiệm và duyệt hồ sơ ngựa để khách hàng có thể tạo đơn vận chuyển.
+              Hồ sơ ngựa do khách hàng tạo được giao cho bạn. Đối chiếu ảnh nhận dạng, hộ chiếu, microchip và hồ sơ thú y để khách hàng có thể tạo đơn vận chuyển.
             </p>
           </div>
           <Button
@@ -578,10 +534,10 @@ export default function HorseVerificationPage() {
       <div className="spec-metrics-grid">
         <div className="spec-metric-card">
           <div className="spec-metric-label">Hồ sơ cần duyệt</div>
-          <div className="spec-metric-value" style={{ color: '#ea580c' }}>
+          <div className="spec-metric-value" style={{ color: '#243c32' }}>
             {pendingCount}
           </div>
-          <div className="spec-metric-desc">Chờ kiểm tra chứng từ & microchip</div>
+          <div className="spec-metric-desc">Đối chiếu chứng từ & microchip</div>
         </div>
 
         <div className="spec-metric-card">
@@ -597,7 +553,7 @@ export default function HorseVerificationPage() {
           <div className="spec-metric-value" style={{ color: '#16a34a' }}>
             {approvedCount}
           </div>
-          <div className="spec-metric-desc">Đã duyệt kiểm dịch · Sẵn sàng đặt đơn</div>
+          <div className="spec-metric-desc">Đã duyệt hồ sơ sức khỏe</div>
         </div>
       </div>
 
@@ -735,14 +691,12 @@ export default function HorseVerificationPage() {
           INSPECTION MODAL VIEW (Matching Screenshots 3 & 4)
           ========================================================= */}
       {selectedHorse && (
-        <Modal
-          open={!!selectedHorse}
-          onCancel={() => setSelectedHorse(null)}
-          width={840}
+        <Drawer className="heritage-document-drawer" open={!!selectedHorse}
+          onClose={() => setSelectedHorse(null)} width="min(980px, 96vw)"
           title={
             <div>
               <div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>
-                Đối chiếu hồ sơ 1 ngựa - {selectedHorse.name}{' '}
+                Đối chiếu hồ sơ — {selectedHorse.name}{' '}
                 {selectedHorse.reviewStatus === 'APPROVED' && (
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#16a34a' }}>
                     (Đã duyệt kiểm dịch)
@@ -765,12 +719,12 @@ export default function HorseVerificationPage() {
                   </Tag>
                 ) : (
                   <Tag color="cyan" style={{ borderRadius: 4, fontWeight: 600 }}>
-                    Đã nộp đủ giấy
+                    Chờ kiểm tra giấy tờ
                   </Tag>
                 )}
-                <span className="spec-doc-checklist-badge">✔ Hộ chiếu Đã nộp</span>
-                <span className="spec-doc-checklist-badge">✔ Sổ tiêm Đã nộp</span>
-                <span className="spec-doc-checklist-badge">✔ Xét nghiệm Đã nộp</span>
+                <span className="spec-doc-checklist-badge">Hộ chiếu: {selectedHorse.passportScanUrl?.length?'Đã nộp':'Chưa nộp'}</span>
+                <span className="spec-doc-checklist-badge">Sổ tiêm: {selectedHorse.vaccinationRecordUrl?.length?'Đã nộp':'Chưa nộp'}</span>
+
                 {Array.isArray(selectedHorse.photos) && selectedHorse.photos.length > 0 && (
                   <span
                     className="spec-doc-checklist-badge"
@@ -799,17 +753,7 @@ export default function HorseVerificationPage() {
                   <div style={{ fontSize: 13, color: '#d97706', fontWeight: 600 }}>
                     Đang chờ chủ ngựa gửi lại hồ sơ theo yêu cầu
                   </div>
-                  <Space>
-                    <Button onClick={() => setSelectedHorse(null)}>Đóng</Button>
-                    <Button
-                      type="primary"
-                      className="spec-btn-review"
-                      loading={submitting}
-                      onClick={handleApprove}
-                    >
-                      Duyệt hồ sơ ngựa
-                    </Button>
-                  </Space>
+                  <Button onClick={() => setSelectedHorse(null)}>Đóng</Button>
                 </>
               ) : (
                 <>
@@ -838,7 +782,7 @@ export default function HorseVerificationPage() {
         >
           <div style={{ marginTop: 14 }}>
             {/* Identity Information Summary Card */}
-            <div
+            <div className="verification-identity"
               style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
@@ -854,22 +798,22 @@ export default function HorseVerificationPage() {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 12 }}>
+              <div className="verification-identity-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 12 }}>
                 <div>
                   <div style={{ color: '#64748b' }}>Mã Microchip</div>
                   <strong style={{ fontFamily: 'monospace' }}>{selectedHorse.microchipId}</strong>
                 </div>
                 <div>
                   <div style={{ color: '#64748b' }}>Giống / Giới tính</div>
-                  <strong>{selectedHorse.breed} · Đực</strong>
+                  <strong>{selectedHorse.breed} · {({STALLION:'Đực',MARE:'Cái',GELDING:'Thiến'})[selectedHorse.gender]||'Chưa khai báo giới tính'}</strong>
                 </div>
                 <div>
                   <div style={{ color: '#64748b' }}>Tuổi / Năm sinh</div>
-                  <strong>{selectedHorse.age || '5 năm'}</strong>
+                  <strong>{selectedHorse.age || 'Chưa khai báo'}</strong>
                 </div>
                 <div>
                   <div style={{ color: '#64748b' }}>Địa điểm hiện tại</div>
-                  <strong>{selectedHorse.currentLocationName || 'TP. Hồ Chí Minh'}</strong>
+                  <strong>{selectedHorse.currentLocationName || selectedHorse.currentStopId || 'Chưa khai báo'}</strong>
                 </div>
               </div>
             </div>
@@ -893,7 +837,7 @@ export default function HorseVerificationPage() {
                     <div style={{ fontSize: 11, color: '#64748b' }}>
                       {Array.isArray(selectedHorse.passportScanUrl) && selectedHorse.passportScanUrl.length > 0
                         ? `Đã tải ${selectedHorse.passportScanUrl.length} tệp chứng từ · nộp ${selectedHorse.submittedAt}`
-                        : `fei_passport_${selectedHorse.microchipId}.pdf · nộp ${selectedHorse.submittedAt}`}
+                        : 'Chưa nộp tệp hộ chiếu'}
                     </div>
                   </div>
                 </div>
@@ -925,8 +869,8 @@ export default function HorseVerificationPage() {
                       Cúm ngựa (Equine Influenza), Uốn ván ·{' '}
                       {Array.isArray(selectedHorse.vaccinationRecordUrl) && selectedHorse.vaccinationRecordUrl.length > 0
                         ? `Đã tải ${selectedHorse.vaccinationRecordUrl.length} tệp`
-                        : '1 tệp đã nộp'}{' '}
-                      · Hiệu lực &lt; 6 tháng
+                        : 'Chưa nộp tệp tiêm phòng'}{' '}
+                      · Ngày tiêm khai báo: {selectedHorse.lastVaccinationDate ? formatDate(selectedHorse.lastVaccinationDate) : 'Chưa khai báo'}
                     </div>
                   </div>
                 </div>
@@ -939,35 +883,6 @@ export default function HorseVerificationPage() {
                       files: selectedHorse.vaccinationRecordUrl,
                       horse: selectedHorse,
                       docType: 'VACCINE'
-                    })
-                  }
-                >
-                  Xem tệp
-                </Button>
-              </div>
-
-              {/* Doc 3: Xét nghiệm EIA / Coggins */}
-              <div className="spec-doc-card-item">
-                <div className="spec-doc-info-left">
-                  <div className="spec-doc-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                    <CheckCircle2 size={20} />
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: 13, color: '#0f172a' }}>Xét nghiệm EIA / Coggins âm tính</strong>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>
-                      Kết quả xét nghiệm máu thiếu máu truyền nhiễm · Đạt tiêu chuẩn xuất bến
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  size="small"
-                  icon={<Eye size={12} />}
-                  onClick={() =>
-                    setViewingDoc({
-                      title: 'Phiếu xét nghiệm EIA / Coggins âm tính',
-                      files: selectedHorse.cogginsTestUrl || selectedHorse.vaccinationRecordUrl,
-                      horse: selectedHorse,
-                      docType: 'COGGINS'
                     })
                   }
                 >
@@ -1052,7 +967,7 @@ export default function HorseVerificationPage() {
                   <div style={{ fontSize: 12, color: '#92400e', marginTop: 2 }}>
                     Nội dung yêu cầu:{' '}
                     <em>
-                      "{selectedHorse.reviewNotes || 'Yêu cầu chụp rõ nét lại ảnh hộ chiếu hoặc sổ tiêm phòng'}"
+                      "{selectedHorse.reviewNotes || 'Chưa có ghi chú bổ sung'}"
                     </em>
                   </div>
                 </div>
@@ -1065,12 +980,12 @@ export default function HorseVerificationPage() {
                   onChange={(e) => setConfirmChecked(e.target.checked)}
                 />
                 <label htmlFor="chk-verify-horse">
-                  Đã đối chiếu hộ chiếu, vi chip <strong>{selectedHorse.microchipId}</strong> và các giấy xét nghiệm thú y EIA/EVA đạt chuẩn kiểm dịch.
+                  Đã đối chiếu ảnh nhận dạng, vi chip <strong>{selectedHorse.microchipId}</strong>, hộ chiếu và hồ sơ thú y đã nộp.
                 </label>
               </div>
             )}
           </div>
-        </Modal>
+        </Drawer>
       )}
 
       {/* Reject / Request Amendment Modal */}
@@ -1100,7 +1015,7 @@ export default function HorseVerificationPage() {
       )}
 
       {/* Secure Document Viewer Modal (Displays Real Files) */}
-      <SecureDocumentViewerModal viewingDoc={viewingDoc} onCancel={() => setViewingDoc(null)} />
+      {viewingDoc && <SecureDocumentViewerModal viewingDoc={viewingDoc} onCancel={() => setViewingDoc(null)} />}
     </div>
   );
 }

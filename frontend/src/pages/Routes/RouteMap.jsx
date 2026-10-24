@@ -118,12 +118,12 @@ export default function RouteMap() {
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '60px auto' }} />;
 
   return (
-    <Space direction="vertical" size={18} style={{ width: '100%' }}>
+    <Space className="tracking-console" direction="vertical" size={18} style={{ width: '100%' }}>
       <Card
         title={
           <Space>
             <CompassOutlined style={{ color: '#0F3E2E', fontSize: 20 }} />
-            <span>Theo dõi Lộ trình & Mốc hành trình Real-time</span>
+            <span>Bản đồ & mốc hành trình</span>
           </Space>
         }
         extra={
@@ -136,10 +136,10 @@ export default function RouteMap() {
               onChange={setSelected}
               style={{ width: 280 }}
               options={[
-                { value: 'ALL', label: '🌐 Tất cả các chuyến' },
+                { value: 'ALL', label: 'Tất cả chuyến' },
                 ...routes.map((route) => ({
                   value: route._id,
-                  label: `🚛 ${route.vehiclePlateNumber || 'Xe'} - ${route.orderId?.bookingCode || route._id}`
+                  label: `${route.vehiclePlateNumber || 'Xe'} - ${route.orderId?.bookingCode || route._id}`
                 }))
               ]}
             />
@@ -147,7 +147,7 @@ export default function RouteMap() {
         }
       >
         <p style={{ margin: 0, color: '#6B7280' }}>
-          Hệ thống kết hợp giám sát tọa độ thời gian thực (Socket.io) và cơ chế Check-in theo mốc (Milestone Tracking).
+          Theo dõi vị trí được gửi từ xe và các mốc tài xế đã xác nhận.
           Khi tài xế check-in tại mốc trạm, vị trí xe trên bản đồ sẽ tự động cập nhật ngay lập tức.
         </p>
       </Card>

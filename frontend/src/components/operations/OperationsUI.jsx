@@ -1,5 +1,6 @@
 import React from 'react';
 import { ConfigProvider } from 'antd';
+import { heritageTheme } from '../../styles/heritageTheme';
 import './operations-ui.css';
 import './workflow.css';
 
@@ -14,18 +15,21 @@ const labels = {
 
 export function StatusPill({ value, label }) {
   const tone = ['APPROVED', 'CLEARED_FOR_TRANSPORT', 'COMPLETED', 'PAID', 'ACTIVE'].includes(value)
-    ? 'positive' : ['INCIDENT_HANDLING', 'REJECTED', 'INACTIVE'].includes(value) ? 'critical' : 'neutral';
+    ? 'positive' : ['INCIDENT_HANDLING', 'REJECTED', 'INACTIVE'].includes(value) ? 'critical' : ['PENDING_APPROVAL','PENDING_REVIEW','PENDING_UPLOAD','PENDING','UNPAID','PARTIALLY_PAID','DOCS_PROCESSING'].includes(value) ? 'pending' : 'neutral';
   return <span className={`ops-status ops-status--${tone}`}>{label || labels[value] || value || 'Chưa cập nhật'}</span>;
 }
 
 export function Workspace({ eyebrow, title, description, actions, children, className = '', inheritTheme = false }) {
-  return <ConfigProvider theme={inheritTheme ? {} : { token: { colorPrimary: '#0F3E2E', colorText: '#202824', colorTextSecondary: '#66716b', colorBorder: '#dce2dd', borderRadius: 8, controlHeight: 40 }, components: { Table: { headerBg: '#f5f7f5', headerColor: '#536057', cellPaddingBlock: 16 }, Card: { headerFontSize: 16 } } }}>
+  const blocks = React.Children.toArray(children);
+  const metrics = blocks.find(child => React.isValidElement(child) && child.type === Metrics);
+  const workbench = metrics && !blocks.some(child => child.props?.className?.includes('ops-split'));
+  return <ConfigProvider theme={heritageTheme}>
     <section className={`ops-workspace ${className}`}>
       <header className="ops-heading">
         <div><div className="ops-eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>
         {actions && <div className="ops-actions">{actions}</div>}
       </header>
-      {children}
+      {workbench ? <div className="ops-workbench"><aside>{metrics}</aside><div className="ops-workbench-content">{blocks.filter(child => child !== metrics)}</div></div> : children}
     </section>
   </ConfigProvider>;
 }

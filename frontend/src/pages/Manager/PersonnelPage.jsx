@@ -18,9 +18,9 @@ export default function PersonnelPage({ role }) {
     catch(e) { message.error(e.response?.data?.message || 'Không thể lưu nhân sự.'); } finally { setSaving(false); }
   };
   const deactivate = async id => { try { await userApi.deleteUser(id); message.success('Đã ngừng hoạt động tài khoản.'); await load(); } catch(e) { message.error(e.response?.data?.message || 'Không thể ngừng hoạt động.'); } };
-  return <Workspace title={role === 'driver' ? 'Tài xế' : 'Phụ xe'} description="Quản lý tài khoản và thông tin liên hệ của nhân sự vận chuyển." actions={<Button type="primary" onClick={() => open({})}>Thêm nhân sự</Button>}>
+  return <Workspace title={role === 'driver' ? 'Tài xế' : 'Nhân viên hộ tống'} description="Quản lý tài khoản và thông tin liên hệ của nhân sự vận chuyển." actions={<Button type="primary" onClick={() => open({})}>Thêm nhân sự</Button>}>
     {error && <Alert type="error" message={error} action={<Button onClick={load}>Thử lại</Button>} />}
-    <Table rowKey="_id" loading={loading} dataSource={rows} columns={[
+    <Table scroll={{x:800}} rowKey="_id" loading={loading} dataSource={rows} columns={[
       { title:'Họ tên', dataIndex:'fullName' }, { title:'Email', dataIndex:'email' }, { title:'Điện thoại', dataIndex:'phone' },
       { title:'Trạng thái', render:(_,r) => <Tag>{r.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}</Tag> },
       { title:'Thao tác', render:(_,r) => <><Button onClick={() => open(r)}>Chỉnh sửa</Button> <Popconfirm title="Ngừng hoạt động tài khoản này?" onConfirm={() => deactivate(r._id)}><Button danger disabled={!r.isActive}>Ngừng hoạt động</Button></Popconfirm></> }
