@@ -4,7 +4,6 @@ const Order = require('../models/Order');
 const { logAudit } = require('../utils/auditLogger');
 const { deliveryProblem } = require('../services/operationsWorkflow');
 const { canRead } = require('../services/operationsWorkflow');
-const { validCoordinates, distanceKm } = require('../services/tripSafety');
 
 const ALLOWED_SIGNER_ROLES = ['CUSTOMER', 'AUTHORIZED_RECIPIENT', 'STABLE_MANAGER', 'VETERINARIAN'];
 
@@ -24,10 +23,10 @@ exports.signPOD = async (req, res, next) => {
     const { tripId, orderId, signerName, signerPhone, signerRole, signatureImageUrl, locationSigned, coordinates, horseConditionsOnArrival } = req.body;
     const coords = coordinates || (locationSigned && locationSigned.coordinates);
 
-    if (!tripId || !orderId || !signerName || !signerPhone || !signerRole || !signatureImageUrl || !coords || coords.length !== 2) {
+    if (!tripId || !orderId || !signerName || !signerPhone || !signerRole || !signatureImageUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required POD fields: tripId, orderId, signerName, signerPhone, signerRole, signatureImageUrl, coordinates [lng, lat]'
+        message: 'Please provide all required POD fields: tripId, orderId, signerName, signerPhone, signerRole, signatureImageUrl'
       });
     }
 
@@ -66,8 +65,6 @@ exports.signPOD = async (req, res, next) => {
       await finishDelivery(route, deliveryOrder);
       return res.json({ success: true, isDuplicate: true, data: existingPOD });
     }
-    const signingCoords = route.demoSimulation && deliveryOrder.destination?.coordinates ? deliveryOrder.destination.coordinates : coords;
-    if (!validCoordinates(signingCoords) || !validCoordinates(deliveryOrder.destination?.coordinates) || distanceKm(signingCoords, deliveryOrder.destination.coordinates) > 0.5) return res.status(409).json({ success: false, message: 'Người nhận cần xác nhận tại điểm giao.' });
     if (!Array.isArray(horseConditionsOnArrival) || horseConditionsOnArrival.length !== deliveryOrder.horseIds.length || new Set(horseConditionsOnArrival.map(h => String(h.horseId))).size !== deliveryOrder.horseIds.length || !deliveryOrder.horseIds.every(h => horseConditionsOnArrival.some(c => String(c.horseId) === String(h)))) return res.status(400).json({ success: false, message: 'Cần xác nhận tình trạng của từng ngựa trong đơn.' });
     if (horseConditionsOnArrival.some(h => !['EXCELLENT', 'GOOD', 'MINOR_STRESS'].includes(h.conditionStatus))) return res.status(409).json({ success: false, message: 'Ngựa bị thương hoặc tình trạng chưa hợp lệ: báo sự cố và xử lý trước khi ký nhận.' });
     if (typeof signatureImageUrl !== 'string' || signatureImageUrl.length > 300000 || !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(signatureImageUrl)) return res.status(400).json({ success: false, message: 'Chữ ký phải là ảnh PNG hợp lệ, tối đa 300 KB dạng dữ liệu.' });
@@ -81,10 +78,8 @@ exports.signPOD = async (req, res, next) => {
       signerPhone,
       signerRole,
       signatureImageUrl,
-      locationSigned: {
-        type: 'Point',
-        coordinates: signingCoords
-      },
+      confirmationMethod: 'DRIVER_CHECKIN',
+      deliveryCheckedInAt: route.waypoints.find(w => w.type === 'DELIVERY' && w.status === 'ARRIVED')?.actualArrival,
       horseConditionsOnArrival: horseConditionsOnArrival || [],
       signedAt: new Date()
     });

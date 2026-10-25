@@ -26,7 +26,7 @@ const ProtectedRoute = ({ allowedRoles, requiredPermission }) => {
   }
 
   if (sessionStatus !== 'authenticated' || !user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />;
   }
 
   if (!canAccessPage(user, location.pathname)) return <Navigate to="/forbidden" replace />;

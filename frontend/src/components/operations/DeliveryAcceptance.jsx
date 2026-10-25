@@ -12,11 +12,6 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
   const signed = useRef(false);
   const [busy, setBusy] = useState(false);
 
-  const destCoords = order.destination?.coordinates || [104.9282, 11.5564];
-  const [useManualCoords, setUseManualCoords] = useState(false);
-  const [manualLng, setManualLng] = useState(destCoords[0]);
-  const [manualLat, setManualLat] = useState(destCoords[1]);
-
   const defaultRole = 'AUTHORIZED_RECIPIENT';
 
   const PRESETS = {
@@ -115,10 +110,6 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
     if (!signed.current) return message.error('Vui lòng ký xác nhận trước khi hoàn tất.');
     setBusy(true);
     try {
-      const coordinates = useManualCoords
-        ? [Number(manualLng), Number(manualLat)]
-        : destCoords;
-
       await api.post('/pod/sign', {
         tripId: route._id,
         orderId: order._id,
@@ -126,7 +117,6 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
         signerPhone: values.phone,
         signerRole: values.signerRole || defaultRole,
         signatureImageUrl: canvas.current.toDataURL('image/png'),
-        coordinates,
         horseConditionsOnArrival: order.horseIds.map((h) => ({
           horseId: h._id,
           conditionStatus: values.conditions?.[h._id] || 'EXCELLENT',
@@ -197,50 +187,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
         </div>
       </div>
 
-      {/* Destination Location Info */}
-      <div
-        style={{
-          background: '#F8FAFC',
-          border: '1px solid #E2E8F0',
-          borderRadius: 8,
-          padding: '10px 14px',
-          marginBottom: 16,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 8
-        }}
-      >
-        <div style={{ fontSize: 13, color: '#334155' }}>
-          <span style={{ fontWeight: 600 }}>Tọa độ bàn giao:</span> [{destCoords[0]}, {destCoords[1]}] · {order.destination?.address || 'Điểm đến'}
-          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-            Hệ thống xác thực vị trí chuồng nuôi theo hợp đồng vận chuyển.
-          </div>
-        </div>
-        <Button
-          size="small"
-          type="link"
-          onClick={() => setUseManualCoords(!useManualCoords)}
-          style={{ fontSize: 12, padding: 0, color: '#0F3E2E' }}
-        >
-          {useManualCoords ? 'Dùng tọa độ mặc định' : 'Tùy chỉnh tọa độ'}
-        </Button>
-      </div>
-
-      {useManualCoords && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, background: '#fff', padding: 12, borderRadius: 8, border: '1px solid #CBD5E1' }}>
-          <div>
-            <span style={{ fontSize: 12, color: '#64748B' }}>Kinh độ (Longitude):</span>
-            <Input value={manualLng} onChange={(e) => setManualLng(e.target.value)} placeholder="104.9282" />
-          </div>
-          <div>
-            <span style={{ fontSize: 12, color: '#64748B' }}>Vĩ độ (Latitude):</span>
-            <Input value={manualLat} onChange={(e) => setManualLat(e.target.value)} placeholder="11.5564" />
-          </div>
-        </div>
-      )}
-
+      <Alert type="info" showIcon message="Ký nhận theo check-in giao hàng" description="Tài xế phải check-in điểm giao, xác nhận từng ngựa xuống xe và ghi km cuối chuyến. Bạn kiểm tra tình trạng ngựa và ký xác nhận bên dưới; không cần bật vị trí thiết bị." style={{marginBottom:16}} />
       <Form form={form} layout="vertical" onFinish={submit}>
         {/* Recipient role */}
         <Form.Item

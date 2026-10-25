@@ -71,7 +71,7 @@ router.patch('/:id/assignment', protect, (req,res,next)=>req.user.role==='LOGIST
  *         description: Route details
  */
 router.get('/:id', protect, routeController.getRouteById);
-router.post('/:id/demo', protect, require('../controllers/demoRouteController').simulate);
+router.post('/:id/demo', protect, (req, res) => res.status(410).json({ message: 'Đã ngừng mô phỏng GPS. Tài xế sử dụng check-in điểm dừng.' }));
 
 /**
  * @swagger

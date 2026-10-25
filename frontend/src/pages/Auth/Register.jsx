@@ -1,3 +1,4 @@
+import PasswordField from '../../components/common/PasswordField';
 import AuthStory from '../../components/common/AuthStory';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -43,17 +44,12 @@ const Register = () => {
   };
 
   return (
-    <main className="login-page register-page">
+    <main className="login-page register-page equine-auth-page">
       <AuthStory />
 
       <section className="login-panel">
         <div className="login-content">
-          <div style={{ marginBottom: 20 }}>
-            <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>
-              ← Về Trang chủ
-            </Link>
-          </div>
-          <p className="eyebrow">CỔNG QUẢN LÝ VẬN CHUYỂN</p>
+          <p className="eyebrow">CHÀO MỪNG ĐẾN VỚI CBRT</p>
           <h2>Đăng ký tài khoản</h2>
           <p className="login-intro">Tạo tài khoản chủ ngựa để bắt đầu đặt chuyến và quản lý hồ sơ.</p>
 
@@ -93,11 +89,11 @@ const Register = () => {
             <div className="register-fields" style={{ marginTop: 14 }}>
               <div>
                 <label htmlFor="password">Mật khẩu <span>*</span></label>
-                <input id="password" name="password" type="password" value={form.password} onChange={handleChange} placeholder="••••••••••••" autoComplete="new-password" minLength="8" required />
+                <PasswordField id="password" name="password" type="password" value={form.password} onChange={handleChange} placeholder="••••••••••••" autoComplete="new-password" minLength="8" required />
               </div>
               <div>
                 <label htmlFor="confirmPassword">Xác nhận mật khẩu <span>*</span></label>
-                <input id="confirmPassword" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="••••••••••••" autoComplete="new-password" minLength="8" required />
+                <PasswordField id="confirmPassword" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="••••••••••••" autoComplete="new-password" minLength="8" required />
               </div>
             </div>
 
@@ -114,7 +110,7 @@ const Register = () => {
         </div>
       </section>
 
-      <p className="page-caption">CBRT - 2026 / Shared / Dữ liệu minh họa</p>
+      <p className="page-caption">CBRT / Vận chuyển ngựa chuyên nghiệp</p>
     </main>
   );
 };

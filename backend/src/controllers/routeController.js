@@ -169,7 +169,6 @@ exports.updateTripStatus = async (req, res, next) => {
     if (req.user.role !== 'DRIVER' || idOf(route.driverId)!==idOf(req.user._id)) return res.status(403).json({message:'Chỉ tài xế được phân công mới được bắt đầu, bàn giao hoặc hoàn thành chuyến.'});
     if(['DELIVERING','COMPLETED'].includes(status)&&route.waypoints.some(w=>w.status!=='ARRIVED'))return res.status(409).json({message:'Tài xế cần xác nhận đến tất cả điểm dừng và điểm đích trước.'});
     const currentStatus = route.status;
-    if (route.demoSimulation && status === 'DELIVERING' && route.waypoints.some(w => w.status !== 'ARRIVED' || (w.type === 'REST_STOP' && !w.demoDepartedAt))) return res.status(409).json({ message: 'Hoàn thành check-in tất cả điểm và kết thúc nghỉ trước khi bàn giao.' });
     if (currentStatus === 'INCIDENT_HANDLING') return res.status(409).json({ success: false, message: 'Chỉ tiếp tục chuyến sau khi điều phối xử lý hết sự cố.' });
     const allowedNextStatuses = ALLOWED_TRIP_TRANSITIONS[currentStatus] || [];
 
@@ -237,6 +236,7 @@ exports.updateTripStatus = async (req, res, next) => {
     if (status === 'COMPLETED') {
       const problem = await deliveryProblem(route, await Order.findById(route.orderId));
       if (problem) return res.status(409).json({ success: false, message: problem });
+      if (!(await require('../models/DigitalPOD').exists({ tripId: route._id }))) return res.status(409).json({ message: 'Khách hàng cần ký biên bản nhận ngựa trước khi tài xế hoàn thành chuyến.' });
     }
     if (await require('../services/tripSafety').activeIncident(route._id)) return res.status(409).json({ success: false, message: 'Còn sự cố chưa giải quyết, không thể tiếp tục chuyến.' });
     route.status = status;
@@ -313,15 +313,6 @@ exports.waypointCheckin = async (req, res, next) => {
     if (!['IN_TRANSIT', 'DELIVERING'].includes(route.status)) return res.status(409).json({ success: false, message: 'Chuyến chưa chạy, đã kết thúc hoặc đang xử lý sự cố.' });
     if (status && !['ARRIVED', 'SKIPPED'].includes(status)) return res.status(400).json({ success: false, message: 'Trạng thái điểm dừng không hợp lệ.' });
     if (waypoint.status !== 'PENDING') return res.json({ success: true, isDuplicate: true, data: route });
-    if (route.demoSimulation) {
-      const ordered = [...route.waypoints].sort((a, b) => a.sequence - b.sequence);
-      const target = ordered.find(w => w.status === 'PENDING');
-      const resting = ordered.some(w => w.type === 'REST_STOP' && w.status === 'ARRIVED' && !w.demoDepartedAt);
-      const { locationProblem } = require('../services/tripSafety');
-      if (resting || String(target?._id) !== String(waypoint._id) || status === 'SKIPPED') return res.status(409).json({ message: 'Hoàn tất nghỉ và check-in đúng thứ tự điểm mô phỏng.' });
-      const problem = locationProblem(route.currentLocation, waypoint.location.coordinates);
-      if (problem) return res.status(409).json({ message: 'Bấm di chuyển mô phỏng tới điểm tiếp theo trước khi check-in.' });
-    }
     const nextPending=[...route.waypoints].sort((a,b)=>a.sequence-b.sequence).find(w=>w.status==='PENDING');
     if(status==='SKIPPED'||String(nextPending?._id)!==String(waypoint._id))return res.status(409).json({message:'Xác nhận đúng thứ tự các điểm dừng, không được bỏ qua điểm.'});
     if (waypoint.type === 'BORDER_CUSTOMS') {
@@ -330,29 +321,12 @@ exports.waypointCheckin = async (req, res, next) => {
     }
     waypoint.status = status || 'ARRIVED';
     waypoint.actualArrival = new Date();
-    if (waypoint.location?.coordinates && waypoint.status === 'ARRIVED') {
-      route.currentLocation = {
-        type: 'Point',
-        coordinates: waypoint.location.coordinates,
-        speedKmh: 0,
-        headingDegree: 0,
-        updatedAt: waypoint.actualArrival
-      };
-    }
     await route.save();
 
     const io = req.app?.get?.('io');
     if (io && waypoint.location?.coordinates && waypoint.status === 'ARRIVED') {
       const roomName = `trip_${route._id.toString()}`;
       io.to(roomName).emit('trip:waypoint_updated', {tripId:route._id.toString(),waypointId:String(waypoint._id),status:waypoint.status});
-      io.to(roomName).emit('route:location_changed', {
-        tripId: route._id.toString(),
-        latitude: waypoint.location.coordinates[1],
-        longitude: waypoint.location.coordinates[0],
-        speedKmh: 0,
-        headingDegree: 0,
-        timestamp: waypoint.actualArrival.toISOString()
-      });
     }
 
     await logAudit({

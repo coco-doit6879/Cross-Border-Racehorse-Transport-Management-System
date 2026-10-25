@@ -57,9 +57,11 @@ const digitalPODSchema = new mongoose.Schema({
     },
     coordinates: {
       type: [Number],
-      required: [true, 'Location signed coordinates [lng, lat] are required']
+      required: false
     }
   },
+  confirmationMethod: { type: String, enum: ['DRIVER_CHECKIN'], default: 'DRIVER_CHECKIN' },
+  deliveryCheckedInAt: Date,
   horseConditionsOnArrival: [horseConditionOnArrivalSchema],
   pdfReportUrl: {
     type: String

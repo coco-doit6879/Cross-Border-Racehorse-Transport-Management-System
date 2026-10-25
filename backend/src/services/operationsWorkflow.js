@@ -1,5 +1,5 @@
 const Doc = require('../models/ComplianceDoc');
-const { activeIncident, locationProblem } = require('./tripSafety');
+const { activeIncident } = require('./tripSafety');
 const id = value => String(value?._id || value || '');
 const has = (user, permission) => (user.effectivePermissions || []).includes(permission);
 const staff = user => has(user, 'booking:approve');
@@ -28,7 +28,6 @@ async function stageReady(orderId, stage, checkpoint) {
 }
 function clearanceReady(route, order, checkpoint) {
   if (order.origin.countryCode === order.destination.countryCode && !checkpoint) return true;
-  if (route.demoSimulation) return true;
   const latest = new Map();
   for (const c of route.clearances || []) latest.set(`${id(c.horseId)}:${c.countryCode}:${c.checkpoint}`, c);
   const items = [...latest.values()];
@@ -40,18 +39,8 @@ function clearanceReady(route, order, checkpoint) {
 async function deliveryProblem(route, order) {
   if (!route || !order) return 'Không tìm thấy chuyến hoặc đơn vận chuyển.';
   if (route.status !== 'DELIVERING') return 'Chuyến chưa ở giai đoạn bàn giao.';
-  if (route.demoSimulation && order?.destination?.coordinates) {
-    route.currentLocation = {
-      type: 'Point',
-      coordinates: order.destination.coordinates,
-      updatedAt: new Date(),
-      speedKmh: 0,
-      headingDegree: 0
-    };
-    await route.save();
-  }
-  const positionError = locationProblem(route.currentLocation, order.destination?.coordinates);
-  if (positionError) return positionError;
+  const destination = [...(route.waypoints || [])].reverse().find(w => w.type === 'DELIVERY');
+  if (!destination || destination.status !== 'ARRIVED' || !destination.actualArrival) return 'Tài xế cần check-in điểm giao trước khi bàn giao.';
   if (await activeIncident(route._id)) return 'Cần xử lý toàn bộ sự cố trước khi giao nhận.';
   if (route.odometerStart == null || route.odometerEnd == null || route.odometerEnd < route.odometerStart) return 'Cần ghi km đầu và cuối chuyến.';
   if (!order.horseIds.every(h => route.horseMovements?.some(m => id(m.horseId) === id(h) && m.unloadedAt))) return 'Cần xác nhận giao từng con ngựa.';

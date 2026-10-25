@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -18,15 +17,7 @@ export default function SosScreen() {
     if (description.trim().length < 5) { Alert.alert('Thiếu thông tin', 'Hãy mô tả ngắn tình trạng đang xảy ra.'); return; }
     setSubmitting(true);
     try {
-      let coordinates: number[] | undefined;
-      try {
-        const permission = await Location.requestForegroundPermissionsAsync();
-        if (permission.granted) {
-          const location = await Promise.race([Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('GPS timeout')), 8000))]);
-          coordinates = [location.coords.longitude, location.coords.latitude];
-        }
-      } catch { /* Missing GPS must not prevent an emergency report. */ }
-      const event = { event_id: newEventId('sos'), event_type: 'SOS_TRIGGER' as const, payload: { tripId, coordinates, description: description.trim(), recordedAt: new Date().toISOString() } };
+      const event = { event_id: newEventId('sos'), event_type: 'SOS_TRIGGER' as const, payload: { tripId, description: description.trim(), recordedAt: new Date().toISOString() } };
       try {
         await apiFetch('/incidents/sos', { method: 'POST', body: JSON.stringify({ eventId: event.event_id, ...event.payload }) });
         Alert.alert('Máy chủ đã lưu SOS', 'Chưa có xác nhận nhân viên đã tiếp nhận. Hãy gọi trực tiếp điều phối nếu khẩn cấp.', [{ text: 'Đóng', onPress: () => router.back() }]);
@@ -42,7 +33,7 @@ export default function SosScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}><Pressable onPress={() => router.back()}><Text style={styles.back}>‹</Text></Pressable><Text style={styles.headerTitle}>Báo sự cố</Text></View>
-      <View style={styles.content}><View style={styles.icon}><Text style={styles.iconText}>!</Text></View><Text style={styles.title}>SOS khẩn cấp</Text><Text style={styles.subtitle}>Chuyến {code || tripId}</Text><Text style={styles.help}>Vị trí hiện tại và mô tả sẽ được gửi tới trung tâm điều phối.</Text>
+      <View style={styles.content}><View style={styles.icon}><Text style={styles.iconText}>!</Text></View><Text style={styles.title}>SOS khẩn cấp</Text><Text style={styles.subtitle}>Chuyến {code || tripId}</Text><Text style={styles.help}>Điểm check-in gần nhất và mô tả sẽ được gửi tới trung tâm điều phối.</Text>
         <Text style={styles.label}>Mô tả tình trạng</Text><TextInput value={description} onChangeText={setDescription} multiline style={styles.input} placeholder="Ví dụ: xe gặp sự cố, ngựa có dấu hiệu bất thường…" textAlignVertical="top" />
         <Pressable disabled={submitting} style={[styles.button, submitting && { opacity: 0.6 }]} onPress={send}>{submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Gửi SOS ngay</Text>}</Pressable>
       </View>

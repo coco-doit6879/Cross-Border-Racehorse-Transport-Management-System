@@ -1,13 +1,12 @@
+import PasswordField from '../../components/common/PasswordField';
 import AuthStory from '../../components/common/AuthStory';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
 import { ErrorState, LoadingState } from '../../components/operations/PageFeedback';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getApiErrorMessage } from '../../utils/apiResponse';
-import { USER_ROLES } from '../../utils/constants';
-
-const roleHome = role => ({ LOGISTICS_MANAGER: '/manager', TRANSPORT_SPECIALIST: '/specialist/horses', FLEET_COORDINATOR: '/fleet/trips', CUSTOMER: '/dashboard' })[role] || '/dashboard';
+import { getLoginRedirect } from '../../utils/loginRedirect';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,14 +22,8 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && user) {
-      navigate(location.state?.from || roleHome(user.role), { replace: true });
-    }
-  }, [location.state, navigate, sessionStatus, user]);
-
   if (sessionStatus === 'authenticated' && user) {
-    return <Navigate to={location.state?.from || roleHome(user.role)} replace />;
+    return <Navigate to={getLoginRedirect(user, location.state?.from)} replace />;
   }
 
   if (sessionStatus === 'idle' || sessionStatus === 'checking') {
@@ -54,6 +47,7 @@ const Login = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
     if (!form.email.trim() || !form.password) {
       setError('Vui lòng nhập đầy đủ email và mật khẩu.');
       return;
@@ -74,7 +68,7 @@ const Login = () => {
       const activeUser = loggedInUser;
       setSession({ token, user: activeUser });
 
-      const targetPath = location.state?.from || roleHome(activeUser.role);
+      const targetPath = getLoginRedirect(activeUser, location.state?.from);
       navigate(targetPath, { replace: true });
     } catch (requestError) {
       setError(
@@ -88,20 +82,20 @@ const Login = () => {
   };
 
   return (
-    <main className="login-page">
-      <AuthStory />
+    <main className="login-page equine-auth-page">
+      <AuthStory bright />
 
       <section className="login-panel">
         <div className="login-content">
-          <span className="eyebrow">CỔNG QUẢN LÝ VẬN CHUYỂN</span>
+          <span className="eyebrow">CHÀO MỪNG ĐẾN VỚI CBRT</span>
           <h2>Chào mừng trở lại</h2>
-          <p className="login-intro">Đăng nhập để tiếp tục công việc.</p>
+          <p className="login-intro">Đăng nhập để quản lý hồ sơ và hành trình của bạn.</p>
 
           {location.state?.registrationSuccess && (
             <p className="form-success" role="status">Tạo tài khoản khách hàng thành công. Bạn có thể đăng nhập ngay.</p>
           )}
 
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form className="login-form" onSubmit={handleSubmit} aria-busy={isSubmitting}>
             <label htmlFor="email">Email *</label>
             <input
               id="email"
@@ -111,11 +105,16 @@ const Login = () => {
               onChange={handleChange}
               placeholder="ten@congty.com"
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              readOnly={isSubmitting}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'login-error' : undefined}
               required
             />
 
             <label htmlFor="password">Mật khẩu *</label>
-            <input
+            <PasswordField
               id="password"
               name="password"
               type="password"
@@ -123,12 +122,15 @@ const Login = () => {
               onChange={handleChange}
               placeholder="••••••••••••"
               autoComplete="current-password"
+              readOnly={isSubmitting}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'login-error' : undefined}
               required
             />
 
 
 
-            {error && <p className="form-error" role="alert">{error}</p>}
+            {error && <p id="login-error" className="form-error" role="alert">{error}</p>}
 
             <button className="login-button" type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}

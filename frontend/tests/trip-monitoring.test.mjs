@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {tripAlerts,filterTrips} from '../src/utils/tripMonitoring.js';
+const now=Date.parse('2026-10-25T04:00:00Z');
+const order={requestedDepartureDate:'2026-10-25T05:00:00Z',departureTimezone:'Asia/Ho_Chi_Minh',bookingCode:'TR-123',origin:{address:'Đà Nẵng'}};
+const scheduled={status:'SCHEDULED',driverId:'d',escortId:'e'};
+test('scheduled trips do not report missing GPS before departure',()=>{assert.deepEqual(tripAlerts({...scheduled,acceptedAt:'2026-10-25T03:00:00Z'},order,now),[]);});
+test('near departure without acceptance needs attention',()=>{assert.ok(tripAlerts(scheduled,order,now).some(a=>a.includes('chưa nhận')));});
+test('running trips do not require live GPS',()=>assert.deepEqual(tripAlerts({...scheduled,status:'IN_TRANSIT'},order,now),[]));
+test('completed and cancelled trips do not retain active alerts',()=>{for(const status of ['COMPLETED','CANCELLED'])assert.deepEqual(tripAlerts({status,rescuePending:true},order,now),[]);});
+test('today uses departure timezone and search ignores Vietnamese accents',()=>{const rows=[{route:scheduled,order,alerts:['Chờ nhận']}];assert.equal(filterTrips(rows,'TODAY','da nang',now).length,1);assert.equal(filterTrips(rows,'ACTIVE','',now).length,0);assert.equal(filterTrips(rows,'ATTENTION','TR-123',now).length,1);});

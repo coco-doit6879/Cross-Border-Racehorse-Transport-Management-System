@@ -6,6 +6,7 @@ const Horse=require('../src/models/Horse');
 const Incident=require('../src/models/Incident');
 const Doc=require('../src/models/ComplianceDoc');
 const Audit=require('../src/models/AuditLog');
+const POD=require('../src/models/DigitalPOD');
 const controller=require('../src/controllers/routeController');
 const {waypointsFor}=require('../src/services/bookingWorkflow');
 const oid=n=>String(n).padStart(24,'0');
@@ -24,13 +25,17 @@ test('driver arrival sequence updates customer tracking and only completes after
  for(const sequence of [1,2,3]){
    assert.equal((await call(controller.waypointCheckin,{sequence})).code,200);
    assert.equal(route.waypoints[sequence-1].status,'ARRIVED');
-   assert.deepEqual([...route.currentLocation.coordinates],[...route.waypoints[sequence-1].location.coordinates]);
+   assert.equal(route.currentLocation, null);
+   assert.ok(route.waypoints[sequence-1].actualArrival);
  }
  const before=saves;assert.equal((await call(controller.waypointCheckin,{sequence:3})).body.isDuplicate,true);assert.equal(saves,before);
  assert.equal((await call(controller.updateTripStatus,{status:'DELIVERING'})).code,200);
  assert.equal(order.status,'DELIVERING');assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'})).code,409);
  route.odometerEnd=20;route.horseMovements[0].unloadedAt=new Date();
  assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'},{_id:oid(6),role:'ESCORT'})).code,403);
+ t.mock.method(POD,'exists',async()=>null);
+ assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'})).code,409);
+ t.mock.method(POD,'exists',async()=>({_id:oid(9)}));
  assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'})).code,200);
  assert.equal(route.status,'COMPLETED');assert.equal(order.status,'COMPLETED');assert.equal(moved,1);
 });

@@ -48,7 +48,7 @@ exports.triggerSOS = async (req, res, next) => {
     if (!eventId || !tripId || !description || typeof description !== 'string' || description.trim().length < 5) {
       return res.status(400).json({
         success: false,
-        message: 'Cần mã sự kiện, chuyến và mô tả sự cố ít nhất 5 ký tự; GPS có thể bổ sung sau.'
+        message: 'Cần mã sự kiện, chuyến và mô tả sự cố ít nhất 5 ký tự; không yêu cầu vị trí thiết bị.'
       });
     }
 
@@ -85,6 +85,7 @@ exports.triggerSOS = async (req, res, next) => {
     if (!['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'].includes(route.status)) return res.status(409).json({ success: false, message: 'Chuyến đã kết thúc, không thể mở lại bằng SOS.' });
     if (coords !== undefined && !validCoordinates(coords)) return res.status(400).json({ success: false, message: 'Tọa độ SOS không hợp lệ.' });
 
+    const checkpoint = [...(route.waypoints || [])].filter(w => w.status === 'ARRIVED' && w.actualArrival).sort((a,b) => new Date(b.actualArrival) - new Date(a.actualArrival))[0];
     const incident = await Incident.create({
       eventId,
       tripId,
@@ -94,6 +95,7 @@ exports.triggerSOS = async (req, res, next) => {
         coordinates: coords // [lng, lat]
       } : undefined,
       locationUnavailable: !coords,
+      lastCheckin: checkpoint ? { name: checkpoint.name, arrivedAt: checkpoint.actualArrival } : undefined,
       description,
       status: 'OPEN'
     });

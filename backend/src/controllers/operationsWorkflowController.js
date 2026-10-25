@@ -4,7 +4,7 @@ const Horse = require('../models/Horse');
 const User = require('../models/User');
 const { logAudit } = require('../utils/auditLogger');
 const { id, has, staff, assigned, canRead, financials, stageReady } = require('../services/operationsWorkflow');
-const { locationProblem, activeIncident, validCoordinates, distanceKm } = require('../services/tripSafety');
+const { activeIncident, validCoordinates, distanceKm } = require('../services/tripSafety');
 const { STOPS } = require('../config/transportCatalog');
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 const text = value => typeof value === 'string' ? value.trim().slice(0, 2000) : '';
@@ -168,23 +168,8 @@ exports.update = async (req, res, next) => {
           route.horseMovements.push({ horseId: req.body.horseId, loadedAt: now, recordedBy: req.user._id });
         } else {
           if (route.status !== 'DELIVERING' || !item?.loadedAt || item.unloadedAt) return fail(res, 409, 'Chỉ giao ngựa đã lên xe tại giai đoạn bàn giao.');
-          if (route.demoSimulation && order?.destination?.coordinates) {
-            route.currentLocation = {
-              type: 'Point',
-              coordinates: order.destination.coordinates,
-              updatedAt: now,
-              speedKmh: 0,
-              headingDegree: 0
-            };
-            const destStop = route.waypoints.find(w => w.type === 'DELIVERY' || w.sequence === route.waypoints.length);
-            if (destStop && destStop.status !== 'ARRIVED') {
-              destStop.status = 'ARRIVED';
-              destStop.actualArrival = now;
-            }
-            await route.save();
-          }
-          const gpsProblem = locationProblem(route.currentLocation, order.destination?.coordinates);
-          if (gpsProblem) return fail(res, 409, gpsProblem);
+          const deliveryStop = route.waypoints.find(w => w.type === 'DELIVERY');
+          if (!deliveryStop || deliveryStop.status !== 'ARRIVED' || !deliveryStop.actualArrival) return fail(res, 409, 'Tài xế cần check-in điểm giao trước khi xác nhận ngựa xuống xe.');
           if (await activeIncident(route._id)) return fail(res, 409, 'Cần giải quyết sự cố trước khi xác nhận giao ngựa.');
           if (!(await stageReady(order._id, 'DELIVERY'))) return fail(res, 409, 'Hồ sơ giao nhận chưa hoàn tất.');
           item.unloadedAt = now; item.recordedBy = req.user._id;

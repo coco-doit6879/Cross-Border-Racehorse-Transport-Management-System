@@ -9,6 +9,7 @@ import { transportScheduleApi } from '../../services/transportScheduleApi';
 import { BOOKING_STEPS, bookingRoutes, bookingTotal, emptyContact, horseBookingIssue } from '../../utils/customerBooking';
 import './customer-orders.css';
 import './customer-booking.css';
+import bookingAreas from '../../utils/bookingAreas.json';
 
 const money = value => `${new Intl.NumberFormat('vi-VN').format(value)} ₫`;
 const dateText = value => value ? value.split('-').reverse().join('/') : '—';
@@ -27,13 +28,14 @@ function Field({ label, required = true, className = '', children }) {
 function ContactPanel({ side, contact, setContact, countryName, stops, stopId, onStopChange, user }) {
   const sender = side === 'sender';
   const title = sender ? 'Người gửi & Điểm đón ngựa' : 'Người nhận & Điểm giao ngựa';
+  const areas = bookingAreas[stopId] || stops.find(stop => stop.id === stopId)?.areas || [];
   const update = (key, value) => setContact(current => ({...current, [key]: value}));
   return <Panel icon={sender ? Home : MapPin} title={<>{title} <small>({countryName})</small></>} aside={sender && <button className="booking-self" type="button" onClick={() => setContact(current => ({...current,fullName:user?.fullName || '',phone:user?.phone || ''}))}><UserRound size={13} />Tôi là người gửi</button>}>
     <div className="booking-fields-grid">
       <Field label={sender ? 'Họ tên người gửi / Tên đơn vị' : 'Họ tên người nhận / Tên trại đích'}><input aria-label={sender ? 'Họ tên người gửi' : 'Họ tên người nhận'} value={contact.fullName} onChange={event => update('fullName',event.target.value)} required maxLength={120} placeholder={sender ? 'Họ tên hoặc tên đơn vị gửi ngựa' : 'Ví dụ: Trần Văn B hoặc CLB Cưỡi ngựa…'} autoComplete={sender ? 'name' : 'off'} /></Field>
       <Field label={sender ? 'Số điện thoại người gửi' : 'Số điện thoại người nhận'}><input aria-label={sender ? 'Số điện thoại người gửi' : 'Số điện thoại người nhận'} type="tel" value={contact.phone} onChange={event => update('phone',event.target.value)} required minLength={6} maxLength={30} pattern="\+?[0-9 \(\)\-]{6,30}" placeholder="Ví dụ: 0901 234 567" /></Field>
       <Field label={<>Tỉnh / Thành phố <small>({countryName})</small></>}><select aria-label={sender ? 'Tỉnh thành điểm đón' : 'Tỉnh thành điểm giao'} required value={stopId} onChange={event => onStopChange(event.target.value)} disabled={!stops.length}><option value="">-- Chọn Tỉnh / Thành phố --</option>{stops.map(stop => <option key={stop.id} value={stop.id}>{stop.name}</option>)}</select></Field>
-      <Field label="Xã / Phường / Khu vực"><input aria-label={sender ? 'Khu vực điểm đón' : 'Khu vực điểm giao'} required maxLength={100} value={contact.area} onChange={event => update('area',event.target.value)} placeholder={stopId ? 'Nhập xã, phường hoặc khu vực' : '-- Vui lòng chọn Tỉnh/Thành trước --'} disabled={!stopId} /></Field>
+      <Field label="Xã / Phường / Khu vực">{areas.length ? <select aria-label={sender ? 'Khu vực điểm đón' : 'Khu vực điểm giao'} required value={contact.area} onChange={event => update('area',event.target.value)} disabled={!stopId}><option value="">-- Chọn Xã / Phường / Khu vực --</option>{areas.map(area => <option key={area} value={area}>{area}</option>)}</select> : <input aria-label={sender ? 'Khu vực điểm đón' : 'Khu vực điểm giao'} required maxLength={100} value={contact.area} onChange={event => update('area',event.target.value)} placeholder={stopId ? 'Nhập khu vực tại địa chỉ quốc tế' : '-- Vui lòng chọn Tỉnh/Thành trước --'} disabled={!stopId} />}</Field>
       <Field label="Tên trang trại / Địa chỉ cụ thể" className="booking-field-full"><input aria-label={sender ? 'Địa chỉ cụ thể điểm đón' : 'Địa chỉ cụ thể điểm giao'} required maxLength={300} value={contact.address} onChange={event => update('address',event.target.value)} placeholder="Số nhà, tên trang trại, thôn/ấp, tên đường đón/trả ngựa…" /></Field>
       <Field label="CCCD / MST / Hộ chiếu" className="booking-identity"><input aria-label={sender ? 'Giấy tờ người gửi' : 'Giấy tờ người nhận'} required maxLength={50} value={contact.identityNumber} onChange={event => update('identityNumber',event.target.value)} placeholder={`Số CCCD / MST / Hộ chiếu người ${sender ? 'gửi' : 'nhận'}`} autoComplete="off" /></Field>
     </div>

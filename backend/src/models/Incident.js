@@ -29,6 +29,7 @@ const incidentSchema = new mongoose.Schema({
       required: [true, 'Incident GeoJSON coordinates [lng, lat] are required']
     }
   }, { _id: false }), default: undefined },
+  lastCheckin: { name: String, arrivedAt: Date },
   locationUnavailable: { type: Boolean, default: false },
   description: {
     type: String,

@@ -129,7 +129,8 @@ const SOSAlerts = () => {
               <h2>Chuyến {incident.tripId?._id || incident.tripId || 'Chưa có mã chuyến'}</h2>
               <p>{incident.description || 'Chưa có mô tả.'}</p>
               {incident.status === 'OPEN' && Date.now() - new Date(incident.createdAt).getTime() > 5 * 60000 && <p role="alert" style={{ color: '#b91c1c', fontWeight: 'bold' }}>QUÁ 5 PHÚT CHƯA TIẾP NHẬN — liên hệ quản lý trực ngay.</p>}
-              {incident.locationUnavailable && <p role="alert">SOS không có GPS. Gọi người báo để xác minh vị trí.</p>}
+              {incident.lastCheckin?.name && <p>Check-in gần nhất: {incident.lastCheckin.name} · {new Date(incident.lastCheckin.arrivedAt).toLocaleString('vi-VN')}</p>}
+              {incident.locationUnavailable && <p role="alert">Liên hệ người báo và đối chiếu điểm check-in gần nhất để xác minh nơi xảy ra sự cố.</p>}
               <dl className="detail-grid detail-grid--single">
                 <div><dt>Người báo</dt><dd>{incident.reportedBy?.fullName || 'Chưa có dữ liệu'}</dd></div>
                 <div><dt>Thời điểm báo</dt><dd>{incident.createdAt ? new Date(incident.createdAt).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}</dd></div>

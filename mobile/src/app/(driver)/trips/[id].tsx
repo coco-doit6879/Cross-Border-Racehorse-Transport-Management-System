@@ -7,7 +7,7 @@ import { useSession } from '@/context/session';
 import { colors } from '@/theme';
 import type { TransportRoute } from '@/types/domain';
 
-const name = (value: string) => value.replace(' mô phỏng', '');
+const name = (value: string) => value;
 const labels = { PICKUP: 'Điểm đón', REST_STOP: 'Dừng nghỉ', BORDER_CUSTOMS: 'Cửa khẩu', VET_CHECK: 'Kiểm tra sức khỏe', DELIVERY: 'Điểm giao' };
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,28 +24,19 @@ export default function TripDetailScreen() {
     finally { setLoading(false); }
   }, [apiFetch, id]);
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); const timer = setInterval(() => void load(), 30000); return () => clearInterval(timer); }, [load]);
   const advance = async () => {
     if (!route || lock.current) return;
     lock.current = true; setWorking(true); setError('');
     try {
-      let current = route;
-      const simulate = async (action: string) => {
-        current = (await apiFetch<{ data: TransportRoute }>(`/routes/${id}/demo`, { method: 'POST', body: JSON.stringify({ action }) })).data;
-        setRoute(current);
-      };
-
-      if (current.status === 'SCHEDULED') {
+      if (route.status === 'SCHEDULED') {
         await apiFetch(`/routes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'IN_TRANSIT' }) });
+      } else if (route.status === 'DELIVERING') {
+        await apiFetch(`/routes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'COMPLETED' }) });
       } else {
-        const ordered = [...current.waypoints].sort((a, b) => a.sequence - b.sequence);
-        const rest = (route.demoSimulation ? ordered.find(w => w.type === 'REST_STOP' && w.status === 'ARRIVED' && !w.demoDepartedAt) : undefined);
-        const next = ordered.find(w => w.status === 'PENDING');
-        if (rest) await simulate('CONTINUE');
-        else if (next) {
-          if(current.demoSimulation) await simulate('ARRIVE');
-          await apiFetch(`/routes/${id}/waypoint-checkin`, { method: 'PATCH', body: JSON.stringify({ waypointId: next._id, status: 'ARRIVED' }) });
-        } else await apiFetch(`/routes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'DELIVERING' }) });
+        const next = [...route.waypoints].sort((a,b)=>a.sequence-b.sequence).find(w=>w.status==='PENDING');
+        if(next) await apiFetch(`/routes/${id}/waypoint-checkin`, { method:'PATCH', body:JSON.stringify({waypointId:next._id,status:'ARRIVED'}) });
+        else await apiFetch(`/routes/${id}/status`, { method:'PATCH', body:JSON.stringify({status:'DELIVERING'}) });
       }
       await load();
     } catch (e) {
@@ -57,13 +48,12 @@ export default function TripDetailScreen() {
   if (!route) return <SafeAreaView style={s.center}><Text>{error || 'Không tìm thấy chuyến.'}</Text><Pressable style={s.button} onPress={load}><Text style={s.buttonText}>Thử lại</Text></Pressable></SafeAreaView>;
   const ordered = [...route.waypoints].sort((a, b) => a.sequence - b.sequence);
   const next = ordered.find(w => w.status === 'PENDING');
-  const rest = (route.demoSimulation ? ordered.find(w => w.type === 'REST_STOP' && w.status === 'ARRIVED' && !w.demoDepartedAt) : undefined);
   const done = ordered.filter(w => w.status === 'ARRIVED').length;
   const preparing = route.status === 'SCHEDULED', delivering = route.status === 'DELIVERING';
   const completed = route.status === 'COMPLETED', incident = route.status === 'INCIDENT_HANDLING';
-  const title = completed ? 'Hành trình hoàn tất' : delivering ? 'Bàn giao tại điểm đến' : incident ? 'Chờ xử lý sự cố' : route.status === 'CANCELLED' ? 'Chuyến đã hủy' : preparing ? 'Sẵn sàng cho hành trình' : rest ? 'Nghỉ ngơi & chăm sóc ngựa' : next ? name(next.name) : 'Đã đến cuối hành trình';
-  const hint = completed ? 'Cảm ơn bạn đã hoàn thành chuyến vận chuyển.' : delivering ? 'Kiểm tra ngựa và hoàn tất thông tin giao nhận.' : incident ? 'Liên hệ điều phối để tiếp tục chuyến an toàn.' : preparing ? 'Nhận vận đơn, kiểm tra ngựa và ghi km trước khi đi.' : rest ? 'Cho ngựa nghỉ, uống nước và kiểm tra trước khi đi tiếp.' : next ? `${labels[next.type]} · ${done + 1} / ${ordered.length}` : 'Bạn có thể bắt đầu bàn giao ngựa cho khách hàng.';
-  const actionLabel = delivering ? 'Hoàn thành chuyến đi' : preparing ? 'Bắt đầu chuyến' : rest ? 'Kết thúc nghỉ · Đi tiếp' : next ? next.type === 'PICKUP' ? 'Đã đến điểm đón' : next.type === 'REST_STOP' ? 'Đã đến trạm nghỉ' : next.type === 'DELIVERY' ? 'Đã đến điểm giao' : 'Xác nhận đã đến' : 'Bắt đầu bàn giao';
+  const title = completed ? 'Hành trình hoàn tất' : delivering ? 'Bàn giao tại điểm đến' : incident ? 'Chờ xử lý sự cố' : route.status === 'CANCELLED' ? 'Chuyến đã hủy' : preparing ? 'Sẵn sàng cho hành trình' : next ? name(next.name) : 'Đã đến cuối hành trình';
+  const hint = completed ? 'Cảm ơn bạn đã hoàn thành chuyến vận chuyển.' : delivering ? 'Xác nhận ngựa xuống xe, ghi km cuối và chờ khách ký nhận trước khi hoàn thành.' : incident ? 'Liên hệ điều phối để tiếp tục chuyến an toàn.' : preparing ? 'Nhận vận đơn, kiểm tra ngựa và ghi km trước khi đi.' : next ? `${labels[next.type]} · ${done + 1} / ${ordered.length}` : 'Bạn có thể bắt đầu bàn giao ngựa cho khách hàng.';
+  const actionLabel = delivering ? 'Hoàn thành chuyến đi' : preparing ? 'Bắt đầu chuyến' : next ? next.type === 'PICKUP' ? 'Đã đến điểm đón' : next.type === 'REST_STOP' ? 'Đã đến trạm nghỉ' : next.type === 'DELIVERY' ? 'Đã đến điểm giao' : 'Xác nhận đã đến' : 'Bắt đầu bàn giao';
   return <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
     <View style={s.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" hitSlop={10} onPress={() => router.back()} style={s.back}><Text style={s.backText}>‹</Text></Pressable>
@@ -82,10 +72,10 @@ export default function TripDetailScreen() {
       {!documents ? <>
         <View style={s.row}><Text style={s.sectionTitle}>Các điểm dừng</Text><Text style={s.caption}>{ordered.length} điểm</Text></View>
         <View style={s.timeline}>{ordered.map((w, index) => {
-          const arrived = w.status === 'ARRIVED', focus = !completed && !delivering && w._id === (rest || next)?._id;
+          const arrived = w.status === 'ARRIVED', focus = !completed && !delivering && w._id === next?._id;
           return <View key={w._id} style={s.stop}>
             <View style={s.rail}><View style={[s.dot, arrived && s.dotDone, focus && s.dotFocus]}><Text style={[s.dotText, (arrived || focus) && { color: '#fff' }]}>{arrived ? '✓' : index + 1}</Text></View>{index < ordered.length - 1 && <View style={s.connector} />}</View>
-            <View style={[s.stopBody, index === ordered.length - 1 && { paddingBottom: 0 }]}><View style={s.row}><Text style={s.stopType}>{labels[w.type]}</Text>{focus && <Text style={s.pill}>{rest ? 'Đang nghỉ' : 'Tiếp theo'}</Text>}</View><Text style={[s.stopTitle, focus && { color: colors.primary }]}>{name(w.name)}</Text><Text style={s.caption}>{w.actualArrival ? `Đã đến ${new Date(w.actualArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : `Dự kiến ${new Date(w.estimatedArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}{w.demoDepartedAt ? ' · Đã tiếp tục hành trình' : ''}</Text></View>
+            <View style={[s.stopBody, index === ordered.length - 1 && { paddingBottom: 0 }]}><View style={s.row}><Text style={s.stopType}>{labels[w.type]}</Text>{focus && <Text style={s.pill}>Tiếp theo</Text>}</View><Text style={[s.stopTitle, focus && { color: colors.primary }]}>{name(w.name)}</Text><Text style={s.caption}>{w.actualArrival ? `Đã đến ${new Date(w.actualArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : `Dự kiến ${new Date(w.estimatedArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}</Text></View>
           </View>;
         })}</View>
         {(preparing || delivering) && <><Text style={s.sectionTitle}>{preparing ? 'Chuẩn bị khởi hành' : 'Hoàn tất bàn giao'}</Text><TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} compact /></>}
@@ -93,7 +83,7 @@ export default function TripDetailScreen() {
     </ScrollView>
     <View style={s.footer}>
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-      {preparing || delivering || route.status === 'IN_TRANSIT' ? <><Text style={s.footerHint}>{preparing ? 'Hoàn tất kiểm tra trước khi khởi hành' : rest ? 'Tiếp tục khi đã kiểm tra và chăm sóc ngựa' : next ? name(next.name) : 'Chuyển sang giao nhận'}</Text><Pressable accessibilityRole="button" disabled={working} onPress={advance} style={[s.button, working && { opacity: 0.6 }]}>{working ? <ActivityIndicator color="#fff" /> : <Text style={s.buttonText}>{actionLabel}  →</Text>}</Pressable></> : <Text style={s.footerHint}>{delivering ? 'Hoàn tất giao ngựa và km cuối rồi bấm hoàn thành chuyến'  : incident ? 'Điều phối đang xử lý sự cố' : 'Chuyến đã kết thúc'}</Text>}
+      {preparing || delivering || route.status === 'IN_TRANSIT' ? <><Text style={s.footerHint}>{preparing ? 'Hoàn tất kiểm tra trước khi khởi hành' : next ? name(next.name) : 'Chuyển sang giao nhận'}</Text><Pressable accessibilityRole="button" disabled={working} onPress={advance} style={[s.button, working && { opacity: 0.6 }]}>{working ? <ActivityIndicator color="#fff" /> : <Text style={s.buttonText}>{actionLabel}  →</Text>}</Pressable></> : <Text style={s.footerHint}>{delivering ? 'Hoàn tất giao ngựa và km cuối rồi bấm hoàn thành chuyến'  : incident ? 'Điều phối đang xử lý sự cố' : 'Chuyến đã kết thúc'}</Text>}
     </View>
   </SafeAreaView>;
 }

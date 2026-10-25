@@ -139,7 +139,7 @@ exports.syncOfflineEvents = async (req, res, next) => {
           }
 
           case 'POD_SIGN': {
-            throw new Error('Giao nhận cần xác nhận trực tuyến với GPS mới; vui lòng mở lại đơn để ký.');
+            throw new Error('Giao nhận cần xác nhận trực tuyến sau check-in điểm giao; vui lòng mở lại đơn để ký.');
           }
 
           default:
