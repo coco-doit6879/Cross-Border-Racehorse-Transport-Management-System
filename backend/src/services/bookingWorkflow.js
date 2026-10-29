@@ -22,10 +22,10 @@ function waypointsFor(order) {
   const plan = order.preparation.plan;
   const stops = plan.restStops || [];
   let cursor = new Date(order.requestedDepartureDate).getTime();
-  const points = [{ name: order.origin.address, type: 'PICKUP', coordinates: order.origin.coordinates }, ...stops.map(s => ({ ...s, type: 'REST_STOP' })), { name: order.destination.address, type: 'DELIVERY', coordinates: order.destination.coordinates }];
+  const points = [{ name: order.origin.address, type: 'PICKUP', coordinates: order.origin.coordinates }, ...stops.map(s => ({ ...s, type: s.type === 'BORDER_CUSTOMS' ? 'BORDER_CUSTOMS' : 'REST_STOP' })), { name: order.destination.address, type: 'DELIVERY', coordinates: order.destination.coordinates }];
   return points.map((p, i) => {
     if (i) cursor += (plan.road?.legs?.[i - 1]?.driveHours || 0) * 3600000 + (i > 1 ? stops[i - 2].minutes * 60000 : 0);
-    return { sequence: i + 1, name: p.name, type: p.type, location: { type: 'Point', coordinates: p.coordinates }, estimatedArrival: new Date(cursor), status: 'PENDING' };
+    return { sequence: i + 1, name: p.name, type: p.type, countryCode: p.countryCode, location: { type: 'Point', coordinates: p.coordinates }, estimatedArrival: new Date(cursor), status: 'PENDING' };
   });
 }
 module.exports = { approved, approvalProblem, planningProblem, crewProblem, waypointsFor };

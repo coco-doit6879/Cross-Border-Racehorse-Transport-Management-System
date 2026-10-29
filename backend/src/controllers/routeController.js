@@ -229,14 +229,11 @@ exports.updateTripStatus = async (req, res, next) => {
     }
 
     if (status === 'IN_TRANSIT' && !(await stageReady(route.orderId, 'DEPARTURE'))) {
-      const booking=await Order.findById(route.orderId);
-      const docs=await ComplianceDoc.find({orderId:route.orderId});
-      if(booking.origin.countryCode!==booking.destination.countryCode || docs.some(d=>(d.stage||'DEPARTURE')==='DEPARTURE'))return res.status(409).json({message:'Hồ sơ cần trước khởi hành chưa hoàn tất hoặc hết hạn.'});
+      return res.status(409).json({ success: false, message: 'Chờ chuyên viên xác nhận hồ sơ đủ điều kiện khởi hành. Nếu có yêu cầu bổ sung, khách hàng hoặc chuyên viên cần nộp và duyệt giấy tờ trước.' });
     }
     if (status === 'COMPLETED') {
       const problem = await deliveryProblem(route, await Order.findById(route.orderId));
       if (problem) return res.status(409).json({ success: false, message: problem });
-      if (!(await require('../models/DigitalPOD').exists({ tripId: route._id }))) return res.status(409).json({ message: 'Khách hàng cần ký biên bản nhận ngựa trước khi tài xế hoàn thành chuyến.' });
     }
     if (await require('../services/tripSafety').activeIncident(route._id)) return res.status(409).json({ success: false, message: 'Còn sự cố chưa giải quyết, không thể tiếp tục chuyến.' });
     route.status = status;
@@ -264,6 +261,8 @@ exports.updateTripStatus = async (req, res, next) => {
       userAgent: req.get('User-Agent')
     });
 
+    await require('../services/notifications').orderEvent(status, route.orderId, `${route._id}:${status}`);
+    if (status === 'IN_TRANSIT' && order?.origin.countryCode !== order?.destination.countryCode) await require('../services/notifications').orderEvent('CUSTOMS_REQUIRED', route.orderId, route._id);
     req.app?.get?.('io')?.to(`trip_${route._id}`).emit('trip:status_updated',{tripId:String(route._id),status});
     res.json({
       success: true,
@@ -315,13 +314,19 @@ exports.waypointCheckin = async (req, res, next) => {
     if (waypoint.status !== 'PENDING') return res.json({ success: true, isDuplicate: true, data: route });
     const nextPending=[...route.waypoints].sort((a,b)=>a.sequence-b.sequence).find(w=>w.status==='PENDING');
     if(status==='SKIPPED'||String(nextPending?._id)!==String(waypoint._id))return res.status(409).json({message:'Xác nhận đúng thứ tự các điểm dừng, không được bỏ qua điểm.'});
-    if (waypoint.type === 'BORDER_CUSTOMS') {
+    const previousBorders = route.waypoints.filter(w => w.type === 'BORDER_CUSTOMS' && w.sequence < waypoint.sequence);
+    if (previousBorders.length) {
       const order = await Order.findById(route.orderId);
-      if (status === 'SKIPPED' || !clearanceReady(route, order, waypoint.name) || !(await stageReady(order._id, 'BORDER', waypoint.name))) return res.status(409).json({ success: false, message: 'Chuyên viên cần hoàn tất thông quan và hồ sơ cửa khẩu trước khi xác nhận qua cửa khẩu.' });
+      for (const border of previousBorders) if (!clearanceReady(route, order, border.name) || !(await stageReady(order._id, 'BORDER', border.name))) return res.status(409).json({ success: false, message: 'Đang chờ chuyên viên hoàn tất thông quan tại ' + border.name + '. Chưa thể xác nhận tới điểm tiếp theo.' });
+    }
+    if (waypoint.type === 'DELIVERY') {
+      const order = await Order.findById(route.orderId);
+      if (!clearanceReady(route, order) || !(await stageReady(order._id, 'BORDER'))) return res.status(409).json({ success: false, message: 'Chưa thể xác nhận tới điểm giao: chuyên viên cần hoàn tất thông quan và hồ sơ cửa khẩu trong Chứng từ vận chuyển trước.' });
     }
     waypoint.status = status || 'ARRIVED';
     waypoint.actualArrival = new Date();
     await route.save();
+    if (waypoint.type === 'BORDER_CUSTOMS') await require('../services/notifications').orderEvent('CUSTOMS_ARRIVED', route.orderId, waypoint._id, { reason: 'Tài xế đã đến ' + waypoint.name + '. Chuyên viên kiểm tra và ghi nhận kết quả thông quan.' });
 
     const io = req.app?.get?.('io');
     if (io && waypoint.location?.coordinates && waypoint.status === 'ARRIVED') {

@@ -69,7 +69,7 @@ const Register = () => {
             <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="example@gmail.com" autoComplete="email" required />
 
             <div style={{ marginTop: 16 }}>
-              <label htmlFor="address" style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 6 }}>
+              <label htmlFor="address" style={{ fontSize: 14, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 6 }}>
                 Trang trại / Địa chỉ thường trú
               </label>
               <input

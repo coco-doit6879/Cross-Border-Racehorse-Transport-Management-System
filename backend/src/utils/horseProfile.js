@@ -3,6 +3,7 @@ const FIELDS = ['name', 'microchipId', 'feiPassportNumber', 'breed', 'dateOfBirt
   'vaccinationRecordUrl', 'lastVaccinationDate', 'medicalHistoryNotes', 'currentStopId'];
 
 const { STOPS } = require('../config/transportCatalog');
+const { isAtLeastOneYearOld } = require('./horseAge');
 
 const pickProfile = (body) => Object.fromEntries(FIELDS.filter((key) => body[key] !== undefined)
   .map((key) => [key, typeof body[key] === 'string' ? body[key].trim() : body[key]]));
@@ -19,6 +20,7 @@ function validateProfile(profile) {
     const date = new Date(profile[key]);
     if (!profile[key] || !Number.isFinite(date.getTime()) || date > new Date()) return 'Ngày sinh và ngày tiêm chủng phải hợp lệ, không ở tương lai.';
   }
+  if (!isAtLeastOneYearOld(profile.dateOfBirth)) return 'Ngựa phải đủ 1 năm tuổi mới được tạo hồ sơ.';
   if (new Date(profile.lastVaccinationDate) < new Date(profile.dateOfBirth)) return 'Ngày tiêm chủng không được trước ngày sinh.';
   if (!Array.isArray(profile.photos) || profile.photos.length < 2 || profile.photos.length > 10 || new Set(profile.photos).size !== profile.photos.length) return 'Cần từ 2 đến 10 ảnh ngựa riêng biệt.';
   for (const key of ['passportScanUrl', 'vaccinationRecordUrl']) {

@@ -10,4 +10,4 @@
 
 Android Emulator mặc định dùng `http://10.0.2.2:5000/api/v1`; iOS Simulator dùng `http://localhost:5000/api/v1`.
 
-GPS foreground chạy trong Expo Go. Khi cần theo dõi nền ổn định, tạo development build bằng `eas build --profile development --platform android`.
+Hành trình cập nhật bằng tài xế xác nhận từng điểm dừng. Ứng dụng không yêu cầu quyền vị trí hoặc theo dõi vị trí nền.

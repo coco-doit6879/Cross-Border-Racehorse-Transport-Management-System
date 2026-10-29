@@ -107,6 +107,7 @@ async function applyIpn(query) {
     if (!updatedOrder) throw new Error('Không tìm thấy đơn để đối soát giao dịch.');
     const ownReference = transaction.purpose === 'DEPOSIT' ? updatedOrder.depositReference : updatedOrder.paymentReference;
     transaction.reconciliationRequired = ['CANCELLED', 'REJECTED'].includes(updatedOrder.status) || String(ownReference) !== String(reference);
+    if (!transaction.reconciliationRequired) await require('../services/notifications').orderEvent(transaction.purpose === 'DEPOSIT' ? 'DEPOSIT_PAID' : 'PAID', transaction.orderId, transaction.txnRef);
     transaction.appliedAt = new Date();
     await transaction.save();
   }

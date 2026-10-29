@@ -50,7 +50,6 @@ const mapOrderData = (o) => {
     eta: o.estimatedArrivalDate ? new Date(o.estimatedArrivalDate).toLocaleString('vi-VN') : 'Chưa có dự kiến từ điều phối',
     estimatedDistanceKm: o.estimatedDistanceKm ?? null,
     durationFormatted: o.durationFormatted || 'Chưa cập nhật',
-    gpsTimeAgo: o.updatedAt ? new Date(o.updatedAt).toLocaleString('vi-VN') : 'Chưa cập nhật',
     horses: horseNames,
     horseIds: o.horseIds || [],
     status: o.status || 'PENDING_APPROVAL',

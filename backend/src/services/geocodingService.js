@@ -1,5 +1,5 @@
 const https = require('https');
-const { calculateHaversineDistanceKm } = require('./routeDeviationService');
+const { calculateHaversineDistanceKm } = require('./geoDistance');
 
 /**
  * Base Geocoding Provider Class

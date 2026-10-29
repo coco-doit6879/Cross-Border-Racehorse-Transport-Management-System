@@ -1,3 +1,4 @@
+const { isAtLeastOneYearOld } = require('../utils/horseAge');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Horse = require('../models/Horse');
@@ -214,6 +215,10 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
+    if (ownedHorses.some((horse) => !isAtLeastOneYearOld(horse.dateOfBirth))) {
+      return res.status(400).json({ success: false, message: 'Chỉ ngựa đủ 1 năm tuổi mới được đặt vận chuyển.' });
+    }
+
     if (ownedHorses.some((horse) => horse.reviewStatus !== 'APPROVED')) {
       return res.status(400).json({ success: false, message: 'Chỉ ngựa có hồ sơ đã được Chuyên viên Thủ tục & Kiểm dịch duyệt sức khỏe mới được đặt vận chuyển.' });
     }
@@ -302,6 +307,7 @@ exports.createOrder = async (req, res, next) => {
       userAgent: req.get('User-Agent')
     });
 
+    await require('../services/notifications').orderEvent('CREATED', order._id, order._id);
     res.status(201).json({
       success: true,
       data: order
@@ -354,6 +360,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     }
 
     if (['APPROVED','REJECTED'].includes(status) && req.user.role !== 'LOGISTICS_MANAGER') return res.status(403).json({message:'Chỉ quản lý được duyệt đơn vận chuyển.'});
+    if (status === 'CLEARED_FOR_TRANSPORT') return res.status(409).json({ success: false, message: 'Chuyên viên cần xác nhận hồ sơ tại Chứng từ vận chuyển.' });
     const currentStatus = order.status;
     if (status === 'APPROVED' && ['PENDING', 'CHANGES_REQUESTED'].includes(order.customerConfirmation)) return res.status(409).json({ success: false, message: 'Khách hàng cần xác nhận thông tin do nhân viên nhập hỗ trợ.' });
     if (status === 'COMPLETED') {
@@ -409,6 +416,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     if (status === 'REJECTED' && order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
 
     await order.save();
+    await require('../services/notifications').orderEvent(order.status, order._id, `${order._id}:${order.status}`, {reason: order.rejectionReason});
     if (status === 'COMPLETED') await moveOrderHorsesToDestination(order);
 
     await logAudit({
@@ -470,6 +478,7 @@ exports.cancelOrder = async (req, res, next) => {
     order.cancellationReason = req.body.reason || 'Khách hàng hủy đơn';
     if (order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
     await order.save();
+    await require('../services/notifications').orderEvent(order.status, order._id, `${order._id}:${order.status}`, {reason:order.cancellationReason});
 
     await logAudit({
       actorId: req.user._id,

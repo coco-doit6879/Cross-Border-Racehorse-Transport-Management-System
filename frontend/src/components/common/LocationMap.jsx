@@ -98,10 +98,10 @@ const LocationMap = ({ originLocation, destinationLocation, height = '340px' }) 
         {originCoords && (
           <Marker position={[originCoords[1], originCoords[0]]} icon={originIcon}>
             <Popup>
-              <div style={{ fontSize: 13 }}>
+              <div style={{ fontSize: 14 }}>
                 <strong>📍 Điểm đón (Pickup):</strong>
                 <div>{originLocation.formattedAddress}</div>
-                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
                   Tọa độ: [{originCoords[0].toFixed(4)}, {originCoords[1].toFixed(4)}]
                 </div>
               </div>
@@ -112,10 +112,10 @@ const LocationMap = ({ originLocation, destinationLocation, height = '340px' }) 
         {destCoords && (
           <Marker position={[destCoords[1], destCoords[0]]} icon={destinationIcon}>
             <Popup>
-              <div style={{ fontSize: 13 }}>
+              <div style={{ fontSize: 14 }}>
                 <strong>🏁 Điểm giao (Delivery):</strong>
                 <div>{destinationLocation.formattedAddress}</div>
-                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
                   Tọa độ: [{destCoords[0].toFixed(4)}, {destCoords[1].toFixed(4)}]
                 </div>
               </div>

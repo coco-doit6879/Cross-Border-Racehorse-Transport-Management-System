@@ -92,6 +92,7 @@ module.exports = (io, socket) => {
         await route.save();
       }
 
+      await require('../services/notifications').orderEvent('SOS', route.orderId, incident._id, {reason:incident.description});
       const sosAlertPayload = {
         incidentId: incident._id.toString(),
         tripId: route._id.toString(),

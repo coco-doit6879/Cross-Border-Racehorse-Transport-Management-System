@@ -16,6 +16,7 @@ const analyticsRoutes = require('./analyticsRoutes');
 const auditLogRoutes = require('./auditLogRoutes');
 const geocodingRoutes = require('./geocodingRoutes');
 
+router.use('/notifications', require('./notificationRoutes'));
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/horses', horseRoutes);

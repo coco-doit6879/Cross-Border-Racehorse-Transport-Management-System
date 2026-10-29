@@ -169,7 +169,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <FileText size={18} color="#243c32" />
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>{title}</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{title}</span>
           {horse?.name && (
             <Tag color="orange" style={{ fontWeight: 600 }}>
               {horse.name} · {horse.microchipId}
@@ -179,7 +179,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
       }
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>
+          <div style={{ fontSize: 13, color: '#64748b' }}>
             {metadata ? `Tệp: ${metadata.name}${metadata.size ? ` (${Math.ceil(metadata.size / 1024)} KB)` : ''}` : 'Chứng từ số hóa CBRT'}
           </div>
           <Space>
@@ -244,7 +244,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
             borderRadius: 8,
             padding: '8px 14px',
             marginBottom: 14,
-            fontSize: 12
+            fontSize: 13
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#334155' }}>
@@ -266,7 +266,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
       {loading ? (
         <div style={{ padding: '70px 0', textAlign: 'center' }}>
           <Spin size="large" />
-          <div style={{ marginTop: 14, color: '#64748b', fontSize: 13, fontWeight: 500 }}>
+          <div style={{ marginTop: 14, color: '#64748b', fontSize: 14, fontWeight: 500 }}>
             Đang tải tệp chứng từ bảo mật từ máy chủ CBRT...
           </div>
         </div>
@@ -309,7 +309,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
               )
             }}
           />
-          <div style={{ marginTop: 12, fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ marginTop: 12, fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Info size={14} />
             <span>Chuyên viên có thể nhấp vào ảnh để phóng to, xoay ảnh hoặc kiểm tra số vi chip chi tiết.</span>
           </div>
@@ -351,10 +351,10 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
           >
             <ShieldCheck size={28} />
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
             Chứng từ kiểm dịch số hóa CBRT
           </h3>
-          <p style={{ fontSize: 13, color: '#64748b', maxWidth: 480, margin: '0 auto 16px' }}>
+          <p style={{ fontSize: 14, color: '#64748b', maxWidth: 480, margin: '0 auto 16px' }}>
             Hồ sơ chứng nhận kiểm dịch và kết quả xét nghiệm được đồng bộ xác nhận theo chuẩn quốc tế cho cá thể ngựa{' '}
             <strong>{horse?.name}</strong>.
           </p>
@@ -368,7 +368,7 @@ function SecureDocumentViewerModal({ viewingDoc, onCancel }) {
               maxWidth: 500,
               margin: '0 auto 18px',
               textAlign: 'left',
-              fontSize: 12
+              fontSize: 13
             }}
           >
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
@@ -598,7 +598,7 @@ export default function HorseVerificationPage() {
             onChange={(e) => setSearch(e.target.value)}
             allowClear
           />
-          <div style={{ fontSize: 13, color: '#64748b' }}>
+          <div style={{ fontSize: 14, color: '#64748b' }}>
             Hiển thị <strong>{filteredHorses.length}</strong> hồ sơ
           </div>
         </div>
@@ -631,8 +631,8 @@ export default function HorseVerificationPage() {
                         <div className="spec-horse-cell-main">
                           <div className="spec-horse-avatar">🐴</div>
                           <div>
-                            <strong style={{ fontSize: 14, color: '#0f172a' }}>{horse.name}</strong>
-                            <div style={{ fontSize: 11, color: '#64748b' }}>
+                            <strong style={{ fontSize: 15, color: '#0f172a' }}>{horse.name}</strong>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>
                               FEI: {horse.feiPassportNo || horse.feiPassportNumber || 'Chưa cấp'}
                             </div>
                           </div>
@@ -643,7 +643,7 @@ export default function HorseVerificationPage() {
                       </td>
                       <td>
                         <div>{horse.breed}</div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>{horse.age}</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>{horse.age}</div>
                       </td>
                       <td>
                         <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>
@@ -695,15 +695,15 @@ export default function HorseVerificationPage() {
           onClose={() => setSelectedHorse(null)} width="min(980px, 96vw)"
           title={
             <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
                 Đối chiếu hồ sơ — {selectedHorse.name}{' '}
                 {selectedHorse.reviewStatus === 'APPROVED' && (
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#16a34a' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#16a34a' }}>
                     (Đã duyệt kiểm dịch)
                   </span>
                 )}
                 {selectedHorse.reviewStatus === 'REJECTED' && (
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#dc2626' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#dc2626' }}>
                     (Chờ bổ sung)
                   </span>
                 )}
@@ -740,7 +740,7 @@ export default function HorseVerificationPage() {
             <div className="spec-modal-footer">
               {selectedHorse.reviewStatus === 'APPROVED' ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: '#16a34a', fontWeight: 600 }}>
                     <CheckCircle2 size={16} />
                     <span>Hồ sơ đã được duyệt kiểm dịch · Đủ điều kiện tạo đơn vận chuyển</span>
                   </div>
@@ -750,14 +750,14 @@ export default function HorseVerificationPage() {
                 </>
               ) : selectedHorse.reviewStatus === 'REJECTED' ? (
                 <>
-                  <div style={{ fontSize: 13, color: '#d97706', fontWeight: 600 }}>
+                  <div style={{ fontSize: 14, color: '#d97706', fontWeight: 600 }}>
                     Đang chờ chủ ngựa gửi lại hồ sơ theo yêu cầu
                   </div>
                   <Button onClick={() => setSelectedHorse(null)}>Đóng</Button>
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: 13, color: confirmChecked ? '#16a34a' : '#64748b', fontWeight: 600 }}>
+                  <div style={{ fontSize: 14, color: confirmChecked ? '#16a34a' : '#64748b', fontWeight: 600 }}>
                     {confirmChecked ? '✓ Sẵn sàng duyệt hồ sơ ngựa' : 'Chưa xác nhận đối chiếu chứng từ'}
                   </div>
                   <Space>
@@ -792,13 +792,13 @@ export default function HorseVerificationPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <strong style={{ fontSize: 16, color: '#0f172a' }}>{selectedHorse.name}</strong>
-                <span style={{ fontSize: 12, color: '#64748b' }}>
+                <strong style={{ fontSize: 17, color: '#0f172a' }}>{selectedHorse.name}</strong>
+                <span style={{ fontSize: 13, color: '#64748b' }}>
                   Chủ sở hữu: <strong>{selectedHorse.ownerName}</strong>
                 </span>
               </div>
 
-              <div className="verification-identity-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 12 }}>
+              <div className="verification-identity-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 13 }}>
                 <div>
                   <div style={{ color: '#64748b' }}>Mã Microchip</div>
                   <strong style={{ fontFamily: 'monospace' }}>{selectedHorse.microchipId}</strong>
@@ -820,7 +820,7 @@ export default function HorseVerificationPage() {
 
             {/* Document Checklist Items matching Screenshots 3 & 4 */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>
                 Hồ sơ pháp lý & Giấy tờ thú y đính kèm
               </div>
 
@@ -831,10 +831,10 @@ export default function HorseVerificationPage() {
                     <FileText size={20} />
                   </div>
                   <div>
-                    <strong style={{ fontSize: 13, color: '#0f172a' }}>
+                    <strong style={{ fontSize: 14, color: '#0f172a' }}>
                       Hộ chiếu ngựa (FEI / National Passport)
                     </strong>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
                       {Array.isArray(selectedHorse.passportScanUrl) && selectedHorse.passportScanUrl.length > 0
                         ? `Đã tải ${selectedHorse.passportScanUrl.length} tệp chứng từ · nộp ${selectedHorse.submittedAt}`
                         : 'Chưa nộp tệp hộ chiếu'}
@@ -864,8 +864,8 @@ export default function HorseVerificationPage() {
                     <ShieldCheck size={20} />
                   </div>
                   <div>
-                    <strong style={{ fontSize: 13, color: '#0f172a' }}>Sổ tiêm phòng dịch tễ</strong>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                    <strong style={{ fontSize: 14, color: '#0f172a' }}>Sổ tiêm phòng dịch tễ</strong>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
                       Cúm ngựa (Equine Influenza), Uốn ván ·{' '}
                       {Array.isArray(selectedHorse.vaccinationRecordUrl) && selectedHorse.vaccinationRecordUrl.length > 0
                         ? `Đã tải ${selectedHorse.vaccinationRecordUrl.length} tệp`
@@ -897,8 +897,8 @@ export default function HorseVerificationPage() {
                     <Camera size={20} />
                   </div>
                   <div>
-                    <strong style={{ fontSize: 13, color: '#0f172a' }}>Bộ ảnh nhận dạng & màu lông</strong>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                    <strong style={{ fontSize: 14, color: '#0f172a' }}>Bộ ảnh nhận dạng & màu lông</strong>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
                       {Array.isArray(selectedHorse.photos) && selectedHorse.photos.length > 0
                         ? `${selectedHorse.photos.length} ảnh nhận dạng màu lông, khuôn mặt & toàn thân`
                         : 'Ảnh chụp ngoại hình cá thể ngựa'}
@@ -938,10 +938,10 @@ export default function HorseVerificationPage() {
               >
                 <CheckCircle2 size={24} color="#16a34a" style={{ flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#15803d' }}>
                     Hồ sơ ngựa đã được kiểm dịch & phê duyệt đạt chuẩn xuất bến
                   </div>
-                  <div style={{ fontSize: 12, color: '#166534', marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>
                     Mã vi chip <strong>{selectedHorse.microchipId}</strong> đã đối chiếu hợp lệ với Hộ chiếu FEI và các chứng chỉ thú y. Ngựa đã đủ điều kiện để khách hàng đặt đơn vận chuyển.
                   </div>
                 </div>
@@ -961,10 +961,10 @@ export default function HorseVerificationPage() {
               >
                 <AlertCircle size={22} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#b45309' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#b45309' }}>
                     Đang chờ chủ ngựa bổ sung hồ sơ
                   </div>
-                  <div style={{ fontSize: 12, color: '#92400e', marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: '#92400e', marginTop: 2 }}>
                     Nội dung yêu cầu:{' '}
                     <em>
                       "{selectedHorse.reviewNotes || 'Chưa có ghi chú bổ sung'}"
@@ -1002,7 +1002,7 @@ export default function HorseVerificationPage() {
           cancelText="Hủy"
           okButtonProps={{ danger: true, loading: submitting }}
         >
-          <p style={{ fontSize: 13, color: '#475569', marginBottom: 12 }}>
+          <p style={{ fontSize: 14, color: '#475569', marginBottom: 12 }}>
             Nhập chi tiết nội dung hoặc giấy tờ còn thiếu để yêu cầu chủ ngựa <strong>{selectedHorse?.name}</strong> bổ sung lại:
           </p>
           <Input.TextArea

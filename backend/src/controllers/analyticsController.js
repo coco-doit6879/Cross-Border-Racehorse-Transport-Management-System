@@ -2,7 +2,7 @@ const Order = require('../models/Order');
 const TransportRoute = require('../models/TransportRoute');
 const Incident = require('../models/Incident');
 const PaymentTransaction = require('../models/PaymentTransaction');
-const { calculateHaversineDistanceKm } = require('../services/routeDeviationService');
+const { calculateHaversineDistanceKm } = require('../services/geoDistance');
 const { logAudit } = require('../utils/auditLogger');
 
 /**

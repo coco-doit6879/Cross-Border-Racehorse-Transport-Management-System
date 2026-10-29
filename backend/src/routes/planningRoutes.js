@@ -38,10 +38,17 @@ router.patch('/:id',async(req,res,next)=>{
     if(['ASSIGN_CREW','SAVE_CREW','DECLINE_PLAN'].includes(action)&&preparation.assignedAt)return res.status(409).json({message:'Đơn đã phân công kíp xe.'});
     const note=typeof req.body.note==='string'?req.body.note.trim().slice(0,2000):'';
     if(['RECEIVE','APPROVE_ORDER','ASSIGN_CREW','SAVE_CREW','REJECT'].includes(action)&&!manager(req.user))return res.status(403).json({message:'Chỉ quản lý được thực hiện.'});
-    if(['SAVE_PLAN','CONFIRM_PLAN','DECLINE_PLAN'].includes(action)&&!coordinator(req.user))return res.status(403).json({message:'Chỉ điều phối được xác nhận phương án.'});
+    if(['SAVE_PLAN','CONFIRM_PLAN','DECLINE_PLAN','SUPPLEMENT_CUSTOMS'].includes(action)&&!coordinator(req.user))return res.status(403).json({message:'Chỉ điều phối được xác nhận phương án.'});
     const patch={};
     let createdRoute=null;
-    if(action==='RECEIVE'||action==='APPROVE_ORDER') {
+    if(action==='SUPPLEMENT_CUSTOMS') {
+      const route=data.routes.find(r=>id(r.orderId)===id(order));
+      if(!route || route.waypoints?.some(w=>w.type==='BORDER_CUSTOMS'))return res.status(409).json({message:'Chỉ bổ sung cửa khẩu cho vận đơn chưa có mốc cửa khẩu.'});
+      if(!note)throw new Error('Nhập lý do bổ sung hoặc đổi cửa khẩu.');
+      const customs=(req.body.plan?.restStops||[]).filter(s=>s.type==='BORDER_CUSTOMS');
+      if(!customs.length||customs.length>10||customs.some(s=>typeof s.name!=='string'||!s.name.trim()||s.name.length>120||!point(s.coordinates)||!['VN','KH','TH','SG','MY','LA'].includes(s.countryCode))||customs.at(-1).countryCode!==order.destination.countryCode||new Set(customs.map(s=>s.name.trim())).size!==customs.length)throw new Error('Chọn cửa khẩu và quốc gia nhập cảnh hợp lệ; cửa khẩu cuối phải thuộc nước đến.');
+      preparation.plan={...preparation.plan,restStops:[...(preparation.plan?.restStops||[]).filter(s=>s.type!=='BORDER_CUSTOMS'),...customs.map(s=>({name:s.name.trim(),coordinates:s.coordinates,type:'BORDER_CUSTOMS',countryCode:s.countryCode,minutes:Math.min(120,Math.max(30,Number(s.minutes)||30))}))]};
+    } else if(action==='RECEIVE'||action==='APPROVE_ORDER') {
       const problem=approvalProblem(order);if(problem)return res.status(409).json({message:problem});
       patch.status='APPROVED';
       preparation.approvedAt=now;preparation.approvedBy=req.user._id;
@@ -55,7 +62,12 @@ router.patch('/:id',async(req,res,next)=>{
       if(slots.length!==1)throw new Error('Mỗi đơn vận chuyển sử dụng một xe đủ khoang cho toàn bộ ngựa.');
       const stops=plan?.restStops||[];
       if(!Array.isArray(stops)||stops.length>48||stops.some(s=>!point(s.coordinates)||typeof s.name!=='string'||!s.name.trim()||s.name.length>120||!Number.isFinite(s.minutes)||s.minutes<30||s.minutes>120))throw new Error('Mỗi trạm nghỉ cần tên, tọa độ và thời gian nghỉ 30–120 phút.');
-      preparation.plan={vehicles:slots,restStops:stops.map(s=>({name:s.name.trim(),coordinates:s.coordinates,minutes:s.minutes})),note};
+      const customs = stops.filter(s=>s.type==='BORDER_CUSTOMS');
+      if(stops.some(s=>s.type && !['REST_STOP','BORDER_CUSTOMS'].includes(s.type)))throw new Error('Loại điểm dừng không hợp lệ.');
+      if(customs.some(s=>!['VN','KH','TH','SG','MY','LA'].includes(s.countryCode)))throw new Error('Chọn quốc gia nhập cảnh cho từng cửa khẩu.');
+      if(new Set(customs.map(s=>s.name.trim())).size!==customs.length)throw new Error('Tên cửa khẩu không được trùng trong cùng lộ trình.');
+      if(action==='CONFIRM_PLAN' && order.origin.countryCode!==order.destination.countryCode && (!customs.length || customs.at(-1).countryCode!==order.destination.countryCode))throw new Error('Tuyến quốc tế cần cửa khẩu theo thứ tự nhập cảnh; cửa khẩu cuối phải thuộc nước đến.');
+      preparation.plan={vehicles:slots,restStops:stops.map(s=>({name:s.name.trim(),coordinates:s.coordinates,minutes:s.minutes,type:s.type==='BORDER_CUSTOMS'?'BORDER_CUSTOMS':'REST_STOP',...(s.type==='BORDER_CUSTOMS'?{countryCode:s.countryCode}:{})})),note};
       preparation.confirmedAt=action==='CONFIRM_PLAN'?now:null;preparation.confirmedBy=action==='CONFIRM_PLAN'?req.user._id:null;
       if(action==='CONFIRM_PLAN') {
         let road;
@@ -102,6 +114,8 @@ router.patch('/:id',async(req,res,next)=>{
     const updated=await Order.findOneAndUpdate({_id:order._id,status:order.status,paymentStatus:order.paymentStatus,depositStatus:order.depositStatus,...versionQuery},{$set:{...patch,preparation},$inc:{operationsVersion:1}},{new:true,runValidators:true});
     if(!updated){if(createdRoute)await Route.deleteOne({_id:createdRoute._id});return res.status(409).json({message:'Dữ liệu vừa thay đổi, hãy tải lại.'});}
     await logAudit({actorId:req.user._id,action:`PLANNING_${action}`,resource:'Order',resourceId:order._id,result:'SUCCESS',metadata:{note}});
+    const event = { RECEIVE:'APPROVED', APPROVE_ORDER:'APPROVED', CONFIRM_PLAN:'PLAN_CONFIRMED', ASSIGN_CREW:'ASSIGNED', DECLINE_PLAN:'PLAN_DECLINED', SUPPLEMENT_CUSTOMS:'CUSTOMS_PLAN_UPDATED', REJECT:'REJECTED' }[action];
+    if(event) await require('../services/notifications').orderEvent(event, order._id, `${order._id}:${updated.operationsVersion}`, {reason:note});
     res.json({success:true,data:updated});
   }catch(e){if(e.name==='ValidationError'||e.name==='CastError')return res.status(400).json({message:e.message});if(e.message&&!e.code)return res.status(400).json({message:e.message});next(e);}
 });

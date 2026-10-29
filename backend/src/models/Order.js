@@ -164,6 +164,10 @@ const orderSchema = new mongoose.Schema({
     reviewedAt: Date,
     decisionReason: String
   }],
+  departureReview: {
+    confirmedAt: Date,
+    confirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
   settlement: {
     closedAt: Date,
     closedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

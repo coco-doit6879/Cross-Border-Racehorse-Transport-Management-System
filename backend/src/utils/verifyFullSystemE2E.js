@@ -159,10 +159,8 @@ async function runFullSystemValidation() {
     await order.save();
     recordResult(9, 'Trip Lifecycle Start', route.status === 'IN_TRANSIT', 'Trip transitioned to IN_TRANSIT.');
 
-    // 10. GPS Location Update
-    route.currentLocation = { type: 'Point', coordinates: [103.9920, 1.3650] };
-    await route.save();
-    recordResult(10, 'GPS Location Engine', route.currentLocation.coordinates[0] === 103.9920, 'GPS coordinates updated to valid GeoJSON.');
+    // 10. Itinerary is available without device tracking
+    recordResult(10, 'Trip Itinerary', route.waypoints.length > 0, 'Trip progression uses assigned waypoints.');
 
     // 11. Waypoint Check-in
     route.waypoints[0].status = 'ARRIVED';

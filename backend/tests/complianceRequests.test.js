@@ -50,3 +50,30 @@ test('approving one document cannot clear an order with outstanding requirements
   assert.equal((await call(c.review, { user: specialist, params: { id: 'd' }, body: { status: 'APPROVED' } })).code, 200);
   assert.equal(status, 'DOCS_PROCESSING');
 });
+
+const ready = require('../src/services/operationsWorkflow').stageReady;
+test('specialist can confirm checked departure without asking customer for files', async t => {
+ t.mock.method(Order, 'findById', async () => ({ _id:'o', status:'APPROVED', requestedDepartureDate:'2030-01-01' }));
+ t.mock.method(Doc, 'find', async () => []);
+ t.mock.method(Order, 'findOneAndUpdate', async (q,u) => { assert.equal(u.$set.status,'CLEARED_FOR_TRANSPORT'); assert.equal(u.$set.departureReview.confirmedBy,'staff'); return u.$set; });
+ assert.equal((await call(c.confirmDeparture,{user:specialist,params:{orderId:'o'}})).code,200);
+ assert.equal((await call(c.confirmDeparture,{user,params:{orderId:'o'}})).code,403);
+});
+test('departure confirmation blocks missing, rejected, unreviewed and expired requested documents',async t=>{
+ t.mock.method(Order,'findById',async()=>({_id:'o',status:'DOCS_PROCESSING',requestedDepartureDate:'2030-01-01'}));
+ for(const doc of [{status:'PENDING_UPLOAD'},{status:'REJECTED'},{status:'PENDING_REVIEW'},{status:'APPROVED',expiresAt:'2020-01-01'}]) {
+  const mock=t.mock.method(Doc,'find',async()=>[doc]);
+  assert.equal((await call(c.confirmDeparture,{user:specialist,params:{orderId:'o'}})).code,409);mock.mock.restore();
+ }
+});
+test('departure gate requires specialist confirmation and valid requested departure files only',async t=>{
+ let order={}; let docs=[];
+ t.mock.method(Order,'findById',async()=>order);t.mock.method(Doc,'find',async()=>docs);
+ assert.equal(await ready('o','DEPARTURE'),false);
+ order={departureReview:{confirmedAt:new Date()}};
+ assert.equal(await ready('o','DEPARTURE'),true);
+ docs=[{stage:'BORDER',status:'PENDING_UPLOAD'}];assert.equal(await ready('o','DEPARTURE'),true);
+ docs=[{stage:'DEPARTURE',status:'PENDING_REVIEW'}];assert.equal(await ready('o','DEPARTURE'),false);
+ docs=[{stage:'DEPARTURE',status:'APPROVED',expiresAt:'2020-01-01'}];assert.equal(await ready('o','DEPARTURE'),false);
+ docs=[{stage:'DEPARTURE',status:'APPROVED',expiresAt:'2035-01-01'}];assert.equal(await ready('o','DEPARTURE'),true);
+});

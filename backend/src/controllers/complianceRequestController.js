@@ -15,7 +15,7 @@ exports.checklist = async (req, res, next) => {
     const route = await Route.findOne({ orderId: order._id });
     if (!canRead(order, route, req.user)) return fail(res, 403, 'Bạn không có quyền xem giấy tờ của đơn này.');
     const docs = await Doc.find({ orderId: order._id }).sort({ createdAt: -1 });
-    res.json({ success: true, data: docs });
+    res.json({ success: true, data: docs, departureReview: order.departureReview || {}, orderStatus: order.status });
   } catch (err) { next(err); }
 };
 
@@ -30,8 +30,11 @@ exports.request = async (req, res, next) => {
     if (!editable.includes(order.status)) return fail(res, 409, 'Chỉ bổ sung giấy tờ sau khi đơn được duyệt và trước khi vận chuyển.');
     if (horseId && !order.horseIds.some(id => String(id) === String(horseId))) return fail(res, 400, 'Ngựa không thuộc đơn này.');
     // Revoke clearance before creating a new outstanding requirement.
-    await Order.updateOne({ _id: orderId, status: { $in: ['APPROVED', 'CLEARED_FOR_TRANSPORT'] } }, { $set: { status: 'DOCS_PROCESSING' } });
+    await Order.updateOne({ _id: orderId, status: { $in: ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'] } }, { $set: { status: 'DOCS_PROCESSING' }, $unset: { departureReview: 1 } });
     const doc = await Doc.create({ orderId, horseId: horseId || undefined, documentType: documentType.trim(), category, stage, checkpoint: String(checkpoint).trim(), countryCode: countryCode || order.destination.countryCode, requestReason: requestReason.trim(), requestedBy: req.user._id, requestedAt: new Date(), status: 'PENDING_UPLOAD', history: [{ action: 'REQUESTED', actorId: req.user._id, notes: requestReason.trim() }] });
+    // Invalidate again after insertion so a concurrent confirmation cannot miss the new requirement.
+    await Order.updateOne({ _id: orderId, status: { $in: ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'] } }, { $set: { status: 'DOCS_PROCESSING' }, $unset: { departureReview: 1 } });
+    await require('../services/notifications').orderEvent('DOC_REQUESTED', orderId, doc._id, { category, reason: requestReason.trim() });
     res.status(201).json({ success: true, data: doc });
   } catch (err) { next(err); }
 };
@@ -50,6 +53,7 @@ exports.upload = async (req, res, next) => {
     if (expiry && (!Number.isFinite(expiry.getTime()) || expiry < new Date(order.requestedDepartureDate))) return fail(res, 400, 'Giấy tờ phải còn hiệu lực đến ngày khởi hành.');
     const updated = await Doc.findOneAndUpdate({ _id: doc._id, status: { $in: ['PENDING_UPLOAD', 'REJECTED'] } }, { $set: { fileUrl: req.body.fileUrl, referenceNumber: String(req.body.referenceNumber || '').slice(0, 200), expiresAt: expiry, status: 'PENDING_REVIEW', rejectionReason: '', verifiedBy: null }, $push: { history: { action: 'SUBMITTED', actorId: req.user._id, fileUrl: req.body.fileUrl, at: new Date() } } }, { new: true });
     if (!updated) return fail(res, 409, 'Giấy tờ đã được gửi thẩm định. Hãy tải lại trang.');
+    await require('../services/notifications').orderEvent('DOC_SUBMITTED', doc.orderId, `${doc._id}:${updated.updatedAt || Date.now()}`);
     res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 };
@@ -66,8 +70,8 @@ exports.review = async (req, res, next) => {
     if (status === 'APPROVED' && (!doc.fileUrl || (doc.expiresAt && doc.expiresAt < new Date(order.requestedDepartureDate)))) return fail(res, 400, 'Tệp thiếu hoặc hết hiệu lực trước ngày khởi hành.');
     const updated = await Doc.findOneAndUpdate({ _id: doc._id, status: 'PENDING_REVIEW' }, { $set: { status, rejectionReason: rejectionReason || '', verifiedBy: req.user._id }, $push: { history: { action: status, notes: rejectionReason || '', actorId: req.user._id, at: new Date() } } }, { new: true });
     if (!updated) return fail(res, 409, 'Giấy tờ đã thay đổi. Vui lòng tải lại.');
-    const outstanding = await Doc.exists({ orderId: doc.orderId, status: { $ne: 'APPROVED' } });
-    await Order.updateOne({ _id: doc.orderId, status: { $in: ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'] } }, { $set: { status: outstanding ? 'DOCS_PROCESSING' : 'CLEARED_FOR_TRANSPORT' } });
+    await Order.updateOne({ _id: doc.orderId, status: { $in: ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'] } }, { $set: { status: 'DOCS_PROCESSING' }, $unset: { departureReview: 1 } });
+    await require('../services/notifications').orderEvent(status === 'APPROVED' ? 'DOC_APPROVED' : 'DOC_REJECTED', doc.orderId, `${doc._id}:${updated.updatedAt || Date.now()}`, { category: doc.category, reason: rejectionReason });
     res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 };
@@ -84,5 +88,21 @@ exports.file = async (req, res, next) => {
     if (!file) return fail(res, 404, 'Chưa có tệp hợp lệ.');
     res.set({ 'Content-Type': file.mimeType, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' });
     res.send(file.data);
+  } catch (err) { next(err); }
+};
+
+exports.confirmDeparture = async (req, res, next) => {
+  try {
+    if (!reviewer(req.user)) return fail(res, 403, 'Chỉ chuyên viên được xác nhận hồ sơ khởi hành.');
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return fail(res, 404, 'Không tìm thấy đơn.');
+    if (!['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(order.status)) return fail(res, 409, 'Chỉ xác nhận hồ sơ sau khi quản lý duyệt và trước khởi hành.');
+    const docs = await Doc.find({ orderId: order._id });
+    const deadline = new Date(Math.max(Date.now(), new Date(order.requestedDepartureDate).getTime()));
+    if (docs.some(d => (d.stage || 'DEPARTURE') === 'DEPARTURE' && (d.status !== 'APPROVED' || (d.expiresAt && new Date(d.expiresAt) < deadline)))) return fail(res, 409, 'Còn giấy tờ trước khởi hành chưa được duyệt hoặc hết hạn. Yêu cầu bên phụ trách bổ sung và thẩm định trước.');
+    const updated = await Order.findOneAndUpdate({ _id: order._id, status: order.status, updatedAt: order.updatedAt }, { $set: { status: 'CLEARED_FOR_TRANSPORT', departureReview: { confirmedAt: new Date(), confirmedBy: req.user._id } } }, { new: true });
+    if (!updated) return fail(res, 409, 'Hồ sơ vừa thay đổi. Vui lòng tải lại và kiểm tra.');
+    await require('../services/notifications').orderEvent('DEPARTURE_READY', order._id, `${order._id}:${updated.departureReview.confirmedAt}`);
+    res.json({ success: true, data: updated.departureReview });
   } catch (err) { next(err); }
 };

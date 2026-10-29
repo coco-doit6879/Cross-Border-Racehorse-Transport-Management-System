@@ -3,7 +3,8 @@ import { Alert, Button, Card, Form, Input, InputNumber, Select, Space, Table, Ta
 import api from '../../services/apiClient';
 import { useAuthStore } from '../../store/useAuthStore';
 import { hasPermission } from '../../utils/permissions';
-import DeliveryAcceptance from './DeliveryAcceptance';
+import HorseIdentity from './HorseIdentity';
+import CustomsClearance from './CustomsClearance';
 import ExceptionRequests from './ExceptionRequests';
 import RescueTransfer from './RescueTransfer';
 
@@ -15,9 +16,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState('');
-  const [podOpen, setPodOpen] = useState(false);
-  const [podVisited, setPodVisited] = useState(false);
-  const [chargeForm] = Form.useForm(); const [receiptForm] = Form.useForm(); const [clearForm] = Form.useForm();
+  const [chargeForm] = Form.useForm(); const [receiptForm] = Form.useForm();
   const load = useCallback(async () => {
     try { setData((await api.get(`/orders/${orderId}/operations`)).data.data); setError(''); }
     catch (e) { setError(e.response?.data?.message || 'Không thể tải vận đơn và quyết toán.'); }
@@ -83,14 +82,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         />
       )}
 
-      {/* 1. Digital POD Acceptance Form (Show FIRST for Customer when delivering) */}
-      {isCustomer && route?.status === 'DELIVERING' && <section className="order-next-action">
-        <div><h2>Chờ kiểm tra & ký bàn giao</h2><p>Người tiếp nhận kiểm tra thể trạng ngựa và ký biên bản tại điểm giao.</p></div>
-        <Button type="primary" aria-expanded={podOpen} onClick={() => { setPodVisited(true); setPodOpen(v => !v); }}>{podOpen ? 'Thu gọn biên bản' : 'Kiểm tra & ký bàn giao'}</Button>
-      </section>}
-      {isCustomer && route?.status === 'DELIVERING' && <div hidden={!podOpen}>
-        {podVisited && <DeliveryAcceptance order={order} route={route} onChanged={() => { load(); onChanged?.(); }} />}
-      </div>}
+      {isCustomer && route?.status === 'DELIVERING' && <Alert type="info" showIcon message="Tài xế đang bàn giao ngựa" description="Tài xế sẽ xác nhận đã giao đủ ngựa và hoàn thành chuyến. Bạn không cần ký biên bản trên hệ thống." />}
       {/* 2. Manager Incident / Cancel actions */}
       {manager && route?.status === 'INCIDENT_HANDLING' && (
         <RescueTransfer order={order} route={route} recover={recover} busy={busy} />
@@ -126,7 +118,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
               marginBottom: 16
             }}
           >
-            <p style={{ margin: '0 0 10px 0', fontSize: 13, color: '#334155' }}>
+            <p style={{ margin: '0 0 10px 0', fontSize: 14, color: '#334155' }}>
               Vui lòng kiểm tra lại hành trình, danh sách ngựa, giá cước và ghi chú trước khi xác nhận đơn.
             </p>
             <Input.TextArea
@@ -176,10 +168,10 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         }}
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
               Vận đơn và hành trình vận chuyển
             </span>
-            <Button size="small" onClick={load} style={{ fontSize: 12 }}>
+            <Button size="small" onClick={load} style={{ fontSize: 13 }}>
               Làm mới
             </Button>
           </div>
@@ -200,8 +192,8 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         >
           {stages.map(([label, value]) => (
             <div key={label}>
-              <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{label}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginTop: 2 }}>{value}</div>
+              <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{label}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginTop: 2 }}>{value}</div>
             </div>
           ))}
         </div>
@@ -210,7 +202,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         {route && (
           <>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
+              <div style={{ fontSize: 14, color: '#475569', marginBottom: 10 }}>
                 Xe chuyên dụng: <strong style={{ color: '#0F172A' }}>{route.vehiclePlateNumber}</strong> · Tài xế nhận chuyến:{' '}
                 <strong style={{ color: '#0F172A' }}>{date(route.acceptedAt)}</strong>
               </div>
@@ -225,28 +217,28 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
                 }}
               >
                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Km xuất phát</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Km xuất phát</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
                     {route.odometerStart != null ? `${route.odometerStart.toLocaleString('vi-VN')} km` : 'Chưa ghi'}
                   </div>
                 </div>
 
                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Km kết thúc</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Km kết thúc</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
                     {route.odometerEnd != null ? `${route.odometerEnd.toLocaleString('vi-VN')} km` : 'Chưa ghi'}
                   </div>
                 </div>
 
                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Tổng cự ly xe chạy</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0F3E2E', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Tổng cự ly xe chạy</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#0F3E2E', marginTop: 2 }}>
                     {totalKm != null ? `${totalKm.toLocaleString('vi-VN')} km` : 'Chưa có'}
                   </div>
                 </div>
 
                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Đối soát quãng đường</div>
+                  <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Đối soát quãng đường</div>
                   <div style={{ marginTop: 4 }}>
                     <Tag
                       style={{
@@ -277,7 +269,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
 
             {/* Horse status on vehicle */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
                 Trạng thái ngựa trên chuyến:
               </div>
               <Table
@@ -290,9 +282,8 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
                   {
                     title: 'Ngựa',
                     dataIndex: 'name',
-                    render: (t) => <strong style={{ color: '#0F172A' }}>{t}</strong>
+                    render: (_, horse) => <HorseIdentity horse={horse} />
                   },
-                  { title: 'Mã chip', dataIndex: 'microchipId' },
                   {
                     title: 'Vị trí hiện tại',
                     render: (_, horse) => {
@@ -348,112 +339,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
       </div>
       <div hidden={!['all', 'documents'].includes(view)}>
       {/* 4. Clearance by Checkpoint (Only show if there are records or specialist) */}
-      {route && (route.clearances?.length > 0 || specialist) && (
-        <Card
-          style={{
-            borderRadius: 10,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}
-          title={
-            <div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-                Hồ sơ thông quan cửa khẩu ({route.clearances?.length || 0})
-              </span>
-              <div style={{ fontSize: 12, color: '#64748B', fontWeight: 400 }}>
-                Ghi nhận tình trạng kiểm dịch và hải quan tại từng cửa khẩu quốc tế
-              </div>
-            </div>
-          }
-        >
-          {route.clearances?.length > 0 ? (
-            <Table
-                scroll={{ x: 640 }}
-              size="small"
-              rowKey="_id"
-              pagination={false}
-              dataSource={[...(route.clearances || [])].reverse()}
-              columns={[
-                {
-                  title: 'Ngựa',
-                  render: (_, c) => order.horseIds.find((h) => h._id === c.horseId)?.name || c.horseId
-                },
-                { title: 'Quốc gia', dataIndex: 'countryCode' },
-                { title: 'Cửa khẩu', dataIndex: 'checkpoint' },
-                {
-                  title: 'Kết quả',
-                  render: (_, c) => {
-                    const map = {
-                      PENDING: { label: 'Chưa thông quan', color: '#92400E', bg: '#FEF3C7', border: '#FDE68A' },
-                      CLEARED: { label: 'Đã thông quan', color: '#166534', bg: '#DCFCE7', border: '#BBF7D0' },
-                      HELD: { label: 'Đang bị giữ', color: '#991B1B', bg: '#FEE2E2', border: '#FECACA' }
-                    };
-                    const item = map[c.status] || { label: c.status, color: '#334155', bg: '#F1F5F9', border: '#CBD5E1' };
-                    return (
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: item.color,
-                          backgroundColor: item.bg,
-                          border: `1px solid ${item.border}`,
-                          padding: '2px 8px',
-                          borderRadius: 4
-                        }}
-                      >
-                        {item.label}
-                      </span>
-                    );
-                  }
-                },
-                { title: 'Số chứng từ', dataIndex: 'referenceNumber' },
-                { title: 'Cập nhật', render: (_, c) => date(c.updatedAt) }
-              ]}
-            />
-          ) : (
-            <div style={{ color: '#64748B', fontSize: 13 }}>Chưa có thông tin thông quan cửa khẩu.</div>
-          )}
-
-          {specialist && !closed && (
-            <div style={{ marginTop: 14, background: '#F8FAFC', padding: 12, borderRadius: 8, border: '1px solid #E2E8F0' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8, color: '#0F172A' }}>
-                Cập nhật kết quả thông quan
-              </span>
-              <Form form={clearForm} layout="vertical" onFinish={(values) => act('CLEARANCE', values, true)}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                  <Form.Item name="horseId" label="Ngựa" rules={[{ required: true }]}>
-                    <Select options={order.horseIds.map((h) => ({ value: h._id, label: h.name }))} />
-                  </Form.Item>
-                  <Form.Item name="countryCode" label="Mã quốc gia" rules={[{ required: true }, { pattern: /^[A-Z]{2}$/ }]}>
-                    <Input maxLength={2} placeholder="VN / KH / TH" />
-                  </Form.Item>
-                  <Form.Item name="checkpoint" label="Cửa khẩu" rules={[{ required: true }]}>
-                    <Input placeholder="Mộc Bài / Bavet" />
-                  </Form.Item>
-                  <Form.Item name="status" label="Kết quả" rules={[{ required: true }]}>
-                    <Select
-                      options={[
-                        { value: 'PENDING', label: 'Chưa thông quan' },
-                        { value: 'CLEARED', label: 'Đã thông quan' },
-                        { value: 'HELD', label: 'Đang bị giữ' }
-                      ]}
-                    />
-                  </Form.Item>
-                  <Form.Item name="referenceNumber" label="Số chứng từ">
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="notes" label="Ghi chú">
-                    <Input />
-                  </Form.Item>
-                </div>
-                <Button htmlType="submit" loading={busy} type="primary" style={{ background: '#0F3E2E', borderColor: '#0F3E2E' }}>
-                  Lưu kết quả thông quan
-                </Button>
-              </Form>
-            </div>
-          )}
-        </Card>
-      )}
+      {route && (route.clearances?.length > 0 || specialist) && <CustomsClearance orderId={orderId} readOnly={!specialist} />}
 
       </div>
       <div hidden={!['all', 'finance'].includes(view)}>
@@ -466,7 +352,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         }}
         title={
           <div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
               {closed ? 'Quyết toán đơn hàng đã đóng' : 'Đối soát tài chính & phụ thu'}
             </span>
           </div>
@@ -482,22 +368,22 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
           }}
         >
           <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Giá đã đặt</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{money(f.base)}</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Giá đã đặt</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{money(f.base)}</div>
           </div>
           <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Phụ thu đã duyệt</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{money(f.extra)}</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Phụ thu đã duyệt</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{money(f.extra)}</div>
           </div>
           <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Đã thu</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#166534', marginTop: 2 }}>{money(f.paid)}</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Đã thu</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#166534', marginTop: 2 }}>{money(f.paid)}</div>
           </div>
           <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Còn phải thu</div>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Còn phải thu</div>
             <div
               style={{
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: 700,
                 color: f.outstanding ? '#B45309' : '#166534',
                 marginTop: 2
@@ -511,7 +397,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         {/* Surcharges list if any */}
         {(order.settlement?.surcharges?.length > 0 || operational) && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
               Các khoản phụ thu phát sinh:
             </div>
             {order.settlement?.surcharges?.length > 0 && (
@@ -567,7 +453,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         {/* Receipts list */}
         {order.settlement?.receipts?.length > 0 && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
               Chứng từ thu:
             </div>
             <Table
@@ -623,7 +509,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         )}
 
         {closed && (
-          <div style={{ color: '#166534', fontSize: 12, marginTop: 8, fontWeight: 500 }}>
+          <div style={{ color: '#166534', fontSize: 13, marginTop: 8, fontWeight: 500 }}>
             Đơn hàng đã quyết toán và đóng sổ vào lúc: {date(order.settlement.closedAt)}
           </div>
         )}

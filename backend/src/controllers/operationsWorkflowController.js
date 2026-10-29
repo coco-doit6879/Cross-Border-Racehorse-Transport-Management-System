@@ -3,7 +3,7 @@ const Route = require('../models/TransportRoute');
 const Horse = require('../models/Horse');
 const User = require('../models/User');
 const { logAudit } = require('../utils/auditLogger');
-const { id, has, staff, assigned, canRead, financials, stageReady } = require('../services/operationsWorkflow');
+const { id, has, staff, assigned, canRead, financials, stageReady, customsCheckpoints } = require('../services/operationsWorkflow');
 const { activeIncident, validCoordinates, distanceKm } = require('../services/tripSafety');
 const { STOPS } = require('../config/transportCatalog');
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -20,11 +20,11 @@ exports.customers = async (req, res, next) => {
 
 exports.get = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id).populate('horseIds', 'name microchipId');
+    const order = await Order.findById(req.params.id).populate('horseIds', 'name microchipId photos');
     if (!order) return fail(res, 404, 'Không tìm thấy đơn.');
     const route = await Route.findOne({ orderId: order._id });
     if (!canRead(order, route, req.user)) return fail(res, 403, 'Không có quyền xem vận đơn.');
-    res.json({ success: true, data: { order, route, financials: financials(order), destinationOptions: STOPS.filter(s => s.countryCode === order.destination.countryCode) } });
+    res.json({ success: true, data: { order, route, customsCheckpoints: customsCheckpoints(route, order), financials: financials(order), destinationOptions: STOPS.filter(s => s.countryCode === order.destination.countryCode) } });
   } catch (err) { next(err); }
 };
 
@@ -180,7 +180,10 @@ exports.update = async (req, res, next) => {
         if (!has(req.user, 'compliance:review') || !['SCHEDULED', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'].includes(route.status)) return fail(res, 403, 'Chuyên viên cập nhật thông quan khi chuyến đang xử lý.');
         const { horseId, countryCode, status } = req.body;
         if (!order.horseIds.some(h => id(h) === horseId) || !/^[A-Z]{2}$/.test(countryCode || '') || !text(req.body.checkpoint) || !['PENDING', 'CLEARED', 'HELD'].includes(status) || (status === 'CLEARED' && !text(req.body.referenceNumber))) return fail(res, 400, 'Nhập ngựa, mã quốc gia, cửa khẩu, trạng thái và số chứng từ khi đã thông quan.');
+        if (!customsCheckpoints(route, order).some(c => c.name === text(req.body.checkpoint) && c.countryCode === countryCode)) return fail(res, 409, 'Cửa khẩu phải khớp lộ trình điều phối đã chọn. Liên hệ điều phối để bổ sung hoặc điều chỉnh.');
         const entry = { horseId, countryCode, checkpoint: text(req.body.checkpoint), status, referenceNumber: text(req.body.referenceNumber), notes: text(req.body.notes), updatedBy: req.user._id, updatedAt: now };
+        const previous = [...route.clearances].reverse().find(c => id(c.horseId) === horseId && c.countryCode === countryCode && c.checkpoint === entry.checkpoint);
+        if (previous && previous.status === entry.status && text(previous.referenceNumber) === entry.referenceNumber && text(previous.notes) === entry.notes) return res.json({ success: true, isDuplicate: true, message: 'Kết quả thông quan đã được lưu.' });
         // Append revisions so previous clearance decisions remain visible.
         route.clearances.push(entry);
         break;
@@ -195,6 +198,8 @@ exports.update = async (req, res, next) => {
     const updated = await model.findOneAndUpdate({ _id: target._id, status: target.status, $or: [{ operationsVersion: version }, ...(version === 0 ? [{ operationsVersion: { $exists: false } }] : [])] }, { $set: { ...set, operationsVersion: version + 1 }, ...(Object.keys(unset).length ? { $unset: unset } : {}) }, { new: true, runValidators: true });
     if (!updated) return fail(res, 409, 'Có cập nhật đồng thời. Vui lòng tải lại.');
     await logAudit({ actorId: req.user._id, action: `OPERATIONS_${action}`, resource: model.modelName, resourceId: id(target._id), result: 'SUCCESS', metadata: { orderId: id(order._id), version: version + 1 }, ipAddress: req.ip, userAgent: req.get('User-Agent') });
+    if (action === 'CLEARANCE') await require('../services/notifications').orderEvent('CUSTOMS_UPDATED', order._id, `${route._id}:${version + 1}`);
+    if (action === 'REQUEST_EXCEPTION' || action === 'REVIEW_EXCEPTION') await require('../services/notifications').orderEvent(action === 'REQUEST_EXCEPTION' ? 'EXCEPTION_REQUESTED' : 'EXCEPTION_REVIEWED', order._id, `${order._id}:${version + 1}`, { reason: text(req.body.reason) });
     res.json({ success: true });
   } catch (err) { next(err); }
 };

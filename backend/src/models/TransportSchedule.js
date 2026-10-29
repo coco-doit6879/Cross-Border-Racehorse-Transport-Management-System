@@ -6,6 +6,9 @@ const ruleSchema = new mongoose.Schema({
   weekdays: [{ type: Number, min: 0, max: 6 }],
   times: [String],
   basePriceVnd: { type: Number, min: 0 },
+  baseFeeVnd: { type: Number, min: 0 },
+  rateVndPerKm: { type: Number, min: 1 },
+  estimatedRoadKm: { type: Number, min: 0 },
   active: { type: Boolean, default: true }
 }, { _id: false });
 

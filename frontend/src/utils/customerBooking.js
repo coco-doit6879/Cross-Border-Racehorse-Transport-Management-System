@@ -1,3 +1,12 @@
+export function isHorseAtLeastOneYearOld(dateOfBirth, now = Date.now()) {
+  if (!dateOfBirth) return false;
+  const birth = new Date(dateOfBirth);
+  if (!Number.isFinite(birth.getTime())) return false;
+  const today = new Date(now + 7 * 60 * 60 * 1000);
+  const years = today.getUTCFullYear() - birth.getUTCFullYear();
+  return years > 1 || (years === 1 && (today.getUTCMonth() > birth.getUTCMonth() || (today.getUTCMonth() === birth.getUTCMonth() && today.getUTCDate() >= birth.getUTCDate())));
+}
+
 export const BOOKING_STEPS = ['Chuyến đi', 'Chọn ngựa', 'Dịch vụ & bảo hiểm', 'Xác nhận & gửi'];
 export const emptyContact = () => ({ fullName: '', phone: '', area: '', address: '', identityNumber: '' });
 
@@ -19,6 +28,7 @@ export function bookingRoutes(catalog, type, originCountry, destinationCountry, 
 }
 
 export function horseBookingIssue(horse, originStopId, orders, now = Date.now()) {
+  if (!isHorseAtLeastOneYearOld(horse.dateOfBirth, now)) return 'Ngựa chưa đủ 1 năm tuổi hoặc thiếu ngày sinh';
   if (!originStopId) return 'Chọn điểm đón trước';
   if (!horse.currentStopId) return 'Chưa khai báo địa điểm hiện tại';
   if (horse.currentStopId !== originStopId) return 'Ngựa đang ở điểm khác với điểm đón';

@@ -73,6 +73,24 @@ test('planning API enforces roles, versions, allocations, road welfare and quote
   assert.equal(routes.length,1);assert.equal(routes[0].driverId,oid(41));assert.equal(routes[0].waypoints.at(-1).type,'DELIVERY');assert.ok(orders[0].preparation.assignedAt);
   assert.equal(orders[0].status,'APPROVED');assert.equal((await request('manager','ASSIGN_CREW',{vehicles:crew()})).status,409);assert.equal(routes.length,1);
  });
+ await t.test('international plan requires assigned border and copies it into driver waypoints',async()=>{
+  await receive();orders[0].paymentStatus='PAID';orders[0].destination.countryCode='KH';
+  assert.equal((await request('coordinator','CONFIRM_PLAN',{plan:{vehicles:slots(),restStops:[]}})).status,400);
+  const border={name:'Bavet',coordinates:[106.2,11.1],minutes:45,type:'BORDER_CUSTOMS',countryCode:'KH'};
+  const result=await request('coordinator','CONFIRM_PLAN',{plan:{vehicles:slots(),restStops:[border]}});
+  assert.equal(result.status,200,JSON.stringify(result.body));
+  assert.equal((await request('manager','ASSIGN_CREW',{vehicles:crew()})).status,200);
+  const waypoint=routes[0].waypoints.find(w=>w.type==='BORDER_CUSTOMS');assert.equal(waypoint.name,'Bavet');assert.equal(waypoint.countryCode,'KH');
+ });
+ await t.test('coordinator can supplement a legacy missing customs plan without changing driver history',async()=>{
+  await receive();await confirm();assert.equal((await request('manager','ASSIGN_CREW',{vehicles:crew()})).status,200);orders[0].destination.countryCode='KH';orders[0].status='DELIVERING';routes[0].status='DELIVERING';
+  const original=clone(routes[0].waypoints);
+  const input={note:'Bổ sung cửa khẩu còn thiếu',plan:{restStops:[{name:'Bavet',coordinates:[106.2,11.1],minutes:45,type:'BORDER_CUSTOMS',countryCode:'KH'}]}};
+  assert.equal((await request('manager','SUPPLEMENT_CUSTOMS',input)).status,403);
+  assert.equal((await request('coordinator','SUPPLEMENT_CUSTOMS',{...input,note:''})).status,400);
+  const result=await request('coordinator','SUPPLEMENT_CUSTOMS',input);assert.equal(result.status,200,JSON.stringify(result.body));
+  assert.equal(orders[0].preparation.plan.restStops.at(-1).name,'Bavet');assert.deepEqual(routes[0].waypoints,original);
+ });
  await t.test('coordinator decline requests management review without cancelling a paid booking',async()=>{
   await receive();orders[0].paymentStatus='PAID';assert.equal((await request('coordinator','DECLINE_PLAN',{note:'Không đủ xe'})).status,200);assert.equal(orders[0].status,'APPROVED');
  });

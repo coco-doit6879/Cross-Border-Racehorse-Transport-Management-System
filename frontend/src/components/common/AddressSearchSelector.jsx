@@ -100,13 +100,13 @@ const AddressSearchSelector = ({
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <CheckCircle2 size={20} color="#16A34A" style={{ marginTop: 2, flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 ✓ Vị trí đã được xác nhận định vị
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginTop: 2 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginTop: 2 }}>
                 {confirmedLocation.address}
               </div>
-              <div style={{ fontSize: 12, color: '#4B5563', marginTop: 4, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 13, color: '#4B5563', marginTop: 4, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span>Quốc gia: <strong>{confirmedLocation.countryCode}</strong></span>
                 <span>
                   Tọa độ GeoJSON [kinh độ, vĩ độ]:{' '}
@@ -138,7 +138,7 @@ const AddressSearchSelector = ({
             value={searchTerm}
             onChange={handleInputChange}
             allowClear
-            style={{ borderRadius: 8, height: 42, fontSize: 14 }}
+            style={{ borderRadius: 8, height: 42, fontSize: 15 }}
           />
 
           {/* Error / Warning Alert */}
@@ -147,7 +147,7 @@ const AddressSearchSelector = ({
               type="warning"
               message={errorMsg}
               showIcon
-              style={{ fontSize: 12, padding: '8px 12px', borderRadius: 6 }}
+              style={{ fontSize: 13, padding: '8px 12px', borderRadius: 6 }}
             />
           )}
 
@@ -169,7 +169,7 @@ const AddressSearchSelector = ({
                 padding: 6
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', padding: '6px 10px', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', padding: '6px 10px', textTransform: 'uppercase' }}>
                 Kết quả tìm kiếm geocoding ({results.length}):
               </div>
 
@@ -194,10 +194,10 @@ const AddressSearchSelector = ({
                 >
                   <MapPin size={18} color="#0F3E2E" style={{ marginTop: 2, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
                       {item.formattedAddress}
                     </div>
-                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                       Quốc gia: {item.countryCode} • Tọa độ: [{item.coordinates[0].toFixed(4)}, {item.coordinates[1].toFixed(4)}]
                     </div>
                   </div>
@@ -222,13 +222,13 @@ const AddressSearchSelector = ({
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <MapPin size={20} color="#2563EB" style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1D4ED8', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1D4ED8', textTransform: 'uppercase' }}>
                     Địa điểm đã chọn (Chờ xác nhận)
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginTop: 2 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginTop: 2 }}>
                     {selectedResult.formattedAddress}
                   </div>
-                  <div style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>
+                  <div style={{ fontSize: 13, color: '#4B5563', marginTop: 4 }}>
                     GeoJSON Coordinates: [{selectedResult.coordinates[0].toFixed(4)}, {selectedResult.coordinates[1].toFixed(4)}]
                   </div>
                 </div>

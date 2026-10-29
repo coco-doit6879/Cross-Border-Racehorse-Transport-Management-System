@@ -13,7 +13,7 @@ const call = async (fn, req) => {
   const res = { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
   await fn({ get: () => '', ...req }, res, error => { res.code = error.statusCode || 500; res.body = { message: error.message }; }); return res;
 };
-test('MongoDB reservations, payout CAS, GPS-less SOS and recovery safety', { timeout: 30000 }, async t => {
+test('MongoDB reservations, payout CAS, SOS without device location and recovery safety', { timeout: 30000 }, async t => {
   const dbName = `cbrt_recovery_test_${randomUUID().replaceAll('-', '')}`;
   await mongoose.connect('mongodb://127.0.0.1:27017', { dbName, serverSelectionTimeoutMS: 5000 });
   t.after(async () => { assert.equal(mongoose.connection.name, dbName); assert.match(dbName, /^cbrt_recovery_test_[a-f0-9]{32}$/); await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
@@ -58,14 +58,20 @@ test('MongoDB reservations, payout CAS, GPS-less SOS and recovery safety', { tim
   assert.equal(response.code, 409, 'cannot refund more than captured minus previous refunds');
   response = await call(recovery.execute, { ...request, user: { _id: customerId, effectivePermissions: [] }, body: {} });
   assert.equal(response.code, 403, 'customer cannot execute recovery');
-  const missingGPS = await Incident.create({ eventId: randomUUID(), tripId: route._id, reportedBy: driverId, description: 'No GPS available', locationUnavailable: true });
-  assert.equal(missingGPS.location, undefined, 'missing GPS does not make an invalid GeoJSON point');
-  await Incident.updateOne({ _id: missingGPS._id }, { $set: { status: 'CLOSED' } });
+  const withoutLocation = await Incident.create({ eventId: randomUUID(), tripId: route._id, reportedBy: driverId, description: 'No device location available', locationUnavailable: true });
+  assert.equal(withoutLocation.location, undefined, 'missing device location does not make an invalid GeoJSON point');
+  await Incident.updateOne({ _id: withoutLocation._id }, { $set: { status: 'CLOSED' } });
   const Alert = require('../src/models/OperationalAlert'); await Alert.init();
   const watchdog = require('../src/services/operationsWatchdog');
   await Route.updateOne({ _id: route._id }, { $set: { status: 'IN_TRANSIT', currentLocation: { coordinates: [106, 10], updatedAt: new Date(Date.now() - 180000) } } });
   await watchdog.scan(); await watchdog.scan();
-  assert.equal(await Alert.countDocuments({ active: true }), 1, 'watchdog deduplicates stale GPS alerts');
+  assert.equal(await Alert.countDocuments({ active: true }), 0, 'old device coordinates must not create an operational alert');
+  const unattended = await Incident.create({ eventId: randomUUID(), tripId: route._id, reportedBy: driverId, description: 'SOS escalation test', status: 'OPEN', createdAt: new Date(Date.now() - 360000) });
+  await watchdog.scan(); await watchdog.scan();
+  assert.equal(await Alert.countDocuments({ active: true, kind: 'SOS_UNACKNOWLEDGED' }), 1, 'unacknowledged SOS still raises one deduplicated alert');
+  await Incident.updateOne({ _id: unattended._id }, { $set: { status: 'ACKNOWLEDGED' } });
+  await watchdog.scan(); assert.equal(await Alert.countDocuments({ active: true }), 0, 'handled SOS clears the escalation');
+  await Incident.updateOne({ _id: unattended._id }, { $set: { status: 'CLOSED' } });
   await Route.updateOne({ _id: route._id }, { $set: { 'currentLocation.updatedAt': new Date() } });
   await watchdog.scan(); assert.equal(await Alert.countDocuments({ active: true }), 0);
   await Route.updateOne({ _id: route._id }, { $set: { status: 'SCHEDULED' } });

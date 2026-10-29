@@ -1,3 +1,4 @@
+import { isHorseAtLeastOneYearOld } from '../../utils/customerBooking';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -148,6 +149,7 @@ export default function CreateOrder() {
 
   const eligible = (horse) =>
     Boolean(originStopId) &&
+    isHorseAtLeastOneYearOld(horse.dateOfBirth) &&
     horse.currentStopId === originStopId &&
     horse.reviewStatus === 'APPROVED' &&
     horse.status !== 'IN_TRANSIT' &&
@@ -155,6 +157,7 @@ export default function CreateOrder() {
 
   const ineligibleReason = (horse) => {
     if (!originStopId) return 'Chọn điểm đón trước';
+    if (!isHorseAtLeastOneYearOld(horse.dateOfBirth)) return 'Ngựa chưa đủ 1 năm tuổi hoặc thiếu ngày sinh';
     if (!horse.currentStopId) return 'Chưa khai báo địa điểm hiện tại';
     if (horse.currentStopId !== originStopId)
       return `Đang ở ${stops.find((stop) => stop.id === horse.currentStopId)?.name || horse.currentStopId}`;
@@ -330,7 +333,7 @@ export default function CreateOrder() {
               <Sparkles size={18} color="#243c32" /> Nhập đơn hỗ trợ khách hàng
             </h2>
           </div>
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>
+          <p style={{ color: '#64748b', fontSize: 14, marginBottom: 12 }}>
             Chọn khách hàng đã có tài khoản. Khách sẽ xem lại tuyến, ngựa và thanh toán đặt cọc trước khi đơn được tiếp nhận.
           </p>
           <Select
@@ -400,7 +403,7 @@ export default function CreateOrder() {
                 <Row gutter={18}>
                   {/* Origin */}
                   <Col xs={24} sm={12}>
-                    <Form.Item label={<strong style={{ fontSize: 13 }}>Quốc gia đón</strong>}>
+                    <Form.Item label={<strong style={{ fontSize: 14 }}>Quốc gia đón</strong>}>
                       <Select
                         aria-label="Quốc gia đón"
                         value={originCountry}
@@ -417,7 +420,7 @@ export default function CreateOrder() {
                     </Form.Item>
 
                     <Form.Item
-                      label={<strong style={{ fontSize: 13, color: '#0f172a' }}>Điểm đón *</strong>}
+                      label={<strong style={{ fontSize: 14, color: '#0f172a' }}>Điểm đón *</strong>}
                       required
                     >
                       <Select
@@ -440,7 +443,7 @@ export default function CreateOrder() {
 
                   {/* Destination */}
                   <Col xs={24} sm={12}>
-                    <Form.Item label={<strong style={{ fontSize: 13 }}>Quốc gia trả</strong>}>
+                    <Form.Item label={<strong style={{ fontSize: 14 }}>Quốc gia trả</strong>}>
                       <Select
                         aria-label="Quốc gia trả"
                         value={destinationCountry}
@@ -457,7 +460,7 @@ export default function CreateOrder() {
                     </Form.Item>
 
                     <Form.Item
-                      label={<strong style={{ fontSize: 13, color: '#0f172a' }}>Điểm trả *</strong>}
+                      label={<strong style={{ fontSize: 14, color: '#0f172a' }}>Điểm trả *</strong>}
                       required
                     >
                       <Select
@@ -505,13 +508,13 @@ export default function CreateOrder() {
                   loading={loading}
                   onClick={load}
                   size="small"
-                  style={{ borderRadius: 6, fontSize: 12 }}
+                  style={{ borderRadius: 6, fontSize: 13 }}
                 >
                   Tải lại lịch
                 </Button>
               </div>
 
-              <p style={{ marginTop: 0, color: '#64748b', fontSize: 13 }}>
+              <p style={{ marginTop: 0, color: '#64748b', fontSize: 14 }}>
                 Chọn khung giờ và ngày khởi hành (tối thiểu trước {catalog?.minNoticeHours || 24}h để làm thủ tục hải quan và kiểm dịch).
               </p>
 
@@ -578,12 +581,12 @@ export default function CreateOrder() {
                   <PackageCheck size={18} color="#243c32" />
                   Chọn ngựa vận chuyển
                 </h2>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>
                   {horseIds.length}/{horses.length} con ngựa đã chọn
                 </span>
               </div>
 
-              <p style={{ marginTop: 0, color: '#64748b', fontSize: 13 }}>
+              <p style={{ marginTop: 0, color: '#64748b', fontSize: 14 }}>
                 Chỉ những ngựa đã hoàn tất hồ sơ kiểm dịch và đang ở cùng điểm đón mới đủ điều kiện xuất phát.
               </p>
 
@@ -630,8 +633,8 @@ export default function CreateOrder() {
                             }}
                           />
                           <div>
-                            <strong style={{ fontSize: 15, color: '#0f172a' }}>{horse.name}</strong>
-                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                            <strong style={{ fontSize: 16, color: '#0f172a' }}>{horse.name}</strong>
+                            <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
                               Microchip: <strong>{horse.microchipId || 'Chưa gắn chip'}</strong>
                               {horse.breed ? ` · Giống: ${horse.breed}` : ''}
                             </div>
@@ -658,7 +661,7 @@ export default function CreateOrder() {
 
               {/* Special care notes */}
               <Form layout="vertical" style={{ marginTop: 20 }}>
-                <Form.Item label={<strong style={{ fontSize: 13 }}>Yêu cầu chăm sóc đặc biệt</strong>}>
+                <Form.Item label={<strong style={{ fontSize: 14 }}>Yêu cầu chăm sóc đặc biệt</strong>}>
                   <Input.TextArea
                     aria-label="Yêu cầu chăm sóc đặc biệt"
                     value={notes}
@@ -682,7 +685,7 @@ export default function CreateOrder() {
                 </h2>
               </div>
 
-              <p style={{ marginTop: 0, color: '#64748b', fontSize: 13 }}>
+              <p style={{ marginTop: 0, color: '#64748b', fontSize: 14 }}>
                 Giá cước đã bao gồm chăm sóc cơ bản. Bạn có thể chọn thêm các gói phục vụ cao cấp:
               </p>
 
@@ -717,14 +720,14 @@ export default function CreateOrder() {
                               );
                             }}
                           />
-                          <strong style={{ fontSize: 14, color: '#0f172a' }}>{item.name}</strong>
+                          <strong style={{ fontSize: 15, color: '#0f172a' }}>{item.name}</strong>
                         </div>
                         <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>
                           {formatVnd(item.unitPriceVnd)} {item.pricingMode === 'PER_HORSE' ? '/ ngựa' : '/ đơn'}
                         </Tag>
                       </div>
 
-                      <div style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0 28px' }}>
+                      <div style={{ color: '#64748b', fontSize: 14, margin: '8px 0 0 28px' }}>
                         {item.description}
                         {horseIds.length > 1 && item.pricingMode === 'PER_HORSE' && isSelected ? (
                           <span style={{ color: '#243c32', fontWeight: 600 }}>
@@ -763,13 +766,13 @@ export default function CreateOrder() {
                 <div className="summary-field-label" style={{ color: departure ? '#15803d' : '#64748b' }}>
                   Khởi hành theo lịch
                 </div>
-                <div style={{ fontWeight: 700, marginTop: 4, fontSize: 14, color: departure ? '#166534' : '#64748b' }}>
+                <div style={{ fontWeight: 700, marginTop: 4, fontSize: 15, color: departure ? '#166534' : '#64748b' }}>
                   {departure
                     ? `${departure.departureLocalTime} · ${dateLabel(departure.departureLocalDate)}`
                     : 'Chưa chọn chuyến khởi hành'}
                 </div>
                 {departure && origin && (
-                  <div style={{ fontSize: 11, color: '#15803d', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#15803d', marginTop: 2 }}>
                     Giờ tại {origin.name} (UTC{origin.utcOffset})
                   </div>
                 )}
@@ -778,7 +781,7 @@ export default function CreateOrder() {
               {/* Selected Horses */}
               <div style={{ margin: '14px 0' }}>
                 <div className="summary-field-label">Chiến mã vận chuyển</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
                   {horseIds.length > 0 ? (
                     <span>
                       {horseIds.length} con ngựa:{' '}
@@ -795,7 +798,7 @@ export default function CreateOrder() {
               <Divider style={{ margin: '14px 0' }} />
 
               {/* Price Breakdown */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748b' }}>
                     Giá tuyến ({horseIds.length} ngựa):
@@ -811,7 +814,7 @@ export default function CreateOrder() {
                 {departure && horseIds.length > 0 && selectedAddOns.map((item) => (
                   <div
                     key={item.id}
-                    style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: 12 }}
+                    style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: 13 }}
                   >
                     <span>+ {item.name}</span>
                     <span>{formatVnd(item.unitPriceVnd * (item.pricingMode === 'PER_HORSE' ? horseIds.length : 1))}</span>
@@ -821,23 +824,23 @@ export default function CreateOrder() {
 
               {/* Total Box */}
               <div className="summary-total-box">
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Tổng cộng</span>
-                <strong style={{ fontSize: 18, color: '#0f172a' }}>{formatVnd(totalAmountVnd)}</strong>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Tổng cộng</span>
+                <strong style={{ fontSize: 19, color: '#0f172a' }}>{formatVnd(totalAmountVnd)}</strong>
               </div>
 
               {/* Deposit Box */}
               <div className="summary-deposit-box">
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#c2410c' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#c2410c' }}>
                     Đặt cọc {depositPercent}%
                   </span>
-                  <div style={{ fontSize: 11, color: '#243c32' }}>Thanh toán giữ chỗ</div>
+                  <div style={{ fontSize: 12, color: '#243c32' }}>Thanh toán giữ chỗ</div>
                 </div>
-                <strong style={{ fontSize: 18, color: '#c2410c' }}>{formatVnd(depositAmountVnd)}</strong>
+                <strong style={{ fontSize: 19, color: '#c2410c' }}>{formatVnd(depositAmountVnd)}</strong>
               </div>
 
               {/* Policy note */}
-              <p style={{ color: '#64748b', fontSize: 12, margin: '14px 0 0', lineHeight: 1.5 }}>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '14px 0 0', lineHeight: 1.5 }}>
                 Sau khi tạo đơn, bạn có <strong>{catalog?.depositPolicy?.windowMinutes || 30} phút</strong> để đặt cọc. Đơn chỉ được chuyển trạng thái thẩm định khi đã hoàn tất đặt cọc.
               </p>
 

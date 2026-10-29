@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Form, Image, Input, InputNumber, Popconfirm, Row, Select, Space, Spin, Upload, message } from 'antd';
 import { Trash2, UploadCloud } from 'lucide-react';
+import { isHorseAtLeastOneYearOld } from '../../utils/customerBooking';
 import { horseApi } from '../../services/horseApi';
 import { transportScheduleApi } from '../../services/transportScheduleApi';
 import { MAX_SOURCE_IMAGE_BYTES, compressHorseImage } from '../../utils/imageCompression';
@@ -197,7 +198,7 @@ export default function HorseProfileForm({ horse, onSave, saving }) {
         <Col xs={24} md={12}><Form.Item name="microchipId" label="Mã vi chip (Microchip ID)" rules={[...required, { pattern: /^[A-Za-z0-9]{10,18}$/, message: 'Nhập 10–18 ký tự chữ hoặc số.' }]}><Input maxLength={18} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="breed" label="Giống ngựa" rules={required}><Select options={['Thoroughbred', 'Arabian', 'Warmblood', 'Quarter Horse', 'Khác'].map((value) => ({ value, label: value }))} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="gender" label="Giới tính" rules={required}><Select options={[{ value: 'STALLION', label: 'Đực (Stallion)' }, { value: 'MARE', label: 'Cái (Mare)' }, { value: 'GELDING', label: 'Thiến (Gelding)' }]} /></Form.Item></Col>
-        <Col xs={24} md={12}><Form.Item name="dateOfBirth" label="Ngày sinh (dùng tính tuổi)" rules={required}><Input type="date" max={today()} /></Form.Item></Col>
+        <Col xs={24} md={12}><Form.Item name="dateOfBirth" label="Ngày sinh (dùng tính tuổi)" rules={[...required, { validator: (_, value) => !value || isHorseAtLeastOneYearOld(value) ? Promise.resolve() : Promise.reject(new Error('Ngựa phải đủ 1 năm tuổi.')) }]}><Input type="date" max={today()} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="weightKg" label="Trọng lượng (kg)" rules={[{ required: true, type: 'number', min: 0.1, message: 'Nhập cân nặng lớn hơn 0.' }]}><InputNumber min={0.1} style={{ width: '100%' }} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="color" label="Màu sắc lông chính" rules={required}><Select options={['Nâu đỏ (Bay)', 'Hạt dẻ (Chestnut)', 'Đen (Black)', 'Xám (Grey)', 'Trắng (White)', 'Khác'].map((value) => ({ value, label: value }))} /></Form.Item></Col>
         <Col xs={24} md={12}><Form.Item name="currentStopId" label="Địa điểm hiện tại của ngựa" extra="Ngựa chỉ được đặt chuyến có điểm đón trùng địa điểm này." rules={required}><Select loading={!stops.length && !stopError} options={stopOptions} placeholder="Chọn điểm tập kết hiện tại" /></Form.Item></Col>

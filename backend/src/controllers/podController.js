@@ -63,6 +63,7 @@ exports.signPOD = async (req, res, next) => {
     const existingPOD = await DigitalPOD.findOne({ tripId });
     if (existingPOD) {
       await finishDelivery(route, deliveryOrder);
+      await require('../services/notifications').orderEvent('POD_SIGNED', route.orderId, existingPOD._id);
       return res.json({ success: true, isDuplicate: true, data: existingPOD });
     }
     if (!Array.isArray(horseConditionsOnArrival) || horseConditionsOnArrival.length !== deliveryOrder.horseIds.length || new Set(horseConditionsOnArrival.map(h => String(h.horseId))).size !== deliveryOrder.horseIds.length || !deliveryOrder.horseIds.every(h => horseConditionsOnArrival.some(c => String(c.horseId) === String(h)))) return res.status(400).json({ success: false, message: 'Cần xác nhận tình trạng của từng ngựa trong đơn.' });
@@ -85,6 +86,7 @@ exports.signPOD = async (req, res, next) => {
     });
 
     await finishDelivery(route, deliveryOrder);
+    await require('../services/notifications').orderEvent('POD_SIGNED', route.orderId, pod._id);
 
     await logAudit({
       actorId: req.user._id,

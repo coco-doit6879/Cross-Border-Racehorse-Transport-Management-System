@@ -11,7 +11,7 @@ const routes = require('./routes');
 const { errorHandler } = require('./middlewares/errorMiddleware');
 
 const socketAuthMiddleware = require('./socket/socketAuth');
-const gpsSocketHandler = require('./socket/gpsSocket');
+const tripSocketHandler = require('./socket/tripSocket');
 const sosSocketHandler = require('./socket/sosSocket');
 
 const app = express();
@@ -25,6 +25,7 @@ const io = new Server(server, {
   }
 });
 app.set('io', io);
+require('./services/notifications').setIO(io);
 
 // Socket.io JWT Authentication Middleware
 io.use(socketAuthMiddleware);
@@ -61,9 +62,10 @@ app.use(errorHandler);
 
 // Socket.io Connection Event
 io.on('connection', (socket) => {
+  socket.join(`user_${socket.user._id}`);
   console.log(`Socket connected: ${socket.id} (User: ${socket.user ? socket.user.username : 'Unknown'})`);
 
-  gpsSocketHandler(io, socket);
+  tripSocketHandler(io, socket);
   sosSocketHandler(io, socket);
 
   socket.on('disconnect', () => {

@@ -1,6 +1,4 @@
 const TransportRoute = require('../models/TransportRoute');
-const Order = require('../models/Order');
-const { processRouteDeviation } = require('../services/routeDeviationService');
 const { logAudit } = require('../utils/auditLogger');
 
 module.exports = (io, socket) => {
@@ -67,10 +65,4 @@ module.exports = (io, socket) => {
 
   socket.on('join_trip', handleJoinTripRoom);
   socket.on('leave_trip', data=>{if(/^[a-f0-9]{24}$/i.test(String(data?.tripId||'')))socket.leave(`trip_${data.tripId}`);});
-  socket.on('gps:join_room', handleJoinTripRoom);
-
-  /**
-   * Real-time GPS Update Event (trip:operate permission required)
-   */
-  socket.on('gps:update', (data, callback) => { if (typeof callback === 'function') callback({ success: false, message: 'Hành trình được cập nhật bằng check-in điểm dừng.' }); });
 };

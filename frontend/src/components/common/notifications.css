@@ -1,0 +1,6 @@
+.notification-trigger{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid #dbe5df;border-radius:50%;background:#fff;color:#214b3b;cursor:pointer;flex-shrink:0}
+.notification-inbox{width:min(390px,calc(100vw - 48px));color:#22382c}
+.notification-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 12px;border-bottom:1px solid #e6ece8}
+.notification-list{max-height:min(520px,65vh);overflow-y:auto}
+.notification-inbox .notification-item{display:flex;flex-direction:column;gap:7px;width:100%;padding:15px 12px;border:0;border-bottom:1px solid #e6ece8;border-radius:0;background:#fff;text-align:left;cursor:pointer;white-space:normal;line-height:1.5;color:#233c2f}
+.notification-item.unread{background:#edf6f0}.notification-item.urgent{border-left:3px solid #c33a3a}.notification-item:hover{background:#e4efe8}.notification-item span{font-size:14px}.notification-item small{font-size:12px;color:#687a70}.notification-empty{padding:24px 12px;color:#687a70}.notification-trigger:focus-visible,.notification-item:focus-visible{outline:2px solid #25734e;outline-offset:2px}

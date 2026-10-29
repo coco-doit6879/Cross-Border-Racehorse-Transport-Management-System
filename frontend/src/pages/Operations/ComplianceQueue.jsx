@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Input, Skeleton } from 'antd';
+import { Alert, Button, Input, Skeleton, Tabs } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { orderApi } from '../../services/orderApi';
+import CustomsClearance from '../../components/operations/CustomsClearance';
 import ComplianceDocuments from '../../components/operations/ComplianceDocuments';
 import { Workspace, Metrics, DataPanel, StatusPill } from '../../components/operations/OperationsUI';
 
@@ -15,7 +16,7 @@ export default function ComplianceQueue() {
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
     setLoading(true); setError('');
-    try { setOrders((await orderApi.getOrders()).data.data.filter(o => ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT'].includes(o.status))); }
+    try { setOrders((await orderApi.getOrders()).data.data.filter(o => ['APPROVED', 'DOCS_PROCESSING', 'CLEARED_FOR_TRANSPORT', 'IN_TRANSIT', 'INCIDENT_HANDLING', 'DELIVERING'].includes(o.status))); }
     catch (err) { setError(err.response?.data?.message || 'Không thể tải danh sách đơn vận chuyển.'); }
     finally { setLoading(false); }
   }, []);
@@ -41,7 +42,10 @@ export default function ComplianceQueue() {
           <DataPanel title={selected.bookingCode} extra={<StatusPill value={selected.status} />}>
             <dl className="ops-facts"><div><dt>Chủ hàng</dt><dd>{selected.customerId?.fullName || 'Chưa cập nhật'}</dd></div><div><dt>Ngựa vận chuyển</dt><dd>{selected.horseIds?.map(h => h.name).join(', ') || 'Chưa cập nhật'}</dd></div><div><dt>Điểm đón</dt><dd>{selected.origin?.address || 'Chưa cập nhật'}</dd></div><div><dt>Điểm giao</dt><dd>{selected.destination?.address || 'Chưa cập nhật'}</dd></div></dl>
           </DataPanel>
-          <ComplianceDocuments key={selected._id} orderId={selected._id} specialist onChanged={load} />
+          <Tabs key={selected._id} defaultActiveKey={['IN_TRANSIT','INCIDENT_HANDLING','DELIVERING'].includes(selected.status)?'border':'departure'} items={[
+            {key:'departure',label:'1. Giấy tờ & khởi hành',children:<ComplianceDocuments orderId={selected._id} specialist onChanged={load} />},
+            {key:'border',label:'2. Kết quả tại cửa khẩu',children:<CustomsClearance orderId={selected._id} />},
+          ]} />
         </> : <DataPanel title="Không gian thẩm định"><p className="ops-empty">{orderId && !loading ? 'Đơn này không còn trong hàng đợi. Chọn một đơn khác để tiếp tục.' : 'Chọn đơn ở danh sách để xem và xử lý chứng từ.'}</p></DataPanel>}
       </div>
     </div>

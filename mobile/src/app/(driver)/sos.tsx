@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/context/session';
@@ -31,12 +31,12 @@ export default function SosScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}><Pressable onPress={() => router.back()}><Text style={styles.back}>‹</Text></Pressable><Text style={styles.headerTitle}>Báo sự cố</Text></View>
-      <View style={styles.content}><View style={styles.icon}><Text style={styles.iconText}>!</Text></View><Text style={styles.title}>SOS khẩn cấp</Text><Text style={styles.subtitle}>Chuyến {code || tripId}</Text><Text style={styles.help}>Điểm check-in gần nhất và mô tả sẽ được gửi tới trung tâm điều phối.</Text>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <View style={styles.header}><Pressable accessibilityRole="button" accessibilityLabel="Quay lại" style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }} onPress={() => router.back()}><Text style={styles.back}>‹</Text></Pressable><Text style={styles.headerTitle}>Báo sự cố</Text></View>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}><View style={styles.icon}><Text style={styles.iconText}>!</Text></View><Text style={styles.title}>SOS khẩn cấp</Text><Text style={styles.subtitle}>Chuyến {code || tripId}</Text><Text style={styles.help}>Điểm check-in gần nhất và mô tả sẽ được gửi tới trung tâm điều phối.</Text>
         <Text style={styles.label}>Mô tả tình trạng</Text><TextInput value={description} onChangeText={setDescription} multiline style={styles.input} placeholder="Ví dụ: xe gặp sự cố, ngựa có dấu hiệu bất thường…" textAlignVertical="top" />
         <Pressable disabled={submitting} style={[styles.button, submitting && { opacity: 0.6 }]} onPress={send}>{submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Gửi SOS ngay</Text>}</Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

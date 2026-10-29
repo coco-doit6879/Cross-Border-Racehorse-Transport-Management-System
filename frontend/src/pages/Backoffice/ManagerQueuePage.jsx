@@ -8,6 +8,7 @@ import {date,datetime,idOf,readyForQuote,routeLabel} from './planningUtils';
 export default function ManagerQueuePage({mode='intake'}){
  const {data,loading,error,load}=usePlanning(),[params]=useSearchParams(),[query,setQuery]=useState(params.get('q')||''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[tab,setTab]=useState('pending'),[selectedId,setSelectedId]=useState(null);
  useEffect(()=>{setTab('pending');setSelectedId(null);},[mode]);useEffect(()=>{setQuery(params.get('q')||'');},[params]);
+ useEffect(()=>{const target=params.get('orderId'); if(target)setSelectedId(target);},[params,mode]);
  const quote=mode==='quote',orders=data.orders.filter(o=>!['CANCELLED','REJECTED','COMPLETED'].includes(o.status));
  const pending=quote?orders.filter(o=>readyForQuote(o)):orders.filter(o=>o.status==='PENDING_APPROVAL'&&o.depositStatus==='PAID');
  const done=quote?orders.filter(o=>o.preparation?.assignedAt):orders.filter(o=>['APPROVED','DOCS_PROCESSING','CLEARED_FOR_TRANSPORT'].includes(o.status));

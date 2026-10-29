@@ -22,7 +22,7 @@ function HorseDetailModal({horseId,open,onClose}){
    .finally(()=>{if(active)setLoading(false);});
   return()=>{active=false;};
  },[open,horseId]);
- return <Modal open={open} onCancel={onClose} width={880} centered destroyOnClose title={<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingRight:24}}><span>{horse?`Hồ sơ ngựa: ${horse.name}`:'Chi tiết hồ sơ ngựa'}</span>{horseId&&<a href={`/horses/${horseId}`} target="_blank" rel="noreferrer" style={{fontSize:13,fontWeight:'normal',display:'inline-flex',alignItems:'center',gap:4}}><ExternalLink size={13}/> Mở tab riêng</a>}</div>} footer={<Button onClick={onClose}>Đóng</Button>}>
+ return <Modal open={open} onCancel={onClose} width={880} centered destroyOnClose title={<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingRight:24}}><span>{horse?`Hồ sơ ngựa: ${horse.name}`:'Chi tiết hồ sơ ngựa'}</span>{horseId&&<a href={`/horses/${horseId}`} target="_blank" rel="noreferrer" style={{fontSize:14,fontWeight:'normal',display:'inline-flex',alignItems:'center',gap:4}}><ExternalLink size={13}/> Mở tab riêng</a>}</div>} footer={<Button onClick={onClose}>Đóng</Button>}>
   {loading?<div style={{textAlign:'center',padding:'50px 0'}}><Spin size="large"/></div>:error?<Alert type="error" message={error}/>:horse?<div style={{display:'flex',flexDirection:'column',gap:16}}>
    <Card size="small" title="Trạng thái kiểm duyệt">
     <Tag color={reviewColors[horse.reviewStatus]||'default'}>{reviewLabels[horse.reviewStatus]||horse.reviewStatus}</Tag>

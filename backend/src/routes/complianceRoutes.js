@@ -31,6 +31,7 @@ router.get('/', protect, checkPermission('compliance:review'), complianceControl
  *       200:
  *         description: Compliance checklist & clearance status
  */
+router.post('/checklist/:orderId/confirm-departure', protect, checkPermission('compliance:review'), requests.confirmDeparture);
 router.get('/checklist/:orderId', protect, requests.checklist);
 router.get('/:id/file', protect, requests.file);
 router.post('/requests', protect, checkPermission('compliance:review'), requests.request);

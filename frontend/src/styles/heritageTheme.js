@@ -15,7 +15,7 @@ export const heritageTheme = {
     borderRadius: 5,
     controlHeight: 44,
     fontFamily: '"Be Vietnam Pro", "Segoe UI", sans-serif',
-    fontSize: 14
+    fontSize: 15
   },
   components: {
     Button: {

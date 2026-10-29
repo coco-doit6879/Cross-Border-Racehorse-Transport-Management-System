@@ -35,10 +35,10 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
               Yêu cầu ngoại lệ & khiếu nại ({requests.length})
             </span>
-            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 400 }}>
+            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 400 }}>
               Hỗ trợ xử lý hoàn tiền, bồi thường hoặc thay đổi điểm giao nhận
             </div>
           </div>
@@ -46,7 +46,7 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
             <Button
               size="small"
               onClick={() => setShowCreateForm(true)}
-              style={{ fontSize: 12 }}
+              style={{ fontSize: 13 }}
             >
               Tạo yêu cầu mới
             </Button>
@@ -67,9 +67,9 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
               render: (_, x) => (
                 <div>
                   <strong style={{ color: '#0F172A' }}>{labels[x.kind]}</strong>
-                  <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>{x.reason}</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>Chứng từ: {x.evidence}</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#0F3E2E', marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>{x.reason}</div>
+                  <div style={{ fontSize: 12, color: '#64748B' }}>Chứng từ: {x.evidence}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0F3E2E', marginTop: 2 }}>
                     {x.kind === 'DESTINATION_CHANGE' ? x.proposedDestination : `${x.amountVnd?.toLocaleString('vi-VN')} VND`}
                   </div>
                 </div>
@@ -93,8 +93,8 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
                       EXECUTED: 'Đã thực hiện'
                     })[x.status] || x.status}
                   </Tag>
-                  {x.decisionReason && <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{x.decisionReason}</div>}
-                  {x.executionReference && <div style={{ fontSize: 11, color: '#64748B' }}>{x.executionReference}</div>}
+                  {x.decisionReason && <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{x.decisionReason}</div>}
+                  {x.executionReference && <div style={{ fontSize: 12, color: '#64748B' }}>{x.executionReference}</div>}
 
                   {manager && x.status === 'APPROVED' && (
                     <Space direction="vertical" style={{ marginTop: 6 }}>
@@ -157,7 +157,7 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
         />
       ) : (
         !showCreateForm && (
-          <div style={{ color: '#64748B', fontSize: 13, padding: '4px 0' }}>
+          <div style={{ color: '#64748B', fontSize: 14, padding: '4px 0' }}>
             Không có yêu cầu ngoại lệ hoặc khiếu nại cho đơn hàng này.
           </div>
         )
@@ -166,11 +166,11 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
       {(showCreateForm || manager) && (
         <div style={{ marginTop: requests.length > 0 ? 16 : 0, background: '#F8FAFC', padding: 14, borderRadius: 8, border: '1px solid #E2E8F0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
               Tạo yêu cầu ngoại lệ mới
             </span>
             {!manager && (
-              <Button size="small" type="text" onClick={() => setShowCreateForm(false)} style={{ fontSize: 12 }}>
+              <Button size="small" type="text" onClick={() => setShowCreateForm(false)} style={{ fontSize: 13 }}>
                 Đóng form
               </Button>
             )}
@@ -185,12 +185,12 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
             }}
           >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-              <Form.Item name="kind" label={<span style={{ fontSize: 12 }}>Loại yêu cầu</span>} rules={[{ required: true }]}>
+              <Form.Item name="kind" label={<span style={{ fontSize: 13 }}>Loại yêu cầu</span>} rules={[{ required: true }]}>
                 <Select onChange={setKind} options={Object.entries(labels).map(([value, label]) => ({ value, label }))} />
               </Form.Item>
 
               {kind === 'DESTINATION_CHANGE' ? (
-                <Form.Item name="proposedStopId" label={<span style={{ fontSize: 12 }}>Điểm giao đề xuất</span>} rules={[{ required: true }]}>
+                <Form.Item name="proposedStopId" label={<span style={{ fontSize: 13 }}>Điểm giao đề xuất</span>} rules={[{ required: true }]}>
                   <Select
                     options={destinationOptions
                       .filter((s) => s.id !== order.destinationStopId)
@@ -198,17 +198,17 @@ export default function ExceptionRequests({ order, manager, busy, act, recover, 
                   />
                 </Form.Item>
               ) : (
-                <Form.Item name="amountVnd" label={<span style={{ fontSize: 12 }}>Số tiền đề nghị (VND)</span>} rules={[{ required: true }]}>
+                <Form.Item name="amountVnd" label={<span style={{ fontSize: 13 }}>Số tiền đề nghị (VND)</span>} rules={[{ required: true }]}>
                   <InputNumber style={{ width: '100%' }} min={1} max={Number.MAX_SAFE_INTEGER} precision={0} placeholder="Ví dụ: 2000000" />
                 </Form.Item>
               )}
             </div>
 
-            <Form.Item name="reason" label={<span style={{ fontSize: 12 }}>Lý do yêu cầu</span>} rules={[{ required: true, whitespace: true }]}>
+            <Form.Item name="reason" label={<span style={{ fontSize: 13 }}>Lý do yêu cầu</span>} rules={[{ required: true, whitespace: true }]}>
               <Input.TextArea rows={2} maxLength={2000} placeholder="Mô tả chi tiết lý do..." />
             </Form.Item>
 
-            <Form.Item name="evidence" label={<span style={{ fontSize: 12 }}>Mã chứng từ / bằng chứng đối chiếu</span>} rules={[{ required: true, whitespace: true }]}>
+            <Form.Item name="evidence" label={<span style={{ fontSize: 13 }}>Mã chứng từ / bằng chứng đối chiếu</span>} rules={[{ required: true, whitespace: true }]}>
               <Input maxLength={2000} placeholder="Số hóa đơn, ảnh hiện trường hoặc biên bản liên quan" />
             </Form.Item>
 

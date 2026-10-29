@@ -142,10 +142,10 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
       }}
       title={
         <div style={{ padding: '4px 0' }}>
-          <Title level={5} style={{ margin: 0, color: '#0F172A', fontSize: 16, fontWeight: 700 }}>
+          <Title level={5} style={{ margin: 0, color: '#0F172A', fontSize: 17, fontWeight: 700 }}>
             Biên bản bàn giao & nghiệm thu tại điểm đến (POD)
           </Title>
-          <Text type="secondary" style={{ fontSize: 13, color: '#64748B' }}>
+          <Text type="secondary" style={{ fontSize: 14, color: '#64748B' }}>
             Biên bản kiểm tra thể trạng ngựa và ký nhận bàn giao tại chuồng nuôi đích
           </Text>
         </div>
@@ -163,24 +163,24 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           <div>
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', color: '#64748B' }}>
+            <Text type="secondary" style={{ fontSize: 13, display: 'block', color: '#64748B' }}>
               Người gửi (Chủ ngựa):
             </Text>
-            <Text strong style={{ fontSize: 14, color: '#0F172A' }}>
+            <Text strong style={{ fontSize: 15, color: '#0F172A' }}>
               {order.customerId?.fullName || 'Edward Customer'}
             </Text>
-            <div style={{ fontSize: 12, color: '#64748B' }}>
+            <div style={{ fontSize: 13, color: '#64748B' }}>
               {order.origin?.address || 'TP. Hồ Chí Minh, Việt Nam'}
             </div>
           </div>
           <div>
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', color: '#64748B' }}>
+            <Text type="secondary" style={{ fontSize: 13, display: 'block', color: '#64748B' }}>
               Điểm đến bàn giao:
             </Text>
-            <Text strong style={{ fontSize: 14, color: '#0F172A' }}>
+            <Text strong style={{ fontSize: 15, color: '#0F172A' }}>
               {order.destination?.address || 'Trường đua Quốc tế / Điểm giao đích'}
             </Text>
-            <div style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>
+            <div style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>
               Xe đã đỗ tại chuồng đích · Ngựa đã xuống xe
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
         {/* Recipient role */}
         <Form.Item
           name="signerRole"
-          label={<span style={{ fontWeight: 600, fontSize: 13, color: '#0F172A' }}>Bên tiếp nhận và ký biên bản tại điểm giao:</span>}
+          label={<span style={{ fontWeight: 600, fontSize: 14, color: '#0F172A' }}>Bên tiếp nhận và ký biên bản tại điểm giao:</span>}
           rules={[{ required: true }]}
         >
           <Radio.Group onChange={(e) => handleRoleChange(e.target.value)} style={{ width: '100%' }}>
@@ -200,7 +200,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               {Object.entries(PRESETS).map(([key, item]) => (
                 <Radio key={key} value={key} style={{ padding: '6px 0' }}>
                   <Text strong style={{ color: '#0F172A' }}>{item.label}</Text>
-                  <span style={{ fontSize: 12, color: '#64748B', marginLeft: 8 }}>
+                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>
                     — {item.desc}
                   </span>
                 </Radio>
@@ -212,7 +212,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
           <Form.Item
             name="name"
-            label={<span style={{ fontSize: 13, fontWeight: 500 }}>Họ tên người nhận tại đích</span>}
+            label={<span style={{ fontSize: 14, fontWeight: 500 }}>Họ tên người nhận tại đích</span>}
             rules={[{ required: true, whitespace: true, message: 'Nhập họ tên người nhận' }]}
           >
             <Input maxLength={120} placeholder="Ví dụ: Sokha Kem" style={{ height: 40 }} />
@@ -220,7 +220,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
 
           <Form.Item
             name="phone"
-            label={<span style={{ fontSize: 13, fontWeight: 500 }}>Số điện thoại người nhận</span>}
+            label={<span style={{ fontSize: 14, fontWeight: 500 }}>Số điện thoại người nhận</span>}
             rules={[
               { required: true, message: 'Nhập số điện thoại' },
               { pattern: /^[+\d\s()-]{8,25}$/, message: 'Số điện thoại không hợp lệ' }
@@ -232,7 +232,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
 
         {/* Horse conditions */}
         <div style={{ marginTop: 4, marginBottom: 16 }}>
-          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 8, color: '#0F172A' }}>
+          <Text strong style={{ fontSize: 14, display: 'block', marginBottom: 8, color: '#0F172A' }}>
             Kiểm tra thể trạng ngựa khi bàn giao:
           </Text>
           {order.horseIds.map((h) => (
@@ -258,7 +258,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                 <Form.Item
                   name={['conditions', h._id]}
-                  label={<span style={{ fontSize: 12, color: '#475569' }}>Hiện trạng</span>}
+                  label={<span style={{ fontSize: 13, color: '#475569' }}>Hiện trạng</span>}
                   rules={[{ required: true }]}
                   style={{ margin: 0 }}
                 >
@@ -273,7 +273,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
 
                 <Form.Item
                   name={['notes', h._id]}
-                  label={<span style={{ fontSize: 12, color: '#475569' }}>Ghi chú kiểm tra</span>}
+                  label={<span style={{ fontSize: 13, color: '#475569' }}>Ghi chú kiểm tra</span>}
                   style={{ margin: 0 }}
                 >
                   <Input placeholder="Không có dấu hiệu bất thường" maxLength={200} />
@@ -286,14 +286,14 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
         {/* Signature Canvas */}
         <div style={{ marginTop: 8, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontWeight: 600, fontSize: 13, color: '#0F172A' }}>
+            <span style={{ fontWeight: 600, fontSize: 14, color: '#0F172A' }}>
               Chữ ký điện tử của người nhận:
             </span>
             <Space>
-              <Button size="small" onClick={handleAutoSign} style={{ fontSize: 12 }}>
+              <Button size="small" onClick={handleAutoSign} style={{ fontSize: 13 }}>
                 Ký mẫu tự động
               </Button>
-              <Button size="small" onClick={handleClearSignature} style={{ fontSize: 12 }}>
+              <Button size="small" onClick={handleClearSignature} style={{ fontSize: 13 }}>
                 Xóa chữ ký
               </Button>
             </Space>
@@ -337,7 +337,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               drawing.current = false;
             }}
           />
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block', color: '#64748B' }}>
+          <Text type="secondary" style={{ fontSize: 13, marginTop: 4, display: 'block', color: '#64748B' }}>
             Ký tay trực tiếp trên khung hoặc bấm "Ký mẫu tự động".
           </Text>
         </div>
@@ -355,7 +355,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               height: 42,
               paddingLeft: 22,
               paddingRight: 22,
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 600,
               borderRadius: 6,
               width: '100%',

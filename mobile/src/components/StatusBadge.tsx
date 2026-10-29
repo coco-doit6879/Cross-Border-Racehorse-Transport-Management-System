@@ -11,4 +11,4 @@ export function StatusBadge({ status }: { status: string }) {
   const tone = status === 'COMPLETED' ? colors.success : status === 'CANCELLED' || status === 'INCIDENT_HANDLING' ? colors.danger : status === 'SCHEDULED' ? colors.warning : '#2563EB';
   return <View style={[styles.badge, { backgroundColor: `${tone}16` }]}><Text style={[styles.text, { color: tone }]}>{labels[status] || status}</Text></View>;
 }
-const styles = StyleSheet.create({ badge: { alignSelf: 'flex-start', borderRadius: 99, paddingVertical: 6, paddingHorizontal: 10 }, text: { fontSize: 12, fontWeight: '800' } });
+const styles = StyleSheet.create({ badge: { alignSelf: 'flex-start', borderRadius: 7, paddingVertical: 6, paddingHorizontal: 9 }, text: { fontSize: 11, fontWeight: '600' } });

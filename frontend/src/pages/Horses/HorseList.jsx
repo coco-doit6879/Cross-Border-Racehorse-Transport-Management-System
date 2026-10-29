@@ -20,6 +20,7 @@ import {
 import { useHorseStore } from '../../store/useHorseStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import './HorseList.css';
+import HorseIdentity from '../../components/operations/HorseIdentity';
 import HorseProfileForm, { canReviewHorse } from './HorseProfileForm';
 import { Alert } from 'antd';
 
@@ -84,7 +85,7 @@ export default function HorseList() {
           const docs = [['Ảnh nhận dạng', present(horse.photos)], ['Hộ chiếu', present(horse.passportScanUrl)], ['Sổ tiêm chủng', present(horse.vaccinationRecordUrl)]];
           return <article className="equine-card" key={horse.id}>
             <div className="equine-card-top"><span className="equine-number">HỒ SƠ {String(index + 1).padStart(2, '0')}</span><span className={'equine-status ' + (ready ? 'ready' : rejected ? 'rejected' : 'pending')}>{ready ? <CheckCircle2 size={13} /> : <Clock size={13} />}{ready ? 'Đã duyệt' : rejected ? 'Cần bổ sung' : 'Chờ thẩm định'}</span></div>
-            <h2>{horse.name}</h2><div className="equine-chip">MICROCHIP <span>{horse.microchipId || 'Chưa khai báo'}</span></div>
+            <div className="equine-card-identification"><HorseIdentity horse={horse} photoOnly /><div><h2>{horse.name}</h2><div className="equine-chip">MICROCHIP <span>{horse.microchipId || 'Chưa khai báo'}</span></div></div></div>
             <dl className="equine-identity"><div><dt>Giống ngựa</dt><dd>{horse.breed || 'Chưa khai báo'}</dd></div><div><dt>Giới tính · Tuổi</dt><dd>{({ STALLION: 'Đực', MARE: 'Cái', GELDING: 'Thiến' })[horse.gender] || 'Chưa khai báo'} · {horse.age || '—'}</dd></div><div><dt>Màu lông · Cân nặng</dt><dd>{horse.color || horse.coatColor || '—'} · {horse.weight ? horse.weight + ' kg' : '—'}</dd></div><div><dt>Hộ chiếu</dt><dd className="equine-passport">{horse.feiPassportNo || 'Chưa khai báo'}</dd></div></dl>
             <div className="equine-location"><MapPin size={17} /><div><small>Vị trí hiện tại</small><strong>{horse.currentLocationName || horse.currentStopId || 'Chưa cập nhật vị trí'}</strong></div></div>
             <div className="equine-document-heading"><span><FileCheck2 size={16} /> Giấy tờ đã nộp</span><strong>{docs.filter(([, present]) => present).length}/3</strong></div>

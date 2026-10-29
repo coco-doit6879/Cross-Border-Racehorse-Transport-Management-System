@@ -106,6 +106,7 @@ exports.triggerSOS = async (req, res, next) => {
     // SOS may arrive from an old offline queue. Never mark its position as a
     // fresh live GPS fix used for delivery authorization.
     await route.save();
+    await require('../services/notifications').orderEvent('SOS', route.orderId, incident._id, {reason:incident.description});
     const io = req.app?.get('io');
     if (io) for (const socket of io.sockets.sockets.values()) {
       if (socket.user?.effectivePermissions?.includes('sos:manage')) socket.emit('sos:alert_broadcast', { incidentId: String(incident._id), tripId: String(route._id), description: incident.description, reportedAt: incident.createdAt });
@@ -182,6 +183,7 @@ exports.updateIncidentStatus = async (req, res, next) => {
     if (emergencyCostAmount !== undefined) incident.emergencyCostAmount = emergencyCostAmount;
 
     await incident.save();
+    if (['ACKNOWLEDGED', 'RESOLVED', 'CLOSED'].includes(status)) await require('../services/notifications').acknowledgeSOS(incident._id);
 
     // If incident resolved, resume transport route to IN_TRANSIT if still in INCIDENT_HANDLING
     if (['RESOLVED', 'CLOSED'].includes(status)) {
@@ -189,6 +191,7 @@ exports.updateIncidentStatus = async (req, res, next) => {
       if (route && route.status === 'INCIDENT_HANDLING' && !(await activeIncident(route._id))) {
         route.status = route.preIncidentStatus || 'IN_TRANSIT';
         await route.save();
+        await require('../services/notifications').orderEvent('SOS_RESOLVED', route.orderId, incident._id);
       }
     }
 

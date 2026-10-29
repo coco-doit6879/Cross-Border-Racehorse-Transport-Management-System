@@ -71,7 +71,7 @@ const OrderList = () => {
               backgroundColor: '#ECFDF5',
               color: '#059669',
               border: '1px solid #A7F3D0',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               padding: '2px 8px',
               borderRadius: 6
@@ -87,7 +87,7 @@ const OrderList = () => {
               backgroundColor: '#FEF08A',
               color: '#92400E',
               border: '1px solid #FDE047',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               padding: '2px 8px',
               borderRadius: 6
@@ -103,7 +103,7 @@ const OrderList = () => {
               backgroundColor: '#EFF6FF',
               color: '#2563EB',
               border: '1px solid #BFDBFE',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               padding: '2px 8px',
               borderRadius: 6
@@ -119,7 +119,7 @@ const OrderList = () => {
               backgroundColor: '#F3F4F6',
               color: '#6B7280',
               border: '1px solid #E5E7EB',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               padding: '2px 8px',
               borderRadius: 6
@@ -135,7 +135,7 @@ const OrderList = () => {
               backgroundColor: '#FEF2F2',
               color: '#DC2626',
               border: '1px solid #FECACA',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               padding: '2px 8px',
               borderRadius: 6
@@ -155,7 +155,7 @@ const OrderList = () => {
       dataIndex: 'orderCode',
       key: 'orderCode',
       render: (text) => (
-        <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{text}</span>
+        <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{text}</span>
       )
     },
     {
@@ -176,7 +176,7 @@ const OrderList = () => {
       render: (text, record) => (
         <span>
           {text} {record.departureTime && `(${record.departureTime})`}
-          {record.departureId && <div style={{ color: '#64748b', fontSize: 11 }}>Giờ điểm đón · {record.departureTimezone}</div>}
+          {record.departureId && <div style={{ color: '#64748b', fontSize: 12 }}>Giờ điểm đón · {record.departureTimezone}</div>}
         </span>
       )
     },
@@ -246,7 +246,7 @@ const OrderList = () => {
             onClick={() => navigate(`/orders/${record.id || record._id}`)}
             style={{
               borderRadius: 6,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 500,
               borderColor: '#0F3E2E',
               color: '#0F3E2E'
@@ -277,7 +277,7 @@ const OrderList = () => {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#111827' }}>
             Danh sách Đơn vận chuyển
           </h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#6B7280' }}>
+          <p style={{ margin: '4px 0 0 0', fontSize: 14, color: '#6B7280' }}>
             Quản lý vòng đời đơn vận chuyển xuyên biên giới từ lúc đặt đơn đến khi nghiệm thu POD.
           </p>
         </div>
@@ -292,7 +292,7 @@ const OrderList = () => {
               borderColor: '#0F3E2E',
               height: 40,
               padding: '0 20px',
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 600,
               borderRadius: 8
             }}
@@ -346,7 +346,7 @@ const OrderList = () => {
           cancelText="Hủy bỏ"
           okButtonProps={{ danger: true }}
         >
-          <p style={{ fontSize: 13, color: '#4B5563', marginBottom: 12 }}>
+          <p style={{ fontSize: 14, color: '#4B5563', marginBottom: 12 }}>
             Nhập lý do từ chối đơn vận chuyển <strong>{rejectingRecord.orderCode}</strong>:
           </p>
           <Input.TextArea

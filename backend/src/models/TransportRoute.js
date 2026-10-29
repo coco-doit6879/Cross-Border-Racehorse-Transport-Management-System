@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const waypointSchema = new mongoose.Schema({
-  demoDepartedAt: Date,
+  countryCode: { type: String, uppercase: true, trim: true },
   sequence: {
     type: Number,
     required: true
@@ -41,33 +41,6 @@ const waypointSchema = new mongoose.Schema({
   }
 }, { _id: true });
 
-const routeDeviationSchema = new mongoose.Schema({
-  detectedAt: {
-    type: Date,
-    default: Date.now
-  },
-  location: {
-    type: [Number] // [lng, lat]
-  },
-  deviationDistanceKm: {
-    type: Number
-  },
-  type: {
-    type: String,
-    enum: ['ROUTE_DEVIATION', 'UNSCHEDULED_LONG_STOP'],
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['OPEN', 'ACKNOWLEDGED', 'RESOLVED'],
-    default: 'OPEN'
-  },
-  acknowledgedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }
-}, { _id: true });
-
 const currentLocationSchema = new mongoose.Schema({
   type: {
     type: String,
@@ -101,7 +74,6 @@ const assignmentHistorySchema = new mongoose.Schema({
 }, { _id: true });
 
 const transportRouteSchema = new mongoose.Schema({
-  demoSimulation: { type: Boolean, default: false },
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
@@ -136,11 +108,8 @@ const transportRouteSchema = new mongoose.Schema({
     type: currentLocationSchema,
     default: null
   },
-  routeDeviations: [routeDeviationSchema],
   assignmentNote: { type: String, trim: true },
   preIncidentStatus: { type: String, enum: ['SCHEDULED', 'IN_TRANSIT', 'DELIVERING'] },
-  stationarySince: Date,
-  stationaryCoordinates: [Number],
   plannedPath: { type: [[Number]], default: undefined },
   rescuePending: { type: Boolean, default: false },
   previousVehicleDistanceKm: { type: Number, default: 0, min: 0 },

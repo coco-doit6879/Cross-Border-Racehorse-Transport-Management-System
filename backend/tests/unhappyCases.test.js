@@ -1,31 +1,18 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { locationProblem } = require('../src/services/tripSafety');
 const Doc = require('../src/models/ComplianceDoc');
 const { stageReady } = require('../src/services/operationsWorkflow');
-const { distanceToPathKm } = require('../src/services/routeDeviationService');
 const call = async (fn, req) => {
   const res = { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
   await fn({ get: () => '', ...req }, res, error => { throw error; }); return res;
 };
 
-test('delivery rejects absent, old, future and distant GPS', () => {
-  const now = Date.now();
-  const location = { coordinates: [106, 10], updatedAt: new Date(now) };
-  assert.equal(locationProblem(location, [106, 10], now), null);
-  assert.ok(locationProblem(null, [106, 10], now));
-  assert.ok(locationProblem({ ...location, updatedAt: new Date(now - 180000) }, [106, 10], now));
-  assert.ok(locationProblem({ ...location, updatedAt: new Date(now + 60000) }, [106, 10], now));
-  assert.ok(locationProblem(location, [107, 10], now));
-});
-test('empty mandatory stage cannot be cleared', async t => {
+test('departure cannot be cleared without specialist confirmation', async t => {
   t.mock.method(Doc, 'find', async () => []);
+  t.mock.method(require('../src/models/Order'), 'findById', async () => ({}));
   assert.equal(await stageReady('order', 'DEPARTURE'), false);
 });
-test('vehicle on the planned segment is not away from its route', () => {
-  assert.equal(distanceToPathKm(0, 0.5, [[0, 0], [1, 0]]), 0);
-  assert.ok(distanceToPathKm(1, 0.5, [[0, 0], [1, 0]]) > 100);
-});
+
 test('paid callback retries order update after a partial database failure', async t => {
   const Payment = require('../src/models/PaymentTransaction');
   const Order = require('../src/models/Order');

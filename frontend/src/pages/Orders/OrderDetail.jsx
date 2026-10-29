@@ -8,6 +8,7 @@ import ComplianceDocuments from '../../components/operations/ComplianceDocuments
 import OrderOperations from '../../components/operations/OrderOperations';
 import { Workspace, StatusPill } from '../../components/operations/OperationsUI';
 import './order-detail.css';
+import api from '../../services/apiClient';
 import {ORDER_STEPS,customerOrderState} from '../../utils/customerOrders';
 
 const formatVnd = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
@@ -20,12 +21,20 @@ const OrderDetail = () => {
   const { orders, fetchOrderById, createVnpayPayment, loading, error } = useOrderStore();
   const user = useAuthStore(state => state.user);
   const [paymentOpen, setPaymentOpen] = useState(Boolean(location.state?.openPayment));
-  const [tab, setTab] = useState('overview');
-  const [visited, setVisited] = useState(['overview']);
+  const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') === 'documents' ? 'documents' : 'overview');
+  const [visited, setVisited] = useState(['overview', ...(new URLSearchParams(location.search).get('tab') === 'documents' ? ['documents'] : [])]);
+  const [pendingDocuments, setPendingDocuments] = useState(0);
   const [mapOpen, setMapOpen] = useState(false);
   const order = orders.find(o => String(o.id || o._id) === String(id) || o.orderCode === id);
   useEffect(() => { if (id) fetchOrderById(id).catch(() => {}); }, [fetchOrderById, id]);
-  useEffect(() => { setTab('overview'); setVisited(['overview']); setMapOpen(false); }, [id]);
+  useEffect(() => { const target = new URLSearchParams(location.search).get('tab') === 'documents' ? 'documents' : 'overview'; setTab(target); setVisited(['overview', target]); setMapOpen(false); }, [id, location.search]);
+  useEffect(() => {
+    if (!order?._id && !order?.id) return;
+    let active = true;
+    const load = async () => { try { const r = await api.get('/compliance/checklist/' + (order.id || order._id)); if (active) setPendingDocuments(r.data.data.filter(d => d.category === 'HORSE' && ['PENDING_UPLOAD', 'REJECTED'].includes(d.status)).length); } catch { /* Existing order error handling remains available. */ } };
+    load(); const timer = setInterval(load, 30000);
+    return () => { active = false; clearInterval(timer); };
+  }, [order?.id, order?._id]);
   const changeTab = value => { setTab(value); setVisited(current => current.includes(value) ? current : [...current, value]); };
   if (!order) return <Workspace eyebrow="Đơn vận chuyển" title="Chi tiết đơn hàng">{error ? <Alert type="error" message={error} action={<Button onClick={() => fetchOrderById(id).catch(() => {})}>Thử lại</Button>} /> : <Skeleton active />}</Workspace>;
   const needsDeposit = order.depositRequired && order.depositStatus !== 'PAID';
@@ -59,6 +68,7 @@ const OrderDetail = () => {
   const refresh = () => fetchOrderById(id).catch(() => {});
   return <div className="order-detail-shell"><Workspace eyebrow="Đơn vận chuyển" title={order.orderCode} description={order.customerName ? `Chủ hàng: ${order.customerName}` : undefined} actions={<Button onClick={() => navigate('/orders')}>Về danh sách</Button>}>
     {error && <Alert type="error" message={error} action={<Button onClick={refresh}>Thử tải lại</Button>} />}
+    {user?.role === 'CUSTOMER' && pendingDocuments > 0 && <Alert type="warning" showIcon message={'Chuyên viên yêu cầu bổ sung ' + pendingDocuments + ' hồ sơ ngựa'} description="Mở Hồ sơ để xem yêu cầu cụ thể và gửi tệp cho chuyên viên thẩm định." action={<Button onClick={() => changeTab('documents')}>Bổ sung hồ sơ</Button>} />}
     <section className="order-summary">
       <div className="order-summary-top"><StatusPill value={order.status} label={workflowState.label} /><span className="order-payment-state"><StatusPill value={order.paymentStatus} /></span></div>
       <div className="order-route"><div><span>Điểm đón</span><strong>{locationText(order.origin)}</strong></div><div><span>Điểm giao</span><strong>{locationText(order.destination)}</strong></div></div>
@@ -87,14 +97,14 @@ const OrderDetail = () => {
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}
         title={
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
             Chi phí và thanh toán
           </div>
         }
       >
         {order.pricing?.totalAmountVnd ? (
           <div style={{ maxWidth: 640 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
               <span style={{ color: '#475569' }}>
                 Giá cước tuyến: {formatVnd(order.pricing.routeBaseUnitPriceVnd)} × {order.pricing.horseCount} ngựa
               </span>
@@ -109,7 +119,7 @@ const OrderDetail = () => {
                   justifyContent: 'space-between',
                   gap: 16,
                   marginBottom: 8,
-                  fontSize: 13,
+                  fontSize: 14,
                   color: '#475569'
                 }}
               >
@@ -120,9 +130,9 @@ const OrderDetail = () => {
 
             <Divider style={{ margin: '14px 0' }} />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 17 }}>
               <strong style={{ color: '#0F172A' }}>Tổng giá trị đơn hàng</strong>
-              <strong style={{ color: '#0F3E2E', fontSize: 18 }}>
+              <strong style={{ color: '#0F3E2E', fontSize: 19 }}>
                 {formatVnd(order.pricing.totalAmountVnd)}
               </strong>
             </div>
@@ -138,7 +148,7 @@ const OrderDetail = () => {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  fontSize: 13
+                  fontSize: 14
                 }}
               >
                 <span style={{ color: '#475569' }}>Tiền cọc yêu cầu ({order.depositPercent}%)</span>
@@ -174,7 +184,7 @@ const OrderDetail = () => {
               <Tag
                 style={{
                   padding: '4px 10px',
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 600,
                   background: order.paymentStatus === 'PAID' ? '#F0FDF4' : '#FFFBEB',
                   color: order.paymentStatus === 'PAID' ? '#166534' : '#92400E',
@@ -205,13 +215,13 @@ const OrderDetail = () => {
             </div>
 
             {order.paymentStatus === 'PAID' && (
-              <div style={{ color: '#64748B', fontSize: 12, marginTop: 10 }}>
+              <div style={{ color: '#64748B', fontSize: 13, marginTop: 10 }}>
                 Mã tham chiếu: {order.paymentReference} · {order.paidAt ? new Date(order.paidAt).toLocaleString('vi-VN') : ''}
               </div>
             )}
           </div>
         ) : (
-          <div style={{ color: '#64748B', fontSize: 13 }}>
+          <div style={{ color: '#64748B', fontSize: 14 }}>
             Đơn hàng chưa có bảng giá chi tiết. Vui lòng liên hệ bộ phận điều hành CBRT.
           </div>
         )}
@@ -231,11 +241,11 @@ const OrderDetail = () => {
         cancelText="Đóng"
         okButtonProps={{ style: { background: '#0F3E2E', borderColor: '#0F3E2E' } }}
       >
-        <div style={{ padding: '8px 0', fontSize: 14 }}>
+        <div style={{ padding: '8px 0', fontSize: 15 }}>
           <div style={{ marginBottom: 12 }}>
-            Số tiền thanh toán: <strong style={{ color: '#0F3E2E', fontSize: 16 }}>{formatVnd(paymentAmount)}</strong>
+            Số tiền thanh toán: <strong style={{ color: '#0F3E2E', fontSize: 17 }}>{formatVnd(paymentAmount)}</strong>
           </div>
-          <div style={{ color: '#64748B', fontSize: 13, lineHeight: 1.5 }}>
+          <div style={{ color: '#64748B', fontSize: 14, lineHeight: 1.5 }}>
             Bạn sẽ được chuyển hướng an toàn sang cổng thanh toán VNPAY để chọn phương thức QR ngân hàng (VietQR), thẻ ATM nội địa hoặc thẻ quốc tế (Visa/Mastercard).
           </div>
         </div>

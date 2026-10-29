@@ -1,0 +1,14 @@
+.compliance-clarity .ant-card-head-title { white-space: normal; padding-block: 16px; }
+.compliance-subtitle { font-size: 13px; font-weight: 400; color: #58665f; line-height: 1.6; margin-top: 4px; }
+.compliance-state { display: flex; align-items: flex-start; gap: 14px; padding: 18px; margin-bottom: 16px; border: 1px solid #d7e2db; border-radius: 12px; background: #f4f7f5; color: #243c32; }
+.compliance-state.is-complete { background: #edf7ef; border-color: #c3ddca; }
+.compliance-state strong { display: block; font-size: 15px; line-height: 1.6; color: #243c32; }
+.compliance-state p { margin: 5px 0 0; font-size: 13px; line-height: 1.7; color: #4d6055; }
+.compliance-state-icon { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; background: #e0ece4; border-radius: 50%; color: #27523a; font-weight: 700; font-size: 13px; }
+.compliance-help { border: 1px solid #e0e6e1; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; color: #34483d; font-size: 13px; }
+.compliance-help summary { cursor: pointer; font-weight: 600; line-height: 24px; }
+.compliance-help[open] summary { margin-bottom: 14px; }
+.compliance-help p { line-height: 1.8; color: #58665f; margin: 0; }
+.compliance-empty { padding: 20px; margin: 0; background: #fafbf9; border-radius: 10px; color: #58665f; font-size: 13px; line-height: 1.8; }
+.compliance-section-title { font-size: 14px; color: #243c32; margin: 20px 0 12px; }
+@media (max-width: 600px) { .compliance-clarity .ant-card-body { padding: 16px; } .compliance-state { padding: 14px; gap: 10px; } }

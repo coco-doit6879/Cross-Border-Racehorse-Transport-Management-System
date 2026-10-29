@@ -58,6 +58,7 @@ exports.createHorse = async (req, res, next) => {
     if (fileError) return fail(res, 400, fileError);
     const horse = await Horse.create({ ...profile, ownerId: req.user._id, reviewStatus: 'PENDING_REVIEW' });
     await audit(req, horse, 'HORSE_CREATE');
+    await require('../services/notifications').horseEvent(horse);
     res.status(201).json({ success: true, data: horse });
   } catch (error) { next(error); }
 };
@@ -82,6 +83,7 @@ exports.updateHorse = async (req, res, next) => {
     }, { new: true, runValidators: true });
     if (!updated) return fail(res, 409, 'Hồ sơ đã thay đổi. Vui lòng tải lại.');
     await audit(req, updated, 'HORSE_UPDATE');
+    await require('../services/notifications').horseEvent(updated);
     res.json({ success: true, data: updated });
   } catch (error) { next(error); }
 };
@@ -114,6 +116,7 @@ exports.reviewHorse = async (req, res, next) => {
     }, { new: true, runValidators: true });
     if (!updated) return fail(res, 409, 'Hồ sơ đã thay đổi. Vui lòng tải lại trước khi duyệt.');
     await audit(req, updated, `HORSE_HEALTH_${decision}`);
+    await require('../services/notifications').horseEvent(updated, decision);
     res.json({ success: true, data: updated });
   } catch (error) { next(error); }
 };
