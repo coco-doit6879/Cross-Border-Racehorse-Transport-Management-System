@@ -37,7 +37,8 @@ const { protect, checkPermission } = require('../middlewares/authMiddleware');
  *       201:
  *         description: POD signed and trip completed successfully
  */
-router.post('/sign', protect, checkPermission('pod:sign'), podController.signPOD);
+// Customer (pod:sign) or the assigned crew; the controller checks the assignment.
+router.post('/sign', protect, (req, res, next) => ['pod:sign', 'trip:operate'].some(p => req.user.effectivePermissions?.includes(p)) ? next() : res.status(403).json({ success: false, message: 'Không có quyền ghi nhận giao nhận.' }), podController.signPOD);
 
 /**
  * @swagger

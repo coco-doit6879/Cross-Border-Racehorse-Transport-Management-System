@@ -59,7 +59,12 @@ exports.signPOD = async (req, res, next) => {
     }
 
     const deliveryOrder = await Order.findById(orderId);
-    if (!deliveryOrder || String(route.orderId) !== String(orderId) || String(deliveryOrder.customerId) !== String(req.user._id)) return res.status(403).json({ success: false, message: 'Chỉ khách hàng của vận đơn được xác nhận giao nhận.' });
+    // The order's customer signs on the web portal, or the receiver signs on the
+    // assigned crew member's device at the destination.
+    const isCustomer = deliveryOrder && String(deliveryOrder.customerId) === String(req.user._id);
+    const isCrew = [String(route.driverId), String(route.escortId)].includes(String(req.user._id));
+    if (!deliveryOrder || String(route.orderId) !== String(orderId) || (!isCustomer && !isCrew)) return res.status(403).json({ success: false, message: 'Chỉ khách hàng của đơn hoặc tổ xe được phân công mới thu được chữ ký giao nhận.' });
+    if (typeof signerName !== 'string' || !signerName.trim() || signerName.length > 120 || typeof signerPhone !== 'string' || !/^[+\d][\d\s.-]{6,19}$/.test(signerPhone.trim())) return res.status(400).json({ success: false, message: 'Nhập họ tên và số điện thoại hợp lệ của người ký nhận.' });
     const existingPOD = await DigitalPOD.findOne({ tripId });
     if (existingPOD) {
       await finishDelivery(route, deliveryOrder);
@@ -75,11 +80,13 @@ exports.signPOD = async (req, res, next) => {
     const pod = await DigitalPOD.create({
       tripId,
       orderId,
-      signerName,
-      signerPhone,
+      signerName: signerName.trim(),
+      signerPhone: signerPhone.trim(),
       signerRole,
       signatureImageUrl,
       confirmationMethod: 'DRIVER_CHECKIN',
+      collectedVia: isCustomer ? 'CUSTOMER_PORTAL' : 'CREW_DEVICE',
+      collectedBy: req.user._id,
       deliveryCheckedInAt: route.waypoints.find(w => w.type === 'DELIVERY' && w.status === 'ARRIVED')?.actualArrival,
       horseConditionsOnArrival: horseConditionsOnArrival || [],
       signedAt: new Date()

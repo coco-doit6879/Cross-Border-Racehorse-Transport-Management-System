@@ -7,6 +7,7 @@ import HorseIdentity from './HorseIdentity';
 import CustomsClearance from './CustomsClearance';
 import ExceptionRequests from './ExceptionRequests';
 import RescueTransfer from './RescueTransfer';
+import DeliveryAcceptance from './DeliveryAcceptance';
 
 const money = n => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
 const date = value => value ? new Date(value).toLocaleString('vi-VN') : '—';
@@ -43,6 +44,7 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
   const manager = hasPermission(user, 'user:manage');
   const specialist = hasPermission(user, 'compliance:review');
   const coordinator = hasPermission(user, 'route:dispatch');
+  const deliveryReady = Boolean(route && route.odometerEnd != null && order.horseIds.every((h) => route.horseMovements?.some((m) => m.horseId === h._id && m.unloadedAt)));
   const closed = !!order.settlement?.closedAt;
   const stages = [
     ['Tạo đơn', date(order.createdAt)],
@@ -82,7 +84,10 @@ export default function OrderOperations({ orderId, onChanged, view = 'all' }) {
         />
       )}
 
-      {isCustomer && route?.status === 'DELIVERING' && <Alert type="info" showIcon message="Tài xế đang bàn giao ngựa" description="Tài xế sẽ xác nhận đã giao đủ ngựa và hoàn thành chuyến. Bạn không cần ký biên bản trên hệ thống." />}
+      {data.pod && <Alert type="success" showIcon style={{ marginBottom: 16 }} message="Đã ký biên bản giao nhận (POD)" description={`${data.pod.signerName} · ${data.pod.signerPhone} · ký lúc ${date(data.pod.signedAt)}${data.pod.collectedVia === 'CREW_DEVICE' ? ' · ký trên thiết bị của tổ xe' : ''}`} />}
+      {isCustomer && route?.status === 'DELIVERING' && !data.pod && (deliveryReady
+        ? <DeliveryAcceptance order={order} route={route} onChanged={() => { load(); onChanged?.(); }} />
+        : <Alert type="info" showIcon message="Tài xế đang bàn giao ngựa" description="Khi tài xế xác nhận giao đủ từng ngựa và ghi km cuối, bạn có thể ký biên bản giao nhận tại đây. Người nhận tại điểm giao cũng có thể ký trên điện thoại của tài xế." />)}
       {/* 2. Manager Incident / Cancel actions */}
       {manager && route?.status === 'INCIDENT_HANDLING' && (
         <RescueTransfer order={order} route={route} recover={recover} busy={busy} />

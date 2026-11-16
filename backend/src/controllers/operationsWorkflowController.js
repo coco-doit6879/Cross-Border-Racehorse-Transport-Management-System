@@ -24,7 +24,8 @@ exports.get = async (req, res, next) => {
     if (!order) return fail(res, 404, 'Không tìm thấy đơn.');
     const route = await Route.findOne({ orderId: order._id });
     if (!canRead(order, route, req.user)) return fail(res, 403, 'Không có quyền xem vận đơn.');
-    res.json({ success: true, data: { order, route, customsCheckpoints: customsCheckpoints(route, order), financials: financials(order), destinationOptions: STOPS.filter(s => s.countryCode === order.destination.countryCode) } });
+    const pod = route ? await require('../models/DigitalPOD').findOne({ tripId: route._id }).select('signerName signerPhone signerRole signedAt collectedVia horseConditionsOnArrival').lean() : null;
+    res.json({ success: true, data: { order, route, pod, customsCheckpoints: customsCheckpoints(route, order), financials: financials(order), destinationOptions: STOPS.filter(s => s.countryCode === order.destination.countryCode) } });
   } catch (err) { next(err); }
 };
 
@@ -88,6 +89,7 @@ exports.update = async (req, res, next) => {
           if (item.amountVnd > captured - refunded) return fail(res, 409, 'Số hoàn vượt tiền thực thu còn có thể hoàn. Cần đối soát giao dịch trước.');
         }
         item.status = 'EXECUTED'; item.executionReference = reference; item.executedAt = now; item.executedBy = req.user._id;
+        if (item.kind === 'REFUND') await require('../services/refundQueue').settleRefundState(order);
         break;
       }
       case 'CONFIRM':

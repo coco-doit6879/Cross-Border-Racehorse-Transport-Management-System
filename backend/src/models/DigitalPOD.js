@@ -61,6 +61,8 @@ const digitalPODSchema = new mongoose.Schema({
     }
   },
   confirmationMethod: { type: String, enum: ['DRIVER_CHECKIN'], default: 'DRIVER_CHECKIN' },
+  collectedVia: { type: String, enum: ['CUSTOMER_PORTAL', 'CREW_DEVICE'] },
+  collectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   deliveryCheckedInAt: Date,
   horseConditionsOnArrival: [horseConditionOnArrivalSchema],
   pdfReportUrl: {

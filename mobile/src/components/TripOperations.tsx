@@ -5,13 +5,14 @@ import * as Sharing from 'expo-sharing';
 import { useSession } from '@/context/session';
 import { API_URL } from '@/lib/config';
 import { colors } from '@/theme';
+import { PodCapture } from './PodCapture';
 
 type Horse = { _id: string; name: string; microchipId: string };
 type Movement = { horseId: string; loadedAt?: string; unloadedAt?: string };
-type Workflow = { customsCheckpoints?: { name: string; countryCode: string; status: string; actualArrival?: string }[]; order: { _id: string; horseIds: Horse[] }; route: { status: string; rescuePending?: boolean; acceptedAt?: string; odometerStart?: number; odometerEnd?: number; operationsVersion?: number; horseMovements?: Movement[]; clearances?: { _id: string; horseId: string; checkpoint: string; status: string }[] } };
+type Workflow = { customsCheckpoints?: { name: string; countryCode: string; status: string; actualArrival?: string }[]; pod?: { signerName: string; signedAt: string } | null; order: { _id: string; horseIds: Horse[]; contacts?: { recipient?: { fullName?: string; phone?: string } } }; route: { _id: string; status: string; rescuePending?: boolean; acceptedAt?: string; odometerStart?: number; odometerEnd?: number; operationsVersion?: number; horseMovements?: Movement[]; clearances?: { _id: string; horseId: string; checkpoint: string; status: string }[] } };
 type Document = { _id: string; documentType: string; status: string; fileUrl?: string; stage?: string; expiresAt?: string };
 
-export function TripOperations({ orderId, onChanged, compact = false }: { orderId: string; onChanged: () => void; compact?: boolean }) {
+export function TripOperations({ orderId, onChanged, compact = false, onSigning }: { orderId: string; onChanged: () => void; compact?: boolean; onSigning?: (active: boolean) => void }) {
   const { apiFetch, accessToken } = useSession();
   const [data, setData] = useState<Workflow | null>(null);
   const [departureReady, setDepartureReady] = useState(false);
@@ -78,6 +79,11 @@ export function TripOperations({ orderId, onChanged, compact = false }: { orderI
         {route.status === 'DELIVERING' && movement?.loadedAt && !movement.unloadedAt && button('Xác nhận giao ngựa', () => act('UNLOAD', { horseId: horse._id }))}
       </View>;
     })}
+    {route.status === 'DELIVERING' && (data.pod
+      ? <Text style={ui.odometer}>Đã ký biên bản giao nhận: {data.pod.signerName} · {new Date(data.pod.signedAt).toLocaleString('vi-VN')}</Text>
+      : route.odometerEnd != null && data.order.horseIds.every(h => route.horseMovements?.some(m => m.horseId === h._id && m.unloadedAt))
+        ? <PodCapture tripId={route._id} orderId={data.order._id} horses={data.order.horseIds} recipient={data.order.contacts?.recipient} onSigning={onSigning} onDone={() => { void load(); onChanged(); }} />
+        : <Text style={ui.caption}>Sau khi giao đủ ngựa và ghi km cuối, người nhận ký biên bản giao nhận ngay trên máy này.</Text>)}
     <Text style={ui.odometer}>Km đầu: {route.odometerStart ?? 'Chưa ghi'} · Km cuối: {route.odometerEnd ?? 'Chưa ghi'}</Text>
     {route.rescuePending && <><Text>Đối chiếu toàn bộ mã chip ở trên trước khi tiếp nhận xe cứu hộ.</Text><TextInput style={ui.input} placeholder="Km đầu xe thay thế" keyboardType="decimal-pad" value={km} onChangeText={setKm} />{button('Xác nhận đã nhận đủ ngựa trên xe thay thế', () => Alert.alert('Xác nhận bàn giao', 'Bạn đã kiểm tra đúng và đủ tất cả ngựa?', [{ text: 'Chưa', style: 'cancel' }, { text: 'Đã nhận đủ', onPress: () => act('ACCEPT_RESCUE', { value: Number(km), confirmAllHorses: true }) }]), !km.trim() || !Number.isFinite(Number(km)))}</>}
     {['SCHEDULED', 'DELIVERING'].includes(route.status) && (route.status === 'SCHEDULED' ? route.odometerStart == null : route.odometerEnd == null) && <><TextInput accessibilityLabel="Chỉ số công-tơ-mét" placeholder="Nhập chỉ số km trên xe" keyboardType="decimal-pad" value={km} onChangeText={setKm} style={ui.input} />{button(route.status === 'SCHEDULED' ? 'Lưu km đầu chuyến' : 'Lưu km cuối chuyến', () => act('ODOMETER', { kind: route.status === 'SCHEDULED' ? 'START' : 'END', value: Number(km) }), !km.trim() || !Number.isFinite(Number(km)))}</>}

@@ -13,3 +13,11 @@ test('customer signs POD without coordinates after driver check-in and unload',a
  await controller.signPOD(req,res,e=>{throw e;});assert.equal(res.code,201);assert.equal(created.confirmationMethod,'DRIVER_CHECKIN');assert.equal(created.locationSigned,undefined);
  route.horseMovements=[];created=null;await controller.signPOD(req,res,e=>{throw e;});assert.equal(res.code,409);assert.equal(created,null);
 });
+test('assigned crew can collect the receiver signature; other staff cannot',async t=>{
+ const {route,order}=fixture();let created;
+ t.mock.method(Route,'findById',async()=>route);t.mock.method(Order,'findById',async()=>order);t.mock.method(POD,'findOne',async()=>null);t.mock.method(POD,'create',async p=>{created=p;return {_id:oid(5),...p};});t.mock.method(Doc,'find',async()=>[]);t.mock.method(Incident,'exists',async()=>null);t.mock.method(Audit,'create',async()=>({}));
+ const body={tripId:oid(1),orderId:oid(2),signerName:'Người nhận',signerPhone:'0912345678',signerRole:'AUTHORIZED_RECIPIENT',signatureImageUrl:'data:image/png;base64,AAAA',horseConditionsOnArrival:[{horseId:oid(4),conditionStatus:'GOOD'}]};
+ const res=()=>({code:200,status(c){this.code=c;return this;},json(b){this.body=b;return this;}});
+ const stranger=res();await controller.signPOD({user:{_id:oid(99)},body,get:()=>''},stranger,e=>{throw e;});assert.equal(stranger.code,403);assert.equal(created,undefined);
+ const crew=res();await controller.signPOD({user:{_id:route.driverId},body,get:()=>''},crew,e=>{throw e;});assert.equal(crew.code,201);assert.equal(created.collectedVia,'CREW_DEVICE');
+});

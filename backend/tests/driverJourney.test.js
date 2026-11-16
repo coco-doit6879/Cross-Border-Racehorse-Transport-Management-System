@@ -33,7 +33,10 @@ test('driver arrival sequence updates customer tracking and only completes after
  assert.equal(order.status,'DELIVERING');assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'})).code,409);
  route.odometerEnd=20;route.horseMovements[0].unloadedAt=new Date();
  assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'},{_id:oid(6),role:'ESCORT'})).code,403);
- t.mock.method(POD,'exists',async()=>{throw new Error('Completion must not require a customer signature');});
+ t.mock.method(POD,'exists',async()=>null);
+ const unsigned=await call(controller.updateTripStatus,{status:'COMPLETED'});
+ assert.equal(unsigned.code,409);assert.equal(unsigned.body.errorCode,'POD_REQUIRED');assert.equal(route.status,'DELIVERING');
+ t.mock.method(POD,'exists',async()=>({_id:'pod'}));
  assert.equal((await call(controller.updateTripStatus,{status:'COMPLETED'})).code,200);
  assert.equal(route.status,'COMPLETED');assert.equal(order.status,'COMPLETED');assert.equal(moved,1);
 });

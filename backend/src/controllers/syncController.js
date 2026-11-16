@@ -74,31 +74,14 @@ exports.syncOfflineEvents = async (req, res, next) => {
 
         switch (eventType) {
           case 'WAYPOINT_CHECKIN': {
+            // Offline check-ins go through the same rules as the live API (order,
+            // no skipping, customs, minimum travel time) and use server time.
             const { tripId, sequence, waypointId, status } = payload;
-            let route = await TransportRoute.findById(tripId);
-            if (!route) {
-              syncResults.push({ event_id: eventId, status: 'FAILURE', error: 'Transport route not found' });
-              break;
-            }
-            if (!canOperateRoute(route, req.user)) {
-              syncResults.push({ event_id: eventId, status: 'DENIED', error: 'User is not assigned to this trip' });
-              break;
-            }
-            let waypoint = waypointId ? route.waypoints.id(waypointId) : route.waypoints.find(w => w.sequence === Number(sequence));
-            if (!waypoint) throw new Error('Waypoint not found');
-            if (!['IN_TRANSIT', 'DELIVERING'].includes(route.status)) throw new Error('Chuyến không ở trạng thái cho phép check-in.');
-            if (status && !['ARRIVED', 'SKIPPED'].includes(status)) throw new Error('Trạng thái điểm dừng không hợp lệ.');
-            if (waypoint.status !== 'PENDING') { syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: true }); break; }
-            if (waypoint) {
-              if (waypoint.type === 'BORDER_CUSTOMS') {
-                const order = await Order.findById(route.orderId);
-                if (status === 'SKIPPED' || !clearanceReady(route, order, waypoint.name) || !(await stageReady(order._id, 'BORDER', waypoint.name))) throw new Error('Hồ sơ thông quan chưa hoàn tất.');
-              }
-              waypoint.status = status || 'ARRIVED';
-              waypoint.actualArrival = payload.recordedAt || new Date();
-              await route.save();
-            }
-            syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: false });
+            const checkinResponse = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+            await require('./routeController').waypointCheckin({ ...req, app: req.app, params: { id: tripId }, body: { sequence, waypointId, status }, get: req.get.bind(req) }, checkinResponse, error => { throw error; });
+            if (checkinResponse.statusCode === 403) { syncResults.push({ event_id: eventId, status: 'DENIED', error: checkinResponse.body?.message }); break; }
+            if (checkinResponse.statusCode >= 400) throw new Error(checkinResponse.body?.message || 'Không check-in được điểm dừng.');
+            syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: Boolean(checkinResponse.body?.isDuplicate) });
             break;
           }
 

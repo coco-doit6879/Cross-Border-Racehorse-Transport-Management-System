@@ -234,9 +234,11 @@ exports.updateTripStatus = async (req, res, next) => {
     if (status === 'COMPLETED') {
       const problem = await deliveryProblem(route, await Order.findById(route.orderId));
       if (problem) return res.status(409).json({ success: false, message: problem });
+      if (!(await require('../models/DigitalPOD').exists({ tripId: route._id }))) return res.status(409).json({ success: false, errorCode: 'POD_REQUIRED', message: 'Cần người nhận ký biên bản giao nhận (POD) trước khi hoàn thành chuyến.' });
     }
     if (await require('../services/tripSafety').activeIncident(route._id)) return res.status(409).json({ success: false, message: 'Còn sự cố chưa giải quyết, không thể tiếp tục chuyến.' });
     route.status = status;
+    if (currentStatus === 'SCHEDULED' && status === 'IN_TRANSIT') route.tripStartedAt = new Date();
     route.operationsVersion = (route.operationsVersion || 0) + 1;
     await route.save();
 
@@ -314,6 +316,8 @@ exports.waypointCheckin = async (req, res, next) => {
     if (waypoint.status !== 'PENDING') return res.json({ success: true, isDuplicate: true, data: route });
     const nextPending=[...route.waypoints].sort((a,b)=>a.sequence-b.sequence).find(w=>w.status==='PENDING');
     if(status==='SKIPPED'||String(nextPending?._id)!==String(waypoint._id))return res.status(409).json({message:'Xác nhận đúng thứ tự các điểm dừng, không được bỏ qua điểm.'});
+    const timing = require('../services/waypointTiming').nextArrivalGate(route, waypoint);
+    if (timing) return res.status(409).json({ success: false, code: 'ARRIVAL_TOO_EARLY', earliestAt: timing.earliestAt, message: `Chưa đủ thời gian di chuyển đến ${waypoint.name}. Có thể xác nhận từ ${timing.earliestAt.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}.` });
     const previousBorders = route.waypoints.filter(w => w.type === 'BORDER_CUSTOMS' && w.sequence < waypoint.sequence);
     if (previousBorders.length) {
       const order = await Order.findById(route.orderId);

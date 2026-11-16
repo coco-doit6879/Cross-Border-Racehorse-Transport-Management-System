@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Alert, Button, Card, Form, Input, Select, Space, Radio, Tag, Typography, message } from 'antd';
-import { Check, MapPin, PenTool, RotateCcw } from 'lucide-react';
+import { Check } from 'lucide-react';
 import api from '../../services/apiClient';
 
 const { Text, Title } = Typography;
@@ -13,56 +13,27 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
   const [busy, setBusy] = useState(false);
 
   const defaultRole = 'AUTHORIZED_RECIPIENT';
-
-  const PRESETS = {
-    AUTHORIZED_RECIPIENT: {
-      label: 'Người nhận ủy quyền tại đích',
-      name: 'Sokha Kem',
-      phone: '0912 888 999',
-      desc: 'Đại diện tiếp nhận tại chuồng đích (Cơ sở tiếp nhận)'
-    },
-    STABLE_MANAGER: {
-      label: 'Quản lý chuồng trại đích',
-      name: 'Chhorn Vandy',
-      phone: '0987 654 321',
-      desc: 'Quản lý cơ sở tiếp nhận và bố trí chuồng nuôi'
-    },
-    CUSTOMER: {
-      label: 'Chủ sở hữu có mặt nhận trực tiếp',
-      name: order.customerId?.fullName || 'Edward Customer',
-      phone: order.customerId?.phone || '0901 234 567',
-      desc: 'Chủ ngựa (người đặt vận đơn) trực tiếp tiếp nhận tại đích'
-    },
-    VETERINARIAN: {
-      label: 'Bác sĩ thú y tiếp nhận',
-      name: 'Dr. Samnang',
-      phone: '0933 111 222',
-      desc: 'Bác sĩ chuyên trách kiểm tra dịch tễ tại trạm đích'
-    }
+  const recipient = order.contacts?.recipient || {};
+  const ROLES = {
+    AUTHORIZED_RECIPIENT: { label: 'Người nhận ủy quyền tại đích', desc: 'Người được ghi nhận là bên nhận trong đơn' },
+    STABLE_MANAGER: { label: 'Quản lý chuồng trại đích', desc: 'Quản lý cơ sở tiếp nhận và bố trí chuồng nuôi' },
+    CUSTOMER: { label: 'Chủ sở hữu có mặt nhận trực tiếp', desc: 'Chủ ngựa (người đặt vận đơn) trực tiếp tiếp nhận' },
+    VETERINARIAN: { label: 'Bác sĩ thú y tiếp nhận', desc: 'Bác sĩ kiểm tra dịch tễ tại điểm đích' }
   };
+  // Prefill only from real data on the order, never from sample people.
+  const defaultsFor = (role) => role === 'CUSTOMER'
+    ? { name: order.customerId?.fullName || '', phone: order.customerId?.phone || '' }
+    : role === 'AUTHORIZED_RECIPIENT' ? { name: recipient.fullName || '', phone: recipient.phone || '' } : { name: '', phone: '' };
 
   useEffect(() => {
     const initialConditions = {};
     (order.horseIds || []).forEach((h) => {
       initialConditions[h._id] = 'EXCELLENT';
     });
-    form.setFieldsValue({
-      signerRole: defaultRole,
-      name: PRESETS[defaultRole].name,
-      phone: PRESETS[defaultRole].phone,
-      conditions: initialConditions
-    });
+    form.setFieldsValue({ signerRole: defaultRole, ...defaultsFor(defaultRole), conditions: initialConditions });
   }, [order]);
 
-  const handleRoleChange = (role) => {
-    const preset = PRESETS[role];
-    if (preset) {
-      form.setFieldsValue({
-        name: preset.name,
-        phone: preset.phone
-      });
-    }
-  };
+  const handleRoleChange = (role) => form.setFieldsValue(defaultsFor(role));
 
   const point = (event) => {
     const box = canvas.current.getBoundingClientRect();
@@ -72,31 +43,6 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
     ];
   };
 
-  const handleAutoSign = () => {
-    const cvs = canvas.current;
-    if (!cvs) return;
-    const ctx = cvs.getContext('2d');
-    ctx.clearRect(0, 0, cvs.width, cvs.height);
-    ctx.strokeStyle = '#0F3E2E';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    ctx.beginPath();
-    ctx.moveTo(80, 100);
-    ctx.bezierCurveTo(120, 30, 160, 130, 200, 70);
-    ctx.bezierCurveTo(240, 20, 270, 110, 310, 60);
-    ctx.bezierCurveTo(340, 30, 360, 90, 400, 50);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(70, 115);
-    ctx.quadraticCurveTo(250, 135, 430, 105);
-    ctx.stroke();
-
-    signed.current = true;
-    message.success('Đã điền chữ ký mẫu thành công.');
-  };
 
   const handleClearSignature = () => {
     const cvs = canvas.current;
@@ -123,7 +69,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
           notes: values.notes?.[h._id] || ''
         }))
       });
-      message.success('Đã ký biên bản giao nhận điện tử (POD) và hoàn tất đơn hàng.');
+      message.success('Đã lưu biên bản giao nhận (POD). Tài xế sẽ xác nhận hoàn thành chuyến.');
       onChanged();
     } catch (error) {
       message.error(error.response?.data?.message || error.message || 'Không thể xác nhận giao nhận.');
@@ -167,7 +113,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               Người gửi (Chủ ngựa):
             </Text>
             <Text strong style={{ fontSize: 15, color: '#0F172A' }}>
-              {order.customerId?.fullName || 'Edward Customer'}
+              {order.customerId?.fullName || '—'}
             </Text>
             <div style={{ fontSize: 13, color: '#64748B' }}>
               {order.origin?.address || 'TP. Hồ Chí Minh, Việt Nam'}
@@ -197,7 +143,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
         >
           <Radio.Group onChange={(e) => handleRoleChange(e.target.value)} style={{ width: '100%' }}>
             <Space direction="vertical" style={{ width: '100%', gap: 8 }}>
-              {Object.entries(PRESETS).map(([key, item]) => (
+              {Object.entries(ROLES).map(([key, item]) => (
                 <Radio key={key} value={key} style={{ padding: '6px 0' }}>
                   <Text strong style={{ color: '#0F172A' }}>{item.label}</Text>
                   <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>
@@ -215,7 +161,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
             label={<span style={{ fontSize: 14, fontWeight: 500 }}>Họ tên người nhận tại đích</span>}
             rules={[{ required: true, whitespace: true, message: 'Nhập họ tên người nhận' }]}
           >
-            <Input maxLength={120} placeholder="Ví dụ: Sokha Kem" style={{ height: 40 }} />
+            <Input maxLength={120} placeholder="Họ tên người ký nhận" style={{ height: 40 }} />
           </Form.Item>
 
           <Form.Item
@@ -226,7 +172,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               { pattern: /^[+\d\s()-]{8,25}$/, message: 'Số điện thoại không hợp lệ' }
             ]}
           >
-            <Input maxLength={25} placeholder="Ví dụ: 0912 888 999" style={{ height: 40 }} />
+            <Input maxLength={25} placeholder="Số điện thoại người ký nhận" style={{ height: 40 }} />
           </Form.Item>
         </div>
 
@@ -290,9 +236,6 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
               Chữ ký điện tử của người nhận:
             </span>
             <Space>
-              <Button size="small" onClick={handleAutoSign} style={{ fontSize: 13 }}>
-                Ký mẫu tự động
-              </Button>
               <Button size="small" onClick={handleClearSignature} style={{ fontSize: 13 }}>
                 Xóa chữ ký
               </Button>
@@ -338,7 +281,7 @@ export default function DeliveryAcceptance({ order, route, onChanged }) {
             }}
           />
           <Text type="secondary" style={{ fontSize: 13, marginTop: 4, display: 'block', color: '#64748B' }}>
-            Ký tay trực tiếp trên khung hoặc bấm "Ký mẫu tự động".
+            Người nhận ký tay trực tiếp trên khung.
           </Text>
         </div>
 

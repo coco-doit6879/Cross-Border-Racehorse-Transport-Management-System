@@ -413,7 +413,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     if (rejectionReason) {
       order.rejectionReason = rejectionReason;
     }
-    if (status === 'REJECTED' && order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
+    if (status === 'REJECTED') await require('../services/refundQueue').queueRefund(order, req.user._id, rejectionReason);
 
     await order.save();
     await require('../services/notifications').orderEvent(order.status, order._id, `${order._id}:${order.status}`, {reason: order.rejectionReason});
@@ -476,7 +476,7 @@ exports.cancelOrder = async (req, res, next) => {
     if (await TransportRoute.exists({ orderId: order._id })) return res.status(409).json({ success: false, message: 'Đơn đã có vận đơn; điều phối cần giải quyết phân công trước khi hủy.' });
     order.status = 'CANCELLED';
     order.cancellationReason = req.body.reason || 'Khách hàng hủy đơn';
-    if (order.depositStatus === 'PAID') order.depositStatus = 'REFUND_PENDING';
+    await require('../services/refundQueue').queueRefund(order, req.user._id, order.cancellationReason);
     await order.save();
     await require('../services/notifications').orderEvent(order.status, order._id, `${order._id}:${order.status}`, {reason:order.cancellationReason});
 

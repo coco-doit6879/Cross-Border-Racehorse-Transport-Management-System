@@ -104,6 +104,7 @@ const transportRouteSchema = new mongoose.Schema({
     index: true
   },
   waypoints: [waypointSchema],
+  tripStartedAt: Date,
   currentLocation: {
     type: currentLocationSchema,
     default: null

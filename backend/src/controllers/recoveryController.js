@@ -29,7 +29,8 @@ exports.execute = async (req, res, next) => {
         if (route.horseMovements.some(m => m.loadedAt)) fail('Đã có ngựa lên xe; phải thực hiện bàn giao an toàn, không được hủy trực tiếp.');
         if (await Incident.exists({ tripId: route._id, status: { $in: ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS'] } }).session(session)) fail('Còn sự cố chưa giải quyết.');
         route.status = 'CANCELLED'; order.status = 'CANCELLED'; order.cancellationReason = reason;
-        notice = `Quản lý đã hủy chuyến chưa khởi hành: ${reason}. Tiền đã thu cần yêu cầu hoàn tiền riêng.`;
+        const refund = await require('../services/refundQueue').queueRefund(order, req.user._id, reason, session);
+        notice = `Quản lý đã hủy chuyến chưa khởi hành: ${reason}.${refund ? ' Đã tạo yêu cầu hoàn tiền chờ chuyển khoản.' : ''}`;
       } else if (req.body.action === 'APPLY_DESTINATION') {
         const item = order.exceptionRequests.id(req.body.itemId);
         if (!item || item.kind !== 'DESTINATION_CHANGE' || item.status !== 'APPROVED') fail('Yêu cầu đổi điểm chưa được duyệt hoặc đã thực hiện.');

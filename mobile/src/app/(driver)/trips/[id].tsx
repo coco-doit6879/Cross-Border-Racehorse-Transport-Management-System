@@ -18,6 +18,7 @@ export default function TripDetailScreen() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [documents, setDocuments] = useState(false);
+  const [signing, setSigning] = useState(false);
   const lock = useRef(false);
   const load = useCallback(async () => {
     try { setRoute((await apiFetch<{ data: TransportRoute }>(`/routes/${id}`)).data); }
@@ -53,7 +54,7 @@ export default function TripDetailScreen() {
   const preparing = route.status === 'SCHEDULED', delivering = route.status === 'DELIVERING';
   const completed = route.status === 'COMPLETED', incident = route.status === 'INCIDENT_HANDLING';
   const title = completed ? 'Hành trình hoàn tất' : delivering ? 'Bàn giao tại điểm đến' : incident ? 'Chờ xử lý sự cố' : route.status === 'CANCELLED' ? 'Chuyến đã hủy' : preparing ? 'Sẵn sàng cho hành trình' : next ? name(next.name) : 'Đã đến cuối hành trình';
-  const hint = completed ? 'Cảm ơn bạn đã hoàn thành chuyến vận chuyển.' : delivering ? 'Xác nhận đã giao đủ ngựa, ghi km cuối rồi xác nhận giao xong.' : incident ? 'Liên hệ điều phối để tiếp tục chuyến an toàn.' : preparing ? 'Nhận vận đơn, kiểm tra ngựa và ghi km trước khi đi.' : next ? `${labels[next.type]} · ${done + 1} / ${ordered.length}` : 'Bạn có thể bắt đầu bàn giao ngựa cho khách hàng.';
+  const hint = completed ? 'Cảm ơn bạn đã hoàn thành chuyến vận chuyển.' : delivering ? 'Xác nhận đã giao đủ ngựa, ghi km cuối, để người nhận ký biên bản rồi xác nhận giao xong.' : incident ? 'Liên hệ điều phối để tiếp tục chuyến an toàn.' : preparing ? 'Nhận vận đơn, kiểm tra ngựa và ghi km trước khi đi.' : next ? `${labels[next.type]} · ${done + 1} / ${ordered.length}` : 'Bạn có thể bắt đầu bàn giao ngựa cho khách hàng.';
   const actionLabel = delivering ? 'Xác nhận giao xong' : preparing ? 'Bắt đầu chuyến' : next ? next.type === 'PICKUP' ? 'Đã đến điểm đón' : next.type === 'REST_STOP' ? 'Đã đến trạm nghỉ' : next.type === 'BORDER_CUSTOMS' ? 'Đã đến cửa khẩu' : next.type === 'DELIVERY' ? 'Đã đến điểm giao' : 'Xác nhận đã đến' : 'Bắt đầu bàn giao';
   return <SafeAreaView style={s.safe} edges={['bottom']}>
     <View style={s.header}>
@@ -61,7 +62,7 @@ export default function TripDetailScreen() {
       <View style={{ flex: 1 }}><Text style={s.eyebrow}>CHUYẾN CỦA BẠN</Text><Text style={s.code}>{route.orderId.bookingCode}</Text></View>
       {!completed && route.status !== 'CANCELLED' && <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/(driver)/sos', params: { tripId: route._id, code: route.orderId.bookingCode } })} style={s.sos}><Text style={s.sosText}>SOS</Text></Pressable>}
     </View>
-    <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
+    <ScrollView scrollEnabled={!signing} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
       <View style={s.hero}>
         <View style={[s.row, { flexWrap: 'wrap' }]}><Text style={s.heroEyebrow}>{preparing ? 'VIỆC CẦN LÀM TRƯỚC KHI ĐI' : delivering ? 'VIỆC CẦN LÀM TẠI ĐIỂM GIAO' : 'HÀNH TRÌNH HIỆN TẠI'}</Text><StatusBadge status={route.status} /></View>
         <Text style={s.heroTitle}>{title}</Text><Text style={s.heroHint}>{hint}</Text>
@@ -79,8 +80,8 @@ export default function TripDetailScreen() {
             <View style={[s.stopBody, index === ordered.length - 1 && { paddingBottom: 0 }]}><View style={s.row}><Text style={s.stopType}>{labels[w.type]}</Text>{focus && <Text style={s.pill}>Tiếp theo</Text>}</View><Text style={[s.stopTitle, focus && { color: colors.primary }]}>{name(w.name)}</Text><Text style={s.caption}>{w.actualArrival ? `Đã đến ${new Date(w.actualArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : `Dự kiến ${new Date(w.estimatedArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}</Text></View>
           </View>;
         })}</View>
-        {(preparing || delivering || route.status === 'IN_TRANSIT') && <><Text style={s.sectionTitle}>{preparing ? 'Chuẩn bị khởi hành' : delivering ? 'Hoàn tất bàn giao' : 'Hồ sơ & thông quan trong hành trình'}</Text><TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} compact={route.status !== 'IN_TRANSIT'} /></>}
-      </> : <TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} />}
+        {(preparing || delivering || route.status === 'IN_TRANSIT') && <><Text style={s.sectionTitle}>{preparing ? 'Chuẩn bị khởi hành' : delivering ? 'Hoàn tất bàn giao' : 'Hồ sơ & thông quan trong hành trình'}</Text><TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} onSigning={setSigning} compact={route.status !== 'IN_TRANSIT'} /></>}
+      </> : <TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} onSigning={setSigning} />}
     </ScrollView>
     <View style={s.footer}>
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
