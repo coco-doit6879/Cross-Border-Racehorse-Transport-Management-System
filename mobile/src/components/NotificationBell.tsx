@@ -34,7 +34,17 @@ export function NotificationBell() {
     animation.start();
     return () => animation.stop();
   }, [open, entrance]);
-  useEffect(() => { setOpen(false); }, [windowWidth, windowHeight]);
+  // Close the anchored panel when the window resizes; adjusted during render instead of in an effect.
+  const [shownSize, setShownSize] = useState({ windowWidth, windowHeight });
+  if (shownSize.windowWidth !== windowWidth || shownSize.windowHeight !== windowHeight) {
+    setShownSize({ windowWidth, windowHeight }); setOpen(false);
+  }
+  // A new session (sign-in, sign-out or token refresh) starts with an empty inbox.
+  const sessionKey = accessToken && user ? `${user.id}:${accessToken}` : '';
+  const [shownSession, setShownSession] = useState(sessionKey);
+  if (shownSession !== sessionKey) {
+    setShownSession(sessionKey); setItems([]); setCount(0); setOpen(false);
+  }
   const load = useCallback(async (before?: string) => {
     const current = generation.current;
     try {
@@ -45,14 +55,17 @@ export function NotificationBell() {
     } catch (e) { if (current === generation.current) setError(e instanceof Error ? e.message : 'Không tải được thông báo.'); }
   }, [apiFetch]);
   useEffect(() => {
-    generation.current++; setItems([]); setCount(0); setOpen(false);
+    const requests = generation;
+    requests.current++;
     if (!accessToken || !user) return;
+    // Fetching the inbox is the effect's job; state is only set after the request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     const socket = io(SOCKET_URL, { auth: { token: accessToken } });
     const refresh = () => { void load(); };
     socket.on('notification:new', refresh); socket.on('connect', refresh);
     const timer = setInterval(refresh, 30000);
-    return () => { generation.current++; socket.disconnect(); clearInterval(timer); };
+    return () => { requests.current++; socket.disconnect(); clearInterval(timer); };
   }, [accessToken, user, load]);
   const act = async (fn: () => Promise<void>) => {
     setBusy(true); try { await fn(); await load(); } catch (e) { setError(e instanceof Error ? e.message : 'Không cập nhật được.'); } finally { setBusy(false); }
