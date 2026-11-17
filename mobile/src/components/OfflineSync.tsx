@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useSession } from '@/context/session';
 import { listOfflineEvents, removeOfflineEvents } from '@/lib/offlineQueue';
+import { takeSyncBatch } from '@/lib/syncBatch';
 
 export function OfflineSync() {
   const { user, apiFetch } = useSession();
@@ -13,7 +14,7 @@ export function OfflineSync() {
       if (running || disposed || AppState.currentState !== 'active') return;
       running = true;
       try {
-        const events = (await listOfflineEvents(user.id)).slice(0, 100);
+        const events = takeSyncBatch(await listOfflineEvents(user.id));
         if (!events.length) { if (!disposed) setNotice(''); return; }
         if (disposed) return;
         const body = await apiFetch<{ results: { event_id: string; status: string; error?: string }[] }>('/sync/events', { method: 'POST', body: JSON.stringify({ events }) });

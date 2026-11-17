@@ -21,6 +21,7 @@
 4. [Yêu Cầu Phi Chức Năng (Non-Functional Requirements - NFR)](#4-yêu-cầu-phi-chức-năng-non-functional-requirements---nfr)
 5. [Quy Trình Nghiệp Vụ Đặc Thù (Business Workflows & State Diagrams)](#5-quy-trình-nghiệp-vụ-đặc-thù-business-workflows--state-diagrams)
 6. [Yêu Cầu Nền Tảng & Công Nghệ (Technology Stack Specifications)](#6-yêu-cầu-nền-tảng--công-nghệ-technology-stack-specifications)
+   - [6.4 Kiến Trúc Hệ Thống (System Architecture)](#64-kiến-trúc-hệ-thống-system-architecture)
 7. [Tiêu Chí Nghiệm Thu (Acceptance Criteria)](#7-tiêu-chí-nghiệm-thu-acceptance-criteria)
 
 ---
@@ -35,12 +36,12 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
   - Quản lý lý lịch số hóa & hộ chiếu ngựa đua (FEI Passports).
   - Quản lý quy định kiểm dịch, tiêm phòng và giấy phép xuất/nhập cảnh theo quốc gia.
   - Lập kế hoạch tuyến đường đa phương thức (đường bộ xe chuyên dụng + khoang air stalls máy bay).
-  - Định vị GPS thời gian thực (Real-time Live Tracking) & Cảnh báo lệch tuyến.
+  - Theo dõi tiến độ hành trình theo mốc check-in điểm dừng, cập nhật thời gian thực (Realtime Trip Tracking).
   - Nhật ký sức khỏe ngựa (Horse Welfare Logging) trên thiết bị di động.
   - Xử lý sự cố khẩn cấp (SOS Emergency Response System).
   - Nghiệm thu bàn giao điện tử (Digital Proof of Delivery - POD).
 - **Không bao gồm (Out-of-Scope trong v1.0)**:
-  - Tích hợp cổng thanh toán trực tuyến quốc tế (Thanh toán thực hiện qua đối soát hóa đơn B2B).
+  - Tích hợp cổng thanh toán quốc tế ngoài VNPAY (Thanh toán trực tuyến chỉ hỗ trợ qua cổng **VNPAY**: QR ngân hàng, thẻ ATM nội địa, thẻ Visa/Mastercard).
   - Đặt vé máy bay trực tiếp với hãng hàng không (Thực hiện qua đại lý cargo ngoài hệ thống).
 
 ---
@@ -55,7 +56,7 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
 +------------------------------------------+----------------------------------------+
 |           WEB PORTAL (ReactJS)           |         MOBILE APP (React Native)       |
 |  - Logistics Manager                     |  - Vehicle Driver / Escort             |
-|  - Transport Specialist                  |  - Customer (Chủ ngựa / CLB)           |
+|  - Transport Specialist                  |                                        |
 |  - Fleet & Route Coordinator             |                                        |
 |  - Customer (Portal Đặt hàng & Báo cáo)  |                                        |
 +------------------------------------------+----------------------------------------+
@@ -104,11 +105,10 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
 - **FR-03.3**: Gán tài xế, chuyên viên chăm sóc (Driver/Escort) và phương tiện cho từng chuyến đi.
 - **FR-03.4**: Tự động gửi lịch trình đến ứng dụng Mobile của Driver/Escort sau khi Manager phê duyệt.
 
-### FR-04: Giám Sát GPS Real-Time & Nhật Ký Sức Khỏe Ngựa (Welfare & Tracking)
-- **FR-04.1**: Mobile App tự động thu thập và gửi tọa độ GPS định kỳ (mỗi 10 - 30 giây) về server khi chuyến đi ở trạng thái `IN_TRANSIT`.
-- **FR-04.2**: Trực quan hóa vị trí xe và đường đi trên Bản đồ tương tác (Web & Mobile) với icon phân biệt trạng thái.
-- **FR-04.3**: Driver/Escort thực hiện One-Tap Check-in khi xe đến/rời khỏi các mốc đường quy định.
-- **FR-04.4**: Escort ghi nhật ký sức khỏe định kỳ (2-4 tiếng/lần): Thân nhiệt ngựa, Lượng nước uống (lít), Mức độ căng thẳng (`STABLE`, `STRESSED`, `FEVER`, `INJURED`), kèm ảnh chụp thực tế từ camera phone.
+### FR-04: Theo Dõi Hành Trình & Nhật Ký Sức Khỏe Ngựa (Welfare & Tracking)
+- **FR-04.1**: Trực quan hóa vị trí xe và đường đi trên Bản đồ tương tác (Web & Mobile) với icon phân biệt trạng thái.
+- **FR-04.2**: Driver/Escort thực hiện One-Tap Check-in khi xe đến/rời khỏi các mốc đường quy định.
+- **FR-04.3**: Escort ghi nhật ký sức khỏe định kỳ (2-4 tiếng/lần) trên Mobile App: Thân nhiệt ngựa (°C), Lượng nước uống (lít), Tình trạng ăn, Thể trạng (`STABLE`, `STRESSED`, `UNSTABLE`), Cảnh báo (`FEVER`, `INJURED`, `DEHYDRATION`), kèm ảnh chụp thực tế từ camera phone. Nhật ký được lưu offline khi mất mạng và tự đồng bộ khi có mạng; Customer nhận ngay trên dòng thời gian sức khỏe của đơn. Thể trạng `UNSTABLE` hoặc có cảnh báo sẽ tự động tạo SOS cho điều phối.
 
 ### FR-05: Quản Lý & Xử Lý Sự Cố Khẩn Cấp (SOS Incident Resolution)
 - **FR-05.1**: Nút bấm SOS tích hợp trên Mobile App cho phép Driver gửi báo động khẩn cấp ngay lập tức kèm tọa độ GPS hiện tại.
@@ -127,7 +127,7 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
 
 ### 4.1 Hiệu Năng (Performance Requirements)
 - **NFR-01**: Thời gian phản hồi của các RESTful API chuẩn phải < **200ms** đối với 95% số lượng request.
-- **NFR-02**: Độ trễ cập nhật vị trí GPS thời gian thực (WebSocket Latency) phải < **500ms**.
+- **NFR-02**: Độ trễ đẩy sự kiện thời gian thực (WebSocket Latency: check-in, nhật ký sức khỏe, SOS) phải < **500ms**.
 - **NFR-03**: Giao diện Web Dashboard phải tải xong toàn bộ dữ liệu trang chủ trong < **2 giây**.
 
 ### 4.2 Bảo Mật (Security Requirements)
@@ -183,22 +183,61 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
 
 ### 6.1 Backend Stack (Server Platform)
 - **Language & Runtime**: Node.js (v18+)
-- **Framework**: Express.js (REST API architecture)
-- **Real-time Communication**: Socket.io (WebSocket for GPS tracking & SOS push alerts)
-- **Database ORM/ODM**: Mongoose ODM (MongoDB v6.0+)
-- **File Storage Service**: Cloudinary / AWS S3 (Lưu trữ ảnh hộ chiếu ngựa & ảnh chụp nhật ký sức khỏe)
+- **Framework**: Express.js 4 (REST API architecture, prefix `/api/v1`)
+- **Real-time Communication**: Socket.io 4 (thông báo, cập nhật trạng thái chuyến/điểm dừng & cảnh báo SOS)
+- **Database ORM/ODM**: Mongoose 8 (MongoDB)
+- **Authentication & Security**: JSON Web Token (jsonwebtoken), mã hóa mật khẩu bằng bcryptjs
+- **API Documentation**: Swagger (swagger-jsdoc + swagger-ui-express) tại `/api-docs`
+- **File Storage**: Lưu trực tiếp trong MongoDB (hồ sơ/giấy tờ ngựa dạng Buffer; chữ ký POD dạng ảnh PNG base64)
+- **Tích hợp bên ngoài**: VNPAY (thanh toán), OpenStreetMap Nominatim (geocoding), OSRM (tính tuyến đường)
 
 ### 6.2 Frontend Web Stack (Admin & Coordination Portal)
-- **Library & Build Tool**: ReactJS (v18+) + Vite
-- **UI Framework**: Ant Design / TailwindCSS (Giao diện hiện đại, responsive, hỗ trợ Dark Mode)
-- **State Management**: Redux Toolkit / Zustand
-- **Map Library**: React-MapGL / Leaflet / Mapbox GL (Hiển thị bản đồ theo dõi Live Fleet GPS)
+- **Library & Build Tool**: ReactJS 18 + Vite 5
+- **UI Framework**: Ant Design + Lucide React (icon)
+- **Routing**: React Router
+- **State Management**: Zustand
+- **HTTP Client**: Axios
+- **Real-time Client**: socket.io-client
+- **Map Library**: Leaflet + React-Leaflet (tile bản đồ OpenStreetMap)
 
-### 6.3 Mobile App Stack (Driver & Customer Mobile Platform)
-- **Framework**: React Native (v0.72+) với Expo SDK (v49+)
-- **Navigation**: React Navigation (Native Stack + Bottom Tabs)
-- **Location Engine**: Expo Location & Background Task Manager (Thu thập tọa độ GPS khi chạy ngầm)
-- **Signature Engine**: React Native Signature Canvas (Vẽ chữ ký điện tử nghiệm thu POD)
+### 6.3 Mobile App Stack (Driver & Escort Mobile Platform)
+- **Đối tượng sử dụng**: Driver (điều hành hành trình, POD) và Escort (nhật ký sức khỏe ngựa); Customer sử dụng Web Application
+- **Framework**: React Native 0.86 với Expo SDK 57 (TypeScript)
+- **Navigation**: Expo Router (file-based routing)
+- **Lưu trữ phiên đăng nhập**: Expo Secure Store (lưu JWT an toàn trên thiết bị)
+- **Offline Queue**: Expo SQLite (lưu tạm check-in, nhật ký sức khỏe kèm ảnh, SOS khi mất mạng; tự đồng bộ khi có mạng trở lại)
+- **Camera & Ảnh**: Expo Image Picker (chụp ảnh thể trạng ngựa) + Expo Image Manipulator (thu nhỏ ≤1280px, nén JPEG trước khi gửi)
+- **Real-time Client**: socket.io-client (nhận thông báo)
+- **Signature Engine**: Tự xây dựng — ghi nét vẽ cảm ứng và chuyển thành ảnh PNG để nghiệm thu POD
+
+### 6.4 Kiến Trúc Hệ Thống (System Architecture)
+
+![System Architecture Diagram](docs/images/system-architecture.png)
+
+*Hình: Sơ đồ kiến trúc hệ thống (System Architecture Diagram)*
+
+Hệ thống được xây dựng theo mô hình **Client – Server** gồm 4 thành phần chính:
+
+| Thành phần | Công nghệ | Vai trò |
+| :--- | :--- | :--- |
+| **Client – Web Application** | ReactJS + Vite | Cổng quản trị & điều phối cho Manager, Specialist, Coordinator; cổng đặt đơn & thanh toán cho Customer. |
+| **Client – Mobile Application** | React Native (Expo) | Ứng dụng cho Driver/Escort: check-in điểm dừng, nhật ký sức khỏe, POD, SOS. Có hàng đợi offline (SQLite) tự đồng bộ khi có mạng. |
+| **Server** | Node.js + Express.js | Cung cấp RESTful API, xác thực JWT, phân quyền RBAC, xử lý nghiệp vụ, đẩy sự kiện realtime qua Socket.io. |
+| **Database** | MongoDB (Mongoose ODM) | Lưu trữ toàn bộ dữ liệu nghiệp vụ: người dùng, ngựa, đơn hàng, chuyến đi, giao dịch thanh toán, sự cố. |
+
+**Các luồng giao tiếp chính:**
+
+1. **Client ↔ Server (HTTPS / REST API)**: Web và Mobile gửi request tới `/api/v1` kèm JWT; Server trả về dữ liệu JSON.
+2. **Client ↔ Server (WebSocket / Realtime)**: Web và Mobile duy trì kết nối Socket.io (xác thực JWT) để nhận thông báo mới, cập nhật trạng thái chuyến/điểm dừng và cảnh báo SOS theo thời gian thực.
+3. **Server ↔ Database**: Server kết nối MongoDB qua Mongoose để đọc/ghi dữ liệu.
+
+**Tích hợp dịch vụ bên thứ ba:**
+
+| Dịch vụ | Kết nối với | Mục đích |
+| :--- | :--- | :--- |
+| **VNPAY** | Web Application, Server | Server tạo URL thanh toán có chữ ký; Web chuyển hướng Customer sang cổng VNPAY để đặt cọc/thanh toán; VNPAY gọi **IPN callback** về Server để xác nhận kết quả giao dịch. |
+| **OpenStreetMap** | Web Application, Server | Web tải tile bản đồ (Leaflet) để hiển thị vị trí & lộ trình; Server dùng **Nominatim** để tìm kiếm và chuyển đổi địa chỉ thành tọa độ (geocoding). |
+| **OSRM** | Server | Tính toán tuyến đường, quãng đường và thời gian di chuyển phục vụ lập kế hoạch chuyến. |
 
 ---
 
@@ -208,7 +247,7 @@ Tài liệu này xác định đầy đủ các yêu cầu nghiệp vụ, yêu c
 | :--- | :--- | :--- |
 | **AC-01** | Tạo & Duyệt Đơn | Customer tạo thành công đơn vận chuyển; Manager nhận thông báo và duyệt đơn < 3 click. Mã đơn `TR-XXXX` được khởi tạo tự động. |
 | **AC-02** | Số hóa Hộ chiếu Ngựa | Transport Specialist xem được bản số hóa hộ chiếu FEI, tiêm phòng; đánh dấu trạng thái duyệt hồ sơ thành công. |
-| **AC-03** | Định vị GPS Realtime | Xe di chuyển ngoài thực tế gửi tọa độ về server; Marker trên bản đồ Web ReactJS dịch chuyển tương ứng không cần F5 lại trang. |
+| **AC-03** | Check-in Hành trình Realtime | Driver bấm check-in điểm dừng trên Mobile App; tiến độ hành trình trên Web của Customer cập nhật tương ứng mà không cần F5 lại trang. |
 | **AC-04** | Nhập Nhật ký Sức khỏe | Escort chụp ảnh vết thương/thể trạng ngựa trên Mobile App; Ảnh và thông số nhiệt độ hiển thị tức thì trên dòng thời gian của Customer. |
 | **AC-05** | Báo động SOS Khẩn cấp | Bấm nút SOS 3s trên Mobile; Web Dashboard đổi màu đỏ, phát chuông báo động và hiển thị chính xác vị trí sự cố trên bản đồ. |
 | **AC-06** | Ký Bàn giao POD | Customer ký tên trực tiếp trên màn hình điện thoại; Chuyến đi đổi trạng thái `COMPLETED` và xuất file biên bản PDF thành công. |

@@ -72,6 +72,7 @@ exports.orderEvent = async (kind, orderId, key, extra = {}) => {
       POD_SIGNED: ['Khách hàng đã ký nhận', 'Tài xế kiểm tra km cuối và xác nhận hoàn thành chuyến.', [], false, true],
       COMPLETED: ['Chuyến đã hoàn thành', 'Tài xế đã xác nhận giao xong. Mở đơn để xem thông tin chuyến.', ['LOGISTICS_MANAGER'], true],
       SOS: ['SOS — Cần tiếp nhận ngay', extra.reason || 'Có sự cố khẩn cấp. Mở xử lý SOS và xác nhận tiếp nhận.', ['LOGISTICS_MANAGER', 'FLEET_COORDINATOR', 'ROUTE_COORDINATOR']],
+      HEALTH_LOG: ['Cập nhật sức khỏe ngựa', extra.reason || 'Phụ xe vừa ghi nhật ký sức khỏe. Mở hành trình để xem chi tiết.', [], true],
       SOS_RESOLVED: ['Sự cố đã được xử lý', 'Kiểm tra trạng thái chuyến và hướng dẫn điều phối trước khi tiếp tục.', [], false, true]
     };
     const event = events[kind];
@@ -85,6 +86,7 @@ exports.orderEvent = async (kind, orderId, key, extra = {}) => {
       const document = kind.startsWith('DOC_');
       let webPath = `/orders/${order._id}${document ? '?tab=documents' : ''}`;
       if (kind === 'SOS') webPath = '/incidents/sos';
+      else if (kind === 'HEALTH_LOG') webPath = `/orders/${order._id}?tab=journey`;
       else if (specialist) webPath = `/specialist/compliance?orderId=${order._id}`;
       else if (user.role === 'LOGISTICS_MANAGER' && ['CREATED', 'DEPOSIT_PAID', 'PLAN_CONFIRMED', 'PLAN_DECLINED'].includes(kind)) webPath = `/manager/${kind === 'PLAN_CONFIRMED' ? 'approvals' : 'intake'}?orderId=${order._id}`;
       else if (['FLEET_COORDINATOR', 'ROUTE_COORDINATOR'].includes(user.role)) webPath = `/fleet/trips/${order._id}`;

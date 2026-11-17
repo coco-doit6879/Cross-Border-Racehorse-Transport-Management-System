@@ -12,7 +12,7 @@ type Movement = { horseId: string; loadedAt?: string; unloadedAt?: string };
 type Workflow = { customsCheckpoints?: { name: string; countryCode: string; status: string; actualArrival?: string }[]; pod?: { signerName: string; signedAt: string } | null; order: { _id: string; horseIds: Horse[]; contacts?: { recipient?: { fullName?: string; phone?: string } } }; route: { _id: string; status: string; rescuePending?: boolean; acceptedAt?: string; odometerStart?: number; odometerEnd?: number; operationsVersion?: number; horseMovements?: Movement[]; clearances?: { _id: string; horseId: string; checkpoint: string; status: string }[] } };
 type Document = { _id: string; documentType: string; status: string; fileUrl?: string; stage?: string; expiresAt?: string };
 
-export function TripOperations({ orderId, onChanged, compact = false, onSigning }: { orderId: string; onChanged: () => void; compact?: boolean; onSigning?: (active: boolean) => void }) {
+export function TripOperations({ orderId, onChanged, compact = false, onSigning, isDriver = true }: { orderId: string; onChanged: () => void; compact?: boolean; onSigning?: (active: boolean) => void; isDriver?: boolean }) {
   const { apiFetch, accessToken } = useSession();
   const [data, setData] = useState<Workflow | null>(null);
   const [departureReady, setDepartureReady] = useState(false);
@@ -71,7 +71,7 @@ export function TripOperations({ orderId, onChanged, compact = false, onSigning 
     {!!error && button('Thử tải lại', load)}
     {route.status === 'SCHEDULED' && <Text style={{ color: departureReady ? colors.primary : colors.danger }}>{departureReady ? 'Chuyên viên đã xác nhận hồ sơ khởi hành.' : 'Chờ chuyên viên xác nhận hồ sơ khởi hành. Khách chỉ bổ sung khi chuyên viên có yêu cầu.'}</Text>}
     <Text style={ui.caption}>{route.acceptedAt ? `Đã nhận: ${new Date(route.acceptedAt).toLocaleString('vi-VN')}` : 'Chưa xác nhận nhận nhiệm vụ'}</Text>
-    {route.status === 'SCHEDULED' && !route.acceptedAt && button('Tôi tiếp nhận vận đơn', () => act('ACCEPT'))}
+    {isDriver && route.status === 'SCHEDULED' && !route.acceptedAt && button('Tôi tiếp nhận vận đơn', () => act('ACCEPT'))}
     {data.order.horseIds.map(horse => {
       const movement = route.horseMovements?.find(m => m.horseId === horse._id);
       return <View key={horse._id} style={ui.horse}><Text style={{ fontWeight: '700' }}>{horse.name} · {horse.microchipId}</Text><Text style={ui.caption}>{movement?.unloadedAt ? 'Đã giao ngựa' : movement?.loadedAt ? 'Ngựa đang trên xe' : 'Chưa lên xe'}</Text>
@@ -85,7 +85,7 @@ export function TripOperations({ orderId, onChanged, compact = false, onSigning 
         ? <PodCapture tripId={route._id} orderId={data.order._id} horses={data.order.horseIds} recipient={data.order.contacts?.recipient} onSigning={onSigning} onDone={() => { void load(); onChanged(); }} />
         : <Text style={ui.caption}>Sau khi giao đủ ngựa và ghi km cuối, người nhận ký biên bản giao nhận ngay trên máy này.</Text>)}
     <Text style={ui.odometer}>Km đầu: {route.odometerStart ?? 'Chưa ghi'} · Km cuối: {route.odometerEnd ?? 'Chưa ghi'}</Text>
-    {route.rescuePending && <><Text>Đối chiếu toàn bộ mã chip ở trên trước khi tiếp nhận xe cứu hộ.</Text><TextInput style={ui.input} placeholder="Km đầu xe thay thế" keyboardType="decimal-pad" value={km} onChangeText={setKm} />{button('Xác nhận đã nhận đủ ngựa trên xe thay thế', () => Alert.alert('Xác nhận bàn giao', 'Bạn đã kiểm tra đúng và đủ tất cả ngựa?', [{ text: 'Chưa', style: 'cancel' }, { text: 'Đã nhận đủ', onPress: () => act('ACCEPT_RESCUE', { value: Number(km), confirmAllHorses: true }) }]), !km.trim() || !Number.isFinite(Number(km)))}</>}
+    {isDriver && route.rescuePending && <><Text>Đối chiếu toàn bộ mã chip ở trên trước khi tiếp nhận xe cứu hộ.</Text><TextInput style={ui.input} placeholder="Km đầu xe thay thế" keyboardType="decimal-pad" value={km} onChangeText={setKm} />{button('Xác nhận đã nhận đủ ngựa trên xe thay thế', () => Alert.alert('Xác nhận bàn giao', 'Bạn đã kiểm tra đúng và đủ tất cả ngựa?', [{ text: 'Chưa', style: 'cancel' }, { text: 'Đã nhận đủ', onPress: () => act('ACCEPT_RESCUE', { value: Number(km), confirmAllHorses: true }) }]), !km.trim() || !Number.isFinite(Number(km)))}</>}
     {['SCHEDULED', 'DELIVERING'].includes(route.status) && (route.status === 'SCHEDULED' ? route.odometerStart == null : route.odometerEnd == null) && <><TextInput accessibilityLabel="Chỉ số công-tơ-mét" placeholder="Nhập chỉ số km trên xe" keyboardType="decimal-pad" value={km} onChangeText={setKm} style={ui.input} />{button(route.status === 'SCHEDULED' ? 'Lưu km đầu chuyến' : 'Lưu km cuối chuyến', () => act('ODOMETER', { kind: route.status === 'SCHEDULED' ? 'START' : 'END', value: Number(km) }), !km.trim() || !Number.isFinite(Number(km)))}</>}
     {!compact && <>
     <Text style={ui.heading}>Thông quan — do vận hành cập nhật</Text>

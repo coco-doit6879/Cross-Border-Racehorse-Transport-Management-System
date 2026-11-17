@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useSession } from '@/context/session';
 import { listOfflineEvents, removeOfflineEvents } from '@/lib/offlineQueue';
+import { takeSyncBatch } from '@/lib/syncBatch';
 import { colors } from '@/theme';
 import type { TransportRoute } from '@/types/domain';
 
@@ -24,12 +25,13 @@ export default function TripsScreen() {
   const openTrip = (trip: TransportRoute) => router.push({ pathname: '/(driver)/trips/[id]', params: { id: trip._id } });
 
   const syncQueue = useCallback(async () => {
-    const events = (await listOfflineEvents(user?.id || '')).slice(0, 100); setPending(events.length);
+    const queued = await listOfflineEvents(user?.id || ''); setPending(queued.length);
+    const events = takeSyncBatch(queued);
     if (!events.length) return;
     try {
       const body = await apiFetch<{ results: { event_id: string; status: string }[] }>('/sync/events', { method: 'POST', body: JSON.stringify({ events }) });
       const done = body.results.filter((item) => item.status === 'SUCCESS').map((item) => item.event_id);
-      await removeOfflineEvents(done); setPending(events.length - done.length);
+      await removeOfflineEvents(done); setPending(queued.length - done.length);
     } catch { /* giữ lại để đồng bộ ở lần sau */ }
   }, [apiFetch, user?.id]);
 

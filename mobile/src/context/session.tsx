@@ -83,11 +83,11 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const signIn = useCallback(async (identifier: string, password: string) => {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: identifier.trim(), email: identifier.trim(), password, deviceName: `${Platform.OS} driver app` }),
+      body: JSON.stringify({ username: identifier.trim(), email: identifier.trim(), password, deviceName: `${Platform.OS} crew app` }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.message || 'Tên đăng nhập hoặc mật khẩu không đúng.');
-    if (body.user?.role !== 'DRIVER') throw new Error('Ứng dụng này chỉ dành cho tài xế.');
+    if (!['DRIVER', 'ESCORT'].includes(body.user?.role)) throw new Error('Ứng dụng này chỉ dành cho tài xế và phụ xe.');
     await persist(body.user, body.accessToken, body.refreshToken);
   }, [persist]);
 

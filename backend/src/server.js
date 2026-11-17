@@ -36,6 +36,9 @@ require('./services/operationsWatchdog').start();
 
 // Middlewares
 app.use(cors());
+// Health logs carry an optional camera photo (data URL); offline sync may batch several.
+app.use(['/api/health-logs', '/api/v1/health-logs'], express.json({ limit: '2mb' }));
+app.use(['/api/sync', '/api/v1/sync'], express.json({ limit: '8mb' }));
 app.use(express.json());
 const requestLimits = require('./middlewares/requestLimits');
 app.use(['/api/auth/login', '/api/v1/auth/login', '/api/auth/register', '/api/v1/auth/register'], requestLimits(20, 60000));

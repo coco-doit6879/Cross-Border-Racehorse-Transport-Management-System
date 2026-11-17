@@ -20,5 +20,14 @@ export type TransportRoute = {
   currentLocation?: { coordinates: [number, number]; updatedAt: string } | null;
 };
 export type OfflineEvent = {
-  event_id: string; event_type: 'WAYPOINT_CHECKIN' | 'SOS_TRIGGER'; payload: Record<string, unknown>;
+  event_id: string; event_type: 'WAYPOINT_CHECKIN' | 'SOS_TRIGGER' | 'HEALTH_LOG'; payload: Record<string, unknown>;
+};
+export type HealthLog = {
+  _id: string; eventId: string; tripId: string;
+  horseId: { _id: string; name: string } | string;
+  recordedBy?: { fullName?: string } | string;
+  temperatureCelsius: number; waterIntakeLiters: number; foodIntakeStatus: string;
+  condition: 'STABLE' | 'STRESSED' | 'UNSTABLE';
+  alertType: 'NONE' | 'FEVER' | 'INJURED' | 'DEHYDRATION';
+  notes?: string; recordedAt: string; hasPhoto?: boolean; photoPath?: string | null;
 };

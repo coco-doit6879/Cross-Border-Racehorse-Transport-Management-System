@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import LocationMap from '../../components/common/LocationMap';
 import ComplianceDocuments from '../../components/operations/ComplianceDocuments';
 import OrderOperations from '../../components/operations/OrderOperations';
+import HealthTimeline from '../../components/operations/HealthTimeline';
 import { Workspace, StatusPill } from '../../components/operations/OperationsUI';
 import './order-detail.css';
 import api from '../../services/apiClient';
@@ -14,6 +15,7 @@ import {ORDER_STEPS,customerOrderState} from '../../utils/customerOrders';
 const formatVnd = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 const locationText = value => typeof value === 'string' ? value : value?.address || 'Chưa cập nhật';
 const progressLabels = ORDER_STEPS;
+const tabFromSearch = search => ({ documents: 'documents', journey: 'journey' })[new URLSearchParams(search).get('tab')] || 'overview';
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -21,13 +23,13 @@ const OrderDetail = () => {
   const { orders, fetchOrderById, createVnpayPayment, loading, error } = useOrderStore();
   const user = useAuthStore(state => state.user);
   const [paymentOpen, setPaymentOpen] = useState(Boolean(location.state?.openPayment));
-  const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') === 'documents' ? 'documents' : 'overview');
-  const [visited, setVisited] = useState(['overview', ...(new URLSearchParams(location.search).get('tab') === 'documents' ? ['documents'] : [])]);
+  const [tab, setTab] = useState(tabFromSearch(location.search));
+  const [visited, setVisited] = useState(['overview', tabFromSearch(location.search)]);
   const [pendingDocuments, setPendingDocuments] = useState(0);
   const [mapOpen, setMapOpen] = useState(false);
   const order = orders.find(o => String(o.id || o._id) === String(id) || o.orderCode === id);
   useEffect(() => { if (id) fetchOrderById(id).catch(() => {}); }, [fetchOrderById, id]);
-  useEffect(() => { const target = new URLSearchParams(location.search).get('tab') === 'documents' ? 'documents' : 'overview'; setTab(target); setVisited(['overview', target]); setMapOpen(false); }, [id, location.search]);
+  useEffect(() => { const target = tabFromSearch(location.search); setTab(target); setVisited(['overview', target]); setMapOpen(false); }, [id, location.search]);
   useEffect(() => {
     if (!order?._id && !order?.id) return;
     let active = true;
@@ -86,6 +88,7 @@ const OrderDetail = () => {
     <div hidden={tab !== 'journey'}>
       <p className="ops-secondary">Lịch khởi hành tính theo giờ tại điểm đón ({order.departureTimezone}).</p>
       {visited.includes('journey') && <section className="order-map-section"><div><h2>Bản đồ tuyến đường</h2><p>Chỉ mở bản đồ khi cần tra cứu điểm đón và điểm giao.</p></div><Button aria-expanded={mapOpen} onClick={() => setMapOpen(value => !value)}>{mapOpen ? 'Thu gọn bản đồ' : 'Xem bản đồ'}</Button>{mapOpen && order.originLocation && order.destinationLocation && <div className="order-map-frame"><LocationMap originLocation={order.originLocation} destinationLocation={order.destinationLocation} height="280px" /></div>}</section>}
+      {visited.includes('journey') && <HealthTimeline orderId={order.id || order._id} />}
     </div>
     <div hidden={tab !== 'documents'}>{visited.includes('documents') && <ComplianceDocuments orderId={order.id || order._id} customer={user?.role === 'CUSTOMER'} specialist={user?.role === 'TRANSPORT_SPECIALIST'} onChanged={refresh} />}</div>
     <div hidden={tab !== 'finance'}>

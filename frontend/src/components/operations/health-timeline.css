@@ -1,0 +1,28 @@
+.health-timeline { border: 1px solid #dfe5e0; border-radius: 10px; padding: 20px; background: #fff; margin-top: 16px; }
+.health-timeline-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.health-timeline-head h2 { font-size: 18px; font-weight: 600; margin: 0; }
+.health-timeline-head p { color: #66716b; font-size: 15px; line-height: 1.6; margin: 6px 0 0; max-width: 60ch; }
+.health-empty, .health-error { margin: 16px 0 0; color: #66716b; }
+.health-error { color: #b42318; }
+.health-list { list-style: none; margin: 18px 0 0; padding: 0 0 0 18px; border-left: 2px solid #e6eae6; display: grid; gap: 16px; }
+.health-item { position: relative; border: 1px solid #e6eae6; border-radius: 10px; padding: 14px 16px; background: #fbfcfb; transition: box-shadow .3s; }
+.health-item::before { content: ''; position: absolute; left: -26px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--brand-primary, #243c32); border: 2px solid #fff; }
+.health-item.is-alarm { border-color: #f5b5b0; background: #fff6f5; }
+.health-item.is-alarm::before { background: #b42318; }
+.health-item.is-fresh { box-shadow: 0 0 0 3px #c4cec0; }
+.health-item-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.health-item-head time { color: #66716b; font-size: 13px; }
+.health-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 10px 0 0; }
+.health-metrics dt { font-size: 12px; color: #66716b; }
+.health-metrics dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.is-alarm-text { color: #b42318; }
+.is-ok-text { color: #1f7a4d; }
+.health-notes { margin: 10px 0 0; line-height: 1.55; }
+.health-photo { border-radius: 8px; margin-top: 10px; max-width: 100%; height: auto; }
+.health-photo-loading { width: 220px; max-width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; margin-top: 10px; background: #eef1ee; }
+.health-photo-missing { color: #66716b; font-size: 13px; margin: 10px 0 0; }
+.health-by { display: block; margin-top: 8px; color: #66716b; font-size: 12px; }
+@media (max-width: 640px) {
+  .health-timeline { padding: 16px; }
+  .health-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

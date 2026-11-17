@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TripOperations } from '@/components/TripOperations';
+import { HealthLogPanel } from '@/components/HealthLogPanel';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useSession } from '@/context/session';
 import { colors } from '@/theme';
@@ -12,12 +13,13 @@ const name = (value: string) => value;
 const labels = { PICKUP: 'Điểm đón', REST_STOP: 'Dừng nghỉ', BORDER_CUSTOMS: 'Cửa khẩu', VET_CHECK: 'Kiểm tra sức khỏe', DELIVERY: 'Điểm giao' };
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { apiFetch } = useSession();
+  const { apiFetch, user } = useSession();
+  const isDriver = user?.role === 'DRIVER';
   const [route, setRoute] = useState<TransportRoute | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
-  const [documents, setDocuments] = useState(false);
+  const [tab, setTab] = useState<'journey' | 'documents' | 'health'>(user?.role === 'ESCORT' ? 'health' : 'journey');
   const [signing, setSigning] = useState(false);
   const lock = useRef(false);
   const load = useCallback(async () => {
@@ -70,8 +72,8 @@ export default function TripDetailScreen() {
         <View style={s.row}><Text style={s.heroMeta}>{done}/{ordered.length} điểm đã đến</Text><Text style={s.heroMeta}>{route.orderId.horseIds.length} ngựa</Text></View>
       </View>
       <View style={s.summary}><Text style={s.eyebrow}>THÔNG TIN VẬN CHUYỂN</Text><View style={s.summaryRoute}><View style={s.routeMarker} /><View style={{ flex: 1 }}><Text style={s.caption}>Điểm đón</Text><Text style={s.summaryTitle}>{route.orderId.origin.address}</Text></View></View><View style={s.summaryRoute}><View style={[s.routeMarker, { borderRadius: 2, backgroundColor: colors.primary }]} /><View style={{ flex: 1 }}><Text style={s.caption}>Điểm giao</Text><Text style={s.summaryTitle}>{route.orderId.destination.address}</Text></View></View><View style={s.summaryBottom}><Text style={s.caption}>{route.vehiclePlateNumber} · {route.orderId.horseIds.length} ngựa</Text><Text style={s.caption}>{new Date(route.orderId.requestedDepartureDate).toLocaleDateString('vi-VN')}</Text></View></View>
-      <View style={s.tabs}>{[false, true].map(value => <Pressable accessibilityRole="tab" accessibilityState={{ selected: documents === value }} key={String(value)} style={[s.tab, documents === value && s.tabActive]} onPress={() => setDocuments(value)}><Text style={[s.tabText, documents === value && s.tabTextActive]}>{value ? 'Ngựa & hồ sơ' : 'Hành trình'}</Text></Pressable>)}</View>
-      {!documents ? <>
+      <View style={s.tabs}>{([['journey', 'Hành trình'], ['health', 'Sức khỏe'], ['documents', 'Ngựa & hồ sơ']] as const).map(([value, label]) => <Pressable accessibilityRole="tab" accessibilityState={{ selected: tab === value }} key={value} style={[s.tab, tab === value && s.tabActive]} onPress={() => setTab(value)}><Text style={[s.tabText, tab === value && s.tabTextActive]}>{label}</Text></Pressable>)}</View>
+      {tab === 'health' ? <HealthLogPanel tripId={route._id} orderId={route.orderId._id} status={route.status} canRecord={user?.role === 'ESCORT'} /> : tab === 'journey' ? <>
         <View style={s.row}><Text style={s.sectionTitle}>Các điểm dừng</Text><Text style={s.caption}>{ordered.length} điểm</Text></View>
         <View style={s.timeline}>{ordered.map((w, index) => {
           const arrived = w.status === 'ARRIVED', focus = !completed && !delivering && w._id === next?._id;
@@ -80,12 +82,12 @@ export default function TripDetailScreen() {
             <View style={[s.stopBody, index === ordered.length - 1 && { paddingBottom: 0 }]}><View style={s.row}><Text style={s.stopType}>{labels[w.type]}</Text>{focus && <Text style={s.pill}>Tiếp theo</Text>}</View><Text style={[s.stopTitle, focus && { color: colors.primary }]}>{name(w.name)}</Text><Text style={s.caption}>{w.actualArrival ? `Đã đến ${new Date(w.actualArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : `Dự kiến ${new Date(w.estimatedArrival).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}</Text></View>
           </View>;
         })}</View>
-        {(preparing || delivering || route.status === 'IN_TRANSIT') && <><Text style={s.sectionTitle}>{preparing ? 'Chuẩn bị khởi hành' : delivering ? 'Hoàn tất bàn giao' : 'Hồ sơ & thông quan trong hành trình'}</Text><TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} onSigning={setSigning} compact={route.status !== 'IN_TRANSIT'} /></>}
-      </> : <TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} onSigning={setSigning} />}
+        {(preparing || delivering || route.status === 'IN_TRANSIT') && <><Text style={s.sectionTitle}>{preparing ? 'Chuẩn bị khởi hành' : delivering ? 'Hoàn tất bàn giao' : 'Hồ sơ & thông quan trong hành trình'}</Text><TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} onSigning={setSigning} compact={route.status !== 'IN_TRANSIT'} isDriver={isDriver} /></>}
+      </> : <TripOperations key={route.status} orderId={route.orderId._id} onChanged={load} onSigning={setSigning} isDriver={isDriver} />}
     </ScrollView>
     <View style={s.footer}>
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-      {preparing || delivering || route.status === 'IN_TRANSIT' ? <><Text style={s.footerHint}>{preparing ? 'Hoàn tất kiểm tra trước khi khởi hành' : next ? name(next.name) : 'Chuyển sang giao nhận'}</Text><Pressable accessibilityRole="button" disabled={working} onPress={advance} style={[s.button, working && { opacity: 0.6 }]}>{working ? <ActivityIndicator color="#fff" /> : <Text style={s.buttonText}>{actionLabel}  →</Text>}</Pressable></> : <Text style={s.footerHint}>{delivering ? 'Hoàn tất giao ngựa và km cuối rồi bấm hoàn thành chuyến'  : incident ? 'Điều phối đang xử lý sự cố' : 'Chuyến đã kết thúc'}</Text>}
+      {!isDriver ? <Text style={s.footerHint}>Tài xế cập nhật tiến độ hành trình. Phụ xe ghi nhật ký sức khỏe ở mục Sức khỏe.</Text> : preparing || delivering || route.status === 'IN_TRANSIT' ? <><Text style={s.footerHint}>{preparing ? 'Hoàn tất kiểm tra trước khi khởi hành' : next ? name(next.name) : 'Chuyển sang giao nhận'}</Text><Pressable accessibilityRole="button" disabled={working} onPress={advance} style={[s.button, working && { opacity: 0.6 }]}>{working ? <ActivityIndicator color="#fff" /> : <Text style={s.buttonText}>{actionLabel}  →</Text>}</Pressable></> : <Text style={s.footerHint}>{delivering ? 'Hoàn tất giao ngựa và km cuối rồi bấm hoàn thành chuyến'  : incident ? 'Điều phối đang xử lý sự cố' : 'Chuyến đã kết thúc'}</Text>}
     </View>
   </SafeAreaView>;
 }

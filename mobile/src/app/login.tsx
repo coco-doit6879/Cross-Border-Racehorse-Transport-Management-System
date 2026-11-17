@@ -26,7 +26,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled"><Text style={styles.kicker}>CBRT · DRIVER PORTAL</Text><View style={styles.mark}><Text style={styles.horse}>♞</Text></View>
         <Text style={styles.title}>Sẵn sàng cho hành trình.</Text>
-        <Text style={styles.subtitle}>Ứng dụng điều hành chuyến dành cho tài xế</Text>
+        <Text style={styles.subtitle}>Ứng dụng điều hành chuyến dành cho tài xế và phụ xe</Text>
         <View style={styles.card}><Text style={styles.cardTitle}>Đăng nhập</Text><Text style={styles.cardHint}>Truy cập chuyến được phân công của bạn.</Text>
           <Text style={styles.label}>Tài khoản hoặc email</Text>
           <TextInput style={styles.input} value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoCorrect={false} accessibilityLabel="Tài khoản hoặc email" placeholderTextColor={colors.muted} placeholder="Nhập tài khoản" />

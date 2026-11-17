@@ -51,6 +51,10 @@ const healthLogSchema = new mongoose.Schema({
   photoUrl: {
     type: String
   },
+  photoId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HealthPhoto'
+  },
   notes: {
     type: String
   },

@@ -86,30 +86,8 @@ exports.syncOfflineEvents = async (req, res, next) => {
           }
 
           case 'HEALTH_LOG': {
-            await require('../services/resourceAccess').validateHealthAssignment(req.user, payload.tripId, payload.horseId);
-            const existingLog = await HealthLog.findOne({ eventId });
-            if (existingLog) {
-              if (String(existingLog.tripId) !== String(payload.tripId) || String(existingLog.recordedBy) !== String(req.user._id)) throw new Error('Sự kiện không thuộc nhật ký của bạn.');
-              await require('../services/healthEscalation')(existingLog, req);
-              syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: true });
-              break;
-            }
-            const healthLog = await HealthLog.create({
-              eventId,
-              tripId: payload.tripId,
-              horseId: payload.horseId,
-              recordedBy: req.user._id,
-              temperatureCelsius: payload.temperatureCelsius,
-              waterIntakeLiters: payload.waterIntakeLiters,
-              foodIntakeStatus: payload.foodIntakeStatus,
-              condition: payload.condition,
-              alertType: payload.alertType || 'NONE',
-              photoUrl: payload.photoUrl,
-              notes: payload.notes,
-              recordedAt: payload.recordedAt || new Date()
-            });
-            await require('../services/healthEscalation')(healthLog, req);
-            syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate: false });
+            const { isDuplicate } = await require('../services/healthLogs').recordHealthLog(req, { ...payload, eventId });
+            syncResults.push({ event_id: eventId, status: 'SUCCESS', isDuplicate });
             break;
           }
 

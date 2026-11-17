@@ -42,7 +42,7 @@ const { protect, checkPermission } = require('../middlewares/authMiddleware');
  *               foodIntakeStatus: { type: string, example: 'NORMAL' }
  *               condition: { type: string, enum: [STABLE, STRESSED, UNSTABLE], example: 'STABLE' }
  *               alertType: { type: string, enum: [NONE, FEVER, INJURED, DEHYDRATION], example: 'NONE' }
- *               photoUrl: { type: string }
+ *               photoData: { type: string, description: 'Ảnh chụp dạng data URL (image/jpeg|png|webp; base64), tối đa 1,5 MB' }
  *               notes: { type: string }
  *     responses:
  *       201:
@@ -51,5 +51,24 @@ const { protect, checkPermission } = require('../middlewares/authMiddleware');
 router.route('/')
   .get(protect, healthLogController.getHealthLogs)
   .post(protect, checkPermission('welfare:log'), healthLogController.createHealthLog);
+
+/**
+ * @swagger
+ * /health-logs/{id}/photo:
+ *   get:
+ *     summary: Get the photo attached to a health log (crew, order owner or staff)
+ *     tags: [Equine Health & Welfare Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Image bytes
+ */
+router.get('/:id/photo', protect, healthLogController.getHealthLogPhoto);
 
 module.exports = router;
